@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Context Budget Project — Context Engineering for Everyone</title>
+<meta name="description" content="L1 Guided project: diagnose a fictional legal-aid intake assistant's five-line context budget ledger gaps and produce a prioritized fix plan.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-01">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../interview-questions.html">&larr; Back to interview questions</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 1 Project &middot; L1 Guided</span>
+    <span class="reading-time">~45 min</span>
+  </div>
+  <h1>Project: Diagnose CaseNote's Ledger Gaps</h1>
+  <p>
+    Meridian Legal Aid Network's fictional intake assistant, CaseNote,
+    has been running for three months on nothing but a good prompt.
+    You're given five real, specific facts about how it operates today
+    — no attack, no exotic failure, just a team that shipped fast and
+    never came back. Your task: diagnose which of the five ledger lines
+    each fact belongs to, propose a concrete fix, and prioritize the
+    order you'd tackle them in, with real reasoning.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Why this project, not something more open-ended</span>
+    A first project that asked "build a context-engineered feature"
+    before you'd practiced <em>diagnosing</em> gaps in an existing one
+    would skip the more foundational skill. Diagnosis is what every
+    later chapter's hands-on work depends on; building new systems with
+    the missing lines already filled in is what Chapters 2-12 have you
+    practice, one line at a time.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run it</span>
+    Download <code>starter.py</code>, fill in the diagnosis and
+    prioritization, then run <code>python3 starter.py</code> to see a
+    structural self-check (this task is open-ended, so it verifies
+    completeness and well-formedness, not one exact wording). Compare
+    against <code>solution.py</code>, then self-grade against
+    <code>RUBRIC.md</code>.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+    <a href="RUBRIC.md">RUBRIC.md</a>
+    <a href="README.md">README.md</a>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you're given</h3>
+    <p>Five numbered facts about CaseNote's current operation — how its system prompt has grown, how retrieved articles never get evicted, how it handles a long intake transcript, how it handles memory across sessions, and how it budgets its own response.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you produce</h3>
+    <p>For each fact: the ledger line it maps to, the evidence in your own words, and one concrete engineering fix. Then a prioritized order for all five fixes, with a real justification — the same shape as the lesson's own Brackwater walkthrough table, applied by you, to a fresh system.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Passing bar</h2>
+    <p>16/20 (80%) or higher on <code>RUBRIC.md</code>'s five criteria, with no single criterion scoring 0. <code>solution.py</code> is one complete, valid reference diagnosis scoring a full 20/20 — not the only correct wording, since this project is intentionally open-ended.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../interview-questions.html">&larr; Interview Questions</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

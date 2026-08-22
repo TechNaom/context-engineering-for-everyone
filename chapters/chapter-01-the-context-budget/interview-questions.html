@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Context Budget Interview Questions — Context Engineering for Everyone</title>
+<meta name="description" content="Interview questions for The Context Budget.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-01">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="practice/index.html">&larr; Back to practice bank</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 1 Interview Questions</span>
+    <span class="reading-time">~18 min</span>
+  </div>
+  <h1>Interview Questions: The Context Budget</h1>
+  <p>Grouped by level — beginner, intermediate, senior, architect. Each includes a strong answer, a red flag, a follow-up, and what the question actually proves.</p>
+
+  <div class="lesson-card">
+    <h2>1. (Beginner) Why isn't "the model has a huge context window now" enough to guarantee it will use everything you put in it correctly?</h2>
+    <p><strong>Strong answer:</strong> A large context window changes how much content fits, not how reliably the model uses every part of it. Research shows a real position effect: information at the beginning or end of a long context is used more reliably than information buried in the middle. A window can have plenty of unused capacity and still lose a fact functionally, because of where it sits, not whether it's technically present.</p>
+    <p><strong>Red flag:</strong> Treats "it fits in the window" and "the model will use it correctly" as the same claim.</p>
+    <p><strong>Follow-up:</strong> "Name one concrete technique for making a critical fact more likely to be used, beyond just including it somewhere."</p>
+    <p><strong>What this proves:</strong> Understands this course's central distinction — presence and reliable use are different properties.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>2. (Beginner) In the lesson's hook, SignalDesk's prompt template never changed, and it still caused a production incident. How is that possible?</h2>
+    <p><strong>Strong answer:</strong> The failure wasn't in the versioned, reviewed prompt template — it was in the dynamic content poured into that template every request: an unbounded, unsummarized conversation transcript that eventually got blindly truncated, dropping a load-bearing early fact. The same well-reviewed template can produce a correct result on one request and a broken one on the next, purely because of what filled it that specific time.</p>
+    <p><strong>Red flag:</strong> Assumes the incident means the prompt itself was badly written or under-reviewed.</p>
+    <p><strong>Follow-up:</strong> "Which ledger line was actually responsible, and which one wasn't?"</p>
+    <p><strong>What this proves:</strong> Separates "the template is broken" from "the content that filled it was mismanaged" — the exact distinction that separates this course from prompt-template versioning.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>3. (Intermediate) Walk through why treating a context window as "just keep appending everything" eventually fails, even with a very large window.</h2>
+    <p><strong>Strong answer:</strong> Two mechanisms compound. Cost and latency scale with every token sent, so unbounded appending gets expensive and slow well before it gets impossible. More subtly, models show measurable accuracy degradation as token count grows ("context rot"), meaning relevant content becomes less reliably used even while still technically present. A bigger window delays the hard failure but doesn't fix the accuracy degradation, which starts well before the window's limit is reached.</p>
+    <p><strong>Red flag:</strong> Suggests a bigger context window alone solves unbounded appending, without naming the accuracy-degradation mechanism.</p>
+    <p><strong>Follow-up:</strong> "What would you actually build instead of 'just keep appending'?"</p>
+    <p><strong>What this proves:</strong> Understands why compression and curation are a distinct discipline from "get a bigger window."</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>4. (Intermediate) A teammate says "we don't need a memory system — the model just remembers everything in the conversation." What's the gap in that reasoning?</h2>
+    <p><strong>Strong answer:</strong> A model doesn't "remember" anything between requests — every request is a fresh construction job built from whatever the surrounding code decides to include. Within one long conversation, an unmanaged transcript can also silently drop early facts through truncation. "The model remembers" describes an illusion created by faithfully replaying history each time, one that breaks the moment history has to be trimmed or a new conversation starts with no persistent store behind it.</p>
+    <p><strong>Red flag:</strong> Treats in-context conversation replay as equivalent to a real, engineered memory system.</p>
+    <p><strong>Follow-up:</strong> "What's the difference between short-term and long-term memory in this course's terms, and why does that matter?"</p>
+    <p><strong>What this proves:</strong> Understands memory as a system to be designed, not an emergent property of a big enough window.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>5. (Senior) You inherit a long-running assistant with a well-managed, versioned prompt template and nothing else — no budget policy, no memory system, no compression, no multi-source assembly discipline, no context evaluation. Where do you start, and why?</h2>
+    <p><strong>Strong answer:</strong> Start with an explicit budget allocation across the five ledger lines before touching anything else — without a real budget, you can't tell which line is the actual bottleneck. Conversation-history compression is usually the next highest-leverage fix, since unmanaged history is the fastest-growing, most common failure mode. Multi-source assembly and context evaluation matter but have a smaller blast radius if the budget and memory layers underneath are still broken.</p>
+    <p><strong>Red flag:</strong> Picks one line in isolation without justifying the ordering, or claims all five lines are equally urgent.</p>
+    <p><strong>Follow-up:</strong> "If you only had budget for two of the five lines this quarter, which two, and what would you accept as residual risk?"</p>
+    <p><strong>What this proves:</strong> Can prioritize context engineering work under real constraints.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>6. (Senior) How would you explain to a skeptical engineering manager why "just use a bigger context window" isn't a complete fix for a long-running assistant's quality problems?</h2>
+    <p><strong>Strong answer:</strong> A bigger window increases how much content technically fits, but doesn't change two independently documented mechanisms: content in the middle of a long context is used less reliably regardless of window size, and model accuracy measurably degrades as token count grows even before the window fills ("context rot"). A bigger window also directly increases cost and latency. The fix for both is deliberate curation, not a bigger container to be less careful with.</p>
+    <p><strong>Red flag:</strong> Argues "just upgrade to the larger-context model" as a sufficient fix, without naming either mechanism.</p>
+    <p><strong>Follow-up:</strong> "Give a concrete example of a system that would still fail with a 10x larger context window, unchanged otherwise."</p>
+    <p><strong>What this proves:</strong> Can communicate the real, structural difference between capacity and reliable use to a non-specialist stakeholder.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>7. (Architect) Design an org-wide "context readiness" gate that every team's long-running or multi-step LLM feature must pass before its first production deploy. What does it check, and why?</h2>
+    <p><strong>Strong answer:</strong> Frame the gate around the five-line ledger as concrete, checkable criteria: an explicit token budget for each line including reserved output; a real conversation-history eviction/compression policy with a test proving a planted fact survives; a defined recall policy for any persistent memory, independent of transcript survival; a defined conflict-resolution rule for multi-source assembly; and a context-quality check before the assembled context reaches the model. Make it a self-attested checklist with evidence, not a subjective sign-off, with a documented exception process for low-stakes, short-lived interactions.</p>
+    <p><strong>Red flag:</strong> Proposes a vague "review board" with no concrete, checkable criteria, or a gate so heavy every team needs an exception.</p>
+    <p><strong>Follow-up:</strong> "How would this gate differ for a short, single-turn feature versus a long-running multi-agent pipeline?"</p>
+    <p><strong>What this proves:</strong> Architect-level judgment — turns a mental model into an enforceable, proportionate organizational process.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>8. (Architect) A leadership team asks: "we already have a RAG pipeline and a solid, versioned prompt template — isn't our context handled?" How do you explain what those two things don't cover?</h2>
+    <p><strong>Strong answer:</strong> A RAG pipeline produces a ranked list of candidate context — it says nothing about whether those candidates fit the current budget, what order they should appear in once combined with unrelated sources, or whether they crowd out history or memory. A versioned prompt template manages the static structure a request is built from — it says nothing about the dynamic, per-request content filling that structure's variable slots, decided fresh every call. Neither answers whether the total assembled context is within budget, whether a critical fact is positioned where the model will use it, or whether memory is recalled deliberately rather than accidentally lost.</p>
+    <p><strong>Red flag:</strong> Claims a good retriever or a well-managed prompt template already covers context engineering.</p>
+    <p><strong>Follow-up:</strong> "Where in your org's existing review process would you insert a context-budget check, and who owns the eviction/recall policies over time?"</p>
+    <p><strong>What this proves:</strong> Can position this course's discipline correctly relative to its two closest neighbors without conflating them.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="practice/index.html">&larr; Practice Bank</a>
+    <a href="project/index.html">Build the Project &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

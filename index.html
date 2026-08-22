@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Engineering for Everyone — Free, Interactive Context Window Course</title>
+<meta name="description" content="A free, visual, engineering-first course on what actually goes into a model's context window and how it's organized once there: context budget management, memory systems, compression, multi-source assembly, agentic context, and context evaluation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="#chapters">All Chapters</a>
+      <a href="docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="page">
+    <span class="hero-eyebrow">Free · in progress · open-source by default</span>
+    <h1>Engineer what actually fills the context window.</h1>
+    <p class="lede">
+      A 13-chapter course on the discipline that sits between a good
+      retriever, a well-managed prompt template, and a system that
+      actually works: the context budget mental model, memory systems
+      (short-term and long-term), context compression and curation,
+      multi-source context assembly, context engineering for agentic and
+      multi-step systems, and context evaluation — closing with a
+      capstone that designs a complete context engineering system.
+    </p>
+    <div class="hero-badges">
+      <span>Plain-language first</span>
+      <span>Every practice tied to a real failure mode</span>
+      <span>Zero-cost by default</span>
+      <span>Interview-ready</span>
+    </div>
+    <div class="action-row">
+      <a href="chapters/chapter-01-the-context-budget/lesson.html" class="btn-primary">Start Chapter 1</a>
+      <a href="#chapters" class="btn-secondary">Browse chapters</a>
+    </div>
+    <div class="hero-stats">
+      <div><strong>1</strong><span>of 13 chapters live</span></div>
+      <div><strong>1</strong><span>of 6 modules started</span></div>
+      <div><strong>0</strong><span>API key required</span></div>
+      <div><strong>0</strong><span>signup required</span></div>
+    </div>
+  </div>
+</section>
+
+<main class="page">
+  <h2>Why This Course Is Different</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <h3>Owns the Dynamic Content, Not the Static Template</h3>
+      <p>`ai-engineering-for-everyone` Chapter 3 versions the prompt template as a software artifact. This course assumes that's already done, and engineers what fills the template's variable slots fresh, on every single request.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Context Is a Finite, Costed Resource</h3>
+      <p>Not "more context is better" — every token in the window competes with every other token for a limited budget, and model accuracy degrades well before the window's hard limit is even reached.</p>
+    </div>
+    <div class="feature-card">
+      <h3>Position, Not Just Presence</h3>
+      <p>A fact can be technically included and still functionally lost — where something sits in the window changes whether the model actually uses it. No sibling course teaches this as a first-class subject.</p>
+    </div>
+  </div>
+
+  <section id="chapters" class="course-map" aria-labelledby="chapters-title">
+    <div class="section-heading-row">
+      <div>
+        <span class="section-kicker">Learning path, in progress</span>
+        <h2 id="chapters-title">All Chapters</h2>
+      </div>
+      <a href="docs/curriculum/index.html" class="section-link">Open roadmap</a>
+    </div>
+    <p class="section-intro">
+      Chapter 1 is live end to end — lesson, quiz, exercises, practice
+      bank, interview prep, and a full graded L1 project — and is the
+      reference chapter the rest of the course's structure and depth
+      will be built to match. Chapters 2-13 are planned and scaffolded
+      (see the roadmap), completing Module 1 (The Context Budget Mental
+      Model), Module 2 (Memory Systems), Module 3 (Context Compression
+      and Curation), Module 4 (Multi-Source Context Assembly), Module 5
+      (Context Engineering for Agentic Systems), and Module 6
+      (Evaluation and Capstone). The sidebar and this chapter map are
+      connected to the same course data. See
+      <a href="https://github.com/TechNaom/context-engineering-for-everyone/blob/main/PROJECT_STATE.md">PROJECT_STATE.md</a>
+      for build history and status.
+    </p>
+    <div id="chapter-map" class="module-list" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="assets/chapters-data.js"></script>
+<script src="assets/progress.js"></script>
+<script src="assets/sidebar.js"></script>
+<script src="assets/home.js"></script>
+</body>
+</html>

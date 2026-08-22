@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Context Budget Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for The Context Budget.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-01">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 1 Exercises</span>
+    <span class="reading-time">~40 min, hands-on</span>
+  </div>
+  <h1>Exercises: The Context Budget</h1>
+  <p>
+    These exercises use a second scenario, deliberately different from
+    the lesson's Brackwater Home Internet/SignalDesk hook:
+    <strong>Cobalt Home Security</strong>, a fictional home-security
+    company. Its customer chat assistant, <strong>GuardLine</strong>,
+    walks customers through alarm troubleshooting, pulls relevant
+    knowledge-base articles, and can call a tool to check a customer's
+    account and equipment record. Applying the five-line ledger to a
+    fresh scenario is the point; recalling the lesson's answers by heart
+    won't get you through these.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Five are marked production-gear — memory-fix
+    evaluation, budget arithmetic, eviction-policy selection,
+    lost-in-the-middle ordering, and context-health monitor design, not
+    just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Map failures to ledger lines</h3>
+    <p>Assign the correct ledger-line ID (e.g. <code>L1</code>) to five GuardLine failure descriptions — the bloated system prompt, the un-evicted knowledge-base hits, the unbounded transcript, the missing persistent recall, and the missing output reservation.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Ledger line dependency reasoning</h3>
+    <p>For three pairs of ledger-line conditions, decide whether the first genuinely makes the second more likely, or whether the two are independent.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Evaluate which fixes address Conversation History</h3>
+    <p>Given four candidate fixes for GuardLine, decide which ones actually address the Conversation History line (summarization) versus which address a different line entirely (KB re-ranking, persistent recall, system-prompt trimming).</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Context budget arithmetic</h3>
+    <p>Compute GuardLine's real conversation-history token budget and the maximum number of full turns it can hold, given an 8,000-token window and fixed budgets for system instructions, output, and grounding context.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Memory eviction policy selection</h3>
+    <p>GuardLine's conversation history is about to exceed its budget. Pick the most appropriate first eviction policy from four options.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Lost-in-the-middle ordering decision</h3>
+    <p>Pick where a critical fact should sit in assembled context, from four options, to make the model most likely to actually use it.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Context-health monitor design</h3>
+    <p>Name one concrete monitor (a specific metric plus a specific threshold or comparison) that would have caught GuardLine's growing budget risk before it caused a truncation-driven incident.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Full-ledger completeness check</h3>
+    <p>Confirm all five ledger lines were at least considered while working through Exercises 1&ndash;7 — the same completeness gate a real team runs before a context-engineered feature ships to production.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

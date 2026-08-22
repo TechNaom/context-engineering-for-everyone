@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Context Budget Practice Bank — Context Engineering for Everyone</title>
+<meta name="description" content="Eight fast scenario-based practice items for The Context Budget.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-01">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../exercises/index.html">&larr; Back to exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 1 Practice Bank</span>
+    <span class="reading-time">~20 min, fast pattern recognition</span>
+  </div>
+  <h1>Practice Bank: The Context Budget</h1>
+  <p>
+    Eight short, independent scenarios, each its own fictional system —
+    none of them Brackwater Home Internet/SignalDesk or Cobalt Home
+    Security/GuardLine again. Each scenario is a few sentences and one
+    judgment question. The point of this bank isn't depth on one system
+    (that's what the exercises did) — it's speed and accuracy across
+    many different systems, the way a real context-engineering review
+    actually feels: a fast parade of "what's going on here, and which
+    ledger line explains it" questions across a whole backlog of
+    features.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Practice standard</span>
+    Eight scenarios. Two are pure judgment calls with no single obvious
+    "gotcha" keyword (Scenario 5 asks whether a described process is
+    already sufficient; Scenario 6 asks you to prioritize between two
+    real but unequal gaps) — these test judgment, not just pattern
+    matching against a line name.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect 8/8.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 1</span>
+    <h3>Windermere Legal Services</h3>
+    <p>A client-intake assistant's system prompt has accumulated eleven paragraphs of disclaimers and edge cases over a year of ad hoc edits, none ever removed, eating a fixed, growing share of every request's budget. Which ledger line explains this gap?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 2</span>
+    <h3>Pinecrest Veterinary Group</h3>
+    <p>A symptom-triage assistant keeps every article its retriever has ever surfaced in a session, including articles about a condition already ruled out. Which line explains this?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 3</span>
+    <h3>Solmark Payments</h3>
+    <p>A fraud-dispute assistant sends the full, unsummarized transcript every turn; after 40 turns the request exceeds the window and the earliest turns are silently dropped. Which line explains this?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 4</span>
+    <h3>Thistledown Air Cargo</h3>
+    <p>A shipment-tracking assistant has no persistent memory layer; a customer's stated handling requirement from an earlier session is never re-fetched later. Which line explains this?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 5 &middot; Judgment</span>
+    <h3>Ravenhollow University Registrar</h3>
+    <p>A team's fix for an unbounded-history problem is to keep sending the full transcript, but only during low-traffic overnight hours "when requests are smaller anyway." Does this actually fix the budget problem, or does a real gap remain?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 6 &middot; Judgment</span>
+    <h3>Copperfield Home Appliances</h3>
+    <p>Two real, unequal gaps, only one fixable before next week's launch: (a) no eviction policy on grounding context, or (b) the system prompt uses British spelling in two places while the rest of the product uses American spelling. Which is the higher-priority fix?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 7 &middot; Production-gear</span>
+    <h3>Marrowgate Public Library</h3>
+    <p>A research-assistant team has budget for one investment. Which of four candidates — a bigger model, a re-ranking/eviction step for stale retrieved articles, a faster database, or a prettier chat UI — most directly builds Grounding Context discipline?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 8 &middot; Production-gear</span>
+    <h3>Fenwick Outdoor Adventures</h3>
+    <p>A trip-planning assistant's team sends the full transcript every turn with no summarization, and never re-fetches a customer's stated gear list from account records on later turns — "the model just carries it in memory." Name both ledger lines most directly missing.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../exercises/index.html">&larr; Exercises</a>
+    <a href="../interview-questions.html">Interview Questions &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

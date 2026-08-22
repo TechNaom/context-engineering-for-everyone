@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Context Budget — Context Engineering for Everyone</title>
+<meta name="description" content="Every token in a model's context window costs something and competes for a limited budget. This chapter names that budget precisely and builds the core mental model the rest of this course spends twelve more chapters deepening.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-01">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 1</span>
+    <span class="badge-difficulty">Beginner</span>
+    <span class="reading-time">~26 min</span>
+  </div>
+
+  <h1>The Context Budget</h1>
+  <p class="lede">
+    A model's context window is not a bottomless notepad — it is a
+    fixed, finite resource, and every single token inside it (a
+    system instruction, a retrieved fact, a turn of conversation
+    history, a tool result) is competing with every other token for a
+    limited, costed budget. This chapter names that budget precisely
+    and builds the core mental model the rest of this course spends
+    twelve more chapters deepening: context engineering is the
+    discipline of deciding what earns a place in that budget, and
+    what doesn't.
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. The fact that fell out of the window</a>
+    <a href="#why-this-course">2. Why this course exists</a>
+    <a href="#mental-model">3. The core mental model: the context budget</a>
+    <a href="#the-ledger">4. The Context Budget Ledger, as a working framework</a>
+    <a href="#walkthrough">5. Ledger walkthrough: what actually failed at Brackwater</a>
+    <a href="#thought-process">6. Context Engineering Builder Thought Process</a>
+    <a href="#recap">7. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Brackwater Home Internet is a fictional regional internet service
+      provider. Its support team fields long, meandering troubleshooting
+      conversations — a customer's WiFi keeps dropping, and diagnosing it
+      properly takes back-and-forth, not one message. An engineer named
+      Devon builds SignalDesk: an LLM-powered chat assistant embedded in
+      the support portal that walks a customer through diagnosis, pulls
+      relevant knowledge-base articles, and can call a tool to check a
+      customer's account and equipment record. Every turn, SignalDesk
+      sends the model a fresh request: the system instructions, whatever
+      knowledge-base articles seem relevant, the full raw transcript of
+      the conversation so far, and any tool output — concatenated,
+      unbounded, no cap.
+    </p>
+    <p>
+      In every demo Devon runs, SignalDesk is genuinely good — helpful,
+      accurate, patient. Demos are short: five or six turns, then done.
+      It ships. A few weeks later, a real customer named Marisol opens a
+      conversation about a dead WiFi zone in her home office. Turn two,
+      she mentions something that matters a great deal: her address is
+      in one of Brackwater's rural coverage zones, served by an older
+      Gen2 gateway that Brackwater's own documentation confirms does not
+      support the newer "SmartMesh" whole-home feature. SignalDesk
+      acknowledges it, correctly, and the conversation moves on to other
+      troubleshooting steps — channel congestion, interference, cabling.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">signaldesk_context.py (what actually got sent to the model, turn 34)</span>
+      </div>
+      <pre><code>  def build_request(system_prompt, kb_hits, transcript, tool_output):
+      # No budget anywhere in this function. Every source is appended
+      # in full, then the whole thing is naively sliced to fit under
+      # a hard character cap right before the request goes out.
+      raw = system_prompt + "\n\n"
+      raw += "\n".join(kb_hits)            # every KB hit ever retrieved this session
+      raw += "\n".join(transcript)         # EVERY turn, all 33 of them, unsummarized
+      raw += tool_output
+      MAX_CHARS = 24_000
+      if len(raw) > MAX_CHARS:
+          raw = raw[-MAX_CHARS:]           # keeps the END, drops the START --
+                                            # turn 2 (the Gen2 gateway fact) is
+                                            # the very first thing cut</code></pre>
+    </div>
+    <p>
+      By turn 34, the conversation has covered a lot of ground —
+      router placement, a firmware update, a cabling check, two
+      different knowledge-base articles pulled in along the way. The
+      raw transcript, KB hits, and tool output together now run well
+      past what fits under SignalDesk's hard character cap, so the
+      truncation in the code above quietly drops everything from the
+      start of the conversation, including turn two. SignalDesk
+      recommends the next logical step, following the pattern the
+      recent turns strongly suggest: enable SmartMesh. Marisol's Gen2
+      gateway cannot run SmartMesh — a fact SignalDesk itself had
+      correctly stated thirty-two turns earlier and, per Brackwater's
+      own documentation, should have ruled the recommendation out
+      instantly. She spends the next 45 minutes trying to enable a
+      feature her hardware doesn't support, gets nowhere, and escalates
+      to a human agent, who has to rediscover the Gen2 constraint from
+      account records neither SignalDesk's tool call nor its truncated
+      context ever surfaced back to it.
+    </p>
+    <p>
+      Nothing about this incident required a bad model, a hallucination,
+      or an attack. SignalDesk reasoned soundly from what was actually
+      in front of it at turn 34 — the problem is that what was in front
+      of it didn't include the one fact that mattered most. Worse: even
+      several turns <em>before</em> the hard truncation kicked in, the
+      Gen2 fact was already sitting in the least-attended part of a long
+      context window — early, buried under everything that came after —
+      exactly the position independent research has found LLMs use least
+      reliably, well before that fact was ever physically cut.<sup><a href="#src-2">[2]</a></sup>
+      Two separate context failures, stacked: a fact that had already
+      become hard for the model to use because of <em>where</em> it sat,
+      and then, eventually, a fact that vanished because of a truncation
+      rule with no judgment behind it. That gap — not model quality — is
+      this course's actual subject, and this chapter names the mental
+      model that closes it.
+    </p>
+  </div>
+
+  <section id="why-this-course" class="subtopic">
+    <h2>Why This Course Exists</h2>
+    <p>
+      If you've taken `ai-engineering-for-everyone`, you already know
+      to treat a prompt as a versioned software artifact — that
+      course's Chapter 3 builds exactly that discipline: a template
+      composed from named, separately-owned pieces, diffed, reviewed,
+      and shipped like code. Nothing in this chapter re-teaches that,
+      and this course assumes it as a given. But notice something about
+      SignalDesk's incident: its prompt <em>template</em> never changed.
+      The system instructions, the composed structure, the tool
+      contract — all exactly as reviewed and shipped. What changed,
+      turn by turn, was the <em>dynamic content</em> poured into that
+      template's variable slots: which KB articles got retrieved, how
+      much transcript got included, what the tool call returned. A
+      perfectly versioned, perfectly reviewed prompt template can still
+      fail in production, every single request, because of what fills
+      it at inference time — and that gap is exactly what
+      `ai-engineering-for-everyone` Chapter 3 does not cover, by its own
+      explicit scope. This course starts exactly where that one stops.
+    </p>
+    <p>
+      This course is also not "RAG" (`rag-for-everyone` owns chunking,
+      embeddings, vector stores, and retrieval quality — the discipline
+      of <em>producing</em> a ranked list of candidate context; a
+      retriever with perfect precision and recall still hands off to
+      this course's subject the moment those candidates need to become
+      part of an actual context window). It is not "MCP" or protocol-
+      level tool integration (`mcp-for-everyone` owns how a client and
+      server negotiate and exchange tool calls; what happens to a tool's
+      <em>result</em> once it needs to compete for space in the model's
+      next context window is this course's subject, not that protocol's).
+      And, as above, it is not prompt-template versioning
+      (`ai-engineering-for-everyone` Chapter 3's subject). This course is
+      the discipline that applies once a prompt template is already
+      well-managed, retrieval already returns good candidates, and a
+      tool call already returns a clean result — and something in
+      production still goes wrong because of what actually made it into
+      the window, and where.
+    </p>
+  </section>
+
+  <section id="mental-model" class="subtopic">
+    <h2>The Core Mental Model: The Context Budget</h2>
+    <div class="what-is">
+      <span class="label">The one sentence to carry through all 13 chapters</span>
+      A context window is a fixed, finite, costed resource — every
+      token inside it competes with every other token for a limited
+      budget, and model performance on that content degrades well
+      before the window's hard limit is even reached. Context
+      engineering is the discipline of deciding, on purpose, what earns
+      a place in that budget, in what order, and what gets compressed,
+      deferred, or dropped.
+    </div>
+    <p>
+      Unpack why "fixed, finite, costed" is doing real work, because
+      each word maps to a specific failure SignalDesk's incident shows
+      directly:
+    </p>
+    <p>
+      <strong>Fixed:</strong> every model has a real context-window
+      limit — Devon's own default assistant model tops out well under
+      what SignalDesk's unbounded transcript-plus-KB-plus-tool-output
+      concatenation eventually demanded on turn 34. A production-support
+      write-up from Anthropic states this precisely: "context, therefore,
+      must be treated as a finite resource with diminishing marginal
+      returns."<sup><a href="#src-1">[1]</a></sup> SignalDesk's own code
+      treated it as effectively infinite until the hard character cap
+      forced a truncation nobody had designed on purpose.
+    </p>
+    <p>
+      <strong>Finite in a way that bites before the hard limit:</strong>
+      the same source names a second, subtler failure most teams don't
+      expect: "context rot," where model accuracy declines as token
+      count increases, well before a window fills — driven by an
+      "attention budget" that depletes with each new
+      token.<sup><a href="#src-1">[1]</a></sup> Independent research
+      shows this concretely as a position effect: performance "is often
+      highest when relevant information occurs at the beginning or end
+      of the input context, and significantly degrades when models must
+      access relevant information in the middle of long
+      contexts."<sup><a href="#src-2">[2]</a></sup> That's exactly what
+      happened to the Gen2 fact well before it was ever truncated —
+      buried mid-transcript, it was already the least reliable thing in
+      SignalDesk's context, and the hard truncation that later deleted
+      it outright was a second, compounding failure, not the only one.
+    </p>
+    <p>
+      <strong>Costed:</strong> every token sent is metered — money and
+      latency, on every single request, for as long as the context
+      keeps growing unbounded. SignalDesk's turn-34 request was
+      dramatically more expensive and slower than turn 2's, for
+      information that, per the position effect above, was
+      simultaneously becoming <em>less</em> useful to the model the
+      longer and later it got included. A production model-provider
+      guide names the same shape of constraint directly: models "can
+      only handle so much data within the context they consider during
+      a generation request,"<sup><a href="#src-3">[3]</a></sup> and
+      every token spent restating history the model doesn't need is a
+      token not available for something that matters more.
+    </p>
+  </section>
+
+  <section id="the-ledger" class="subtopic">
+    <h2>The Context Budget Ledger, as a Working Framework</h2>
+    <p>
+      The mental model above is the "why." The ledger below is the
+      "what, specifically, has to earn a place." Five line items, all
+      drawing from the same fixed, costed budget — every later module in
+      this course deepens the engineering discipline behind at least one
+      line. Treat it the way a working engineer treats any budgeting
+      framework: run it against a real system, don't just recite it.
+    </p>
+    <figure class="diagram-figure">
+      <pre><code>  Line 5  Working Space         Room reserved for the model's own reasoning + output
+  Line 4  Recalled Long-Term Memory  Persistent facts pulled back in for THIS turn
+  Line 3  Conversation History   This session's turn-by-turn short-term memory
+  Line 2  Grounding Context      Retrieved documents + tool output for THIS turn
+  Line 1  System Instructions    The fixed operating contract (small, stable)
+
+  All five draw from ONE fixed window. Nobody set an explicit budget
+  for Line 3 at Brackwater -- it grew unbounded until a blind
+  end-of-pipeline truncation cut Line 1's most load-bearing early fact
+  out of Line 3 entirely, with no judgment involved in the decision.</code></pre>
+      <figcaption>The five-line Context Budget Ledger. Each module in
+      this course deepens the engineering discipline behind one or two
+      lines; Chapter 1's job is only to name all five and show how
+      letting one grow unbounded starves the others.</figcaption>
+    </figure>
+
+    <div class="lesson-card">
+      <h3>Line 1 — System Instructions</h3>
+      <p>
+        <strong>What it covers:</strong> the model's fixed operating
+        contract — role, tone, output format, hard constraints. Small,
+        stable, and (per `ai-engineering-for-everyone` Chapter 3)
+        already a versioned software artifact by the time this course's
+        concerns start.
+      </p>
+      <p>
+        <strong>What Brackwater got right here:</strong> SignalDesk's
+        system prompt was fine — well-scoped, unchanged all session.
+        This line item was never the problem, which is exactly why the
+        incident is easy to miss in a code review that only checks the
+        prompt template.
+      </p>
+    </div>
+
+    <div class="lesson-card">
+      <h3>Line 2 — Grounding Context</h3>
+      <p>
+        <strong>What it covers:</strong> retrieved documents and tool
+        output relevant to <em>this specific turn</em> — the handoff
+        point with `rag-for-everyone` (which produces the ranked
+        candidates) and `mcp-for-everyone` (whose protocol returns the
+        tool result); this course picks up from there.
+      </p>
+      <p>
+        <strong>What Brackwater got wrong:</strong> every KB article
+        ever retrieved during the session accumulated in the request,
+        with no eviction policy — including articles no longer relevant
+        to where the conversation had moved on to, silently competing
+        for space against content that mattered more.
+      </p>
+      <p>
+        <strong>What this course builds (Chapter 8):</strong> turning a
+        retriever's ranked output into well-formed, budgeted context —
+        not appending every hit ever seen.
+      </p>
+    </div>
+
+    <div class="lesson-card">
+      <h3>Line 3 — Conversation History</h3>
+      <p>
+        <strong>What it covers:</strong> this session's short-term,
+        turn-by-turn memory. The line item that grows fastest and,
+        unmanaged, crowds out everything else — exactly what happened at
+        Brackwater.
+      </p>
+      <p>
+        <strong>What Brackwater got wrong:</strong> the full raw
+        transcript, unsummarized, unbounded, with a blind
+        keep-the-most-recent-characters truncation as the only "policy"
+        — one that guarantees the oldest turns (where Marisol's
+        load-bearing fact lived) are always the first casualty,
+        regardless of how important they are.
+      </p>
+      <p>
+        <strong>What this course builds (Chapter 3):</strong> short-term
+        memory that stays within an explicit budget without silently
+        truncating load-bearing content — a real eviction policy, not a
+        character-count accident.
+      </p>
+    </div>
+
+    <div class="lesson-card">
+      <h3>Line 4 — Recalled Long-Term Memory</h3>
+      <p>
+        <strong>What it covers:</strong> facts persisted across
+        sessions (not just this conversation) and deliberately retrieved
+        back into context for this specific turn — a real decision, not
+        "include everything ever stored about this customer."
+      </p>
+      <p>
+        <strong>What Brackwater got wrong:</strong> there was no
+        persistent memory layer at all — Marisol's Gen2 gateway status
+        lives in Brackwater's account system, reachable by the very tool
+        SignalDesk already had access to, but nothing in the pipeline
+        re-checked or re-recalled it once the in-session mention of it
+        was gone. A persistent-memory layer with a real recall policy
+        would have supplied it again independent of the transcript's
+        fate.
+      </p>
+      <p>
+        <strong>What this course builds (Chapter 4):</strong> designing
+        what gets stored long-term and what gets recalled back into
+        context for a given turn, and when.
+      </p>
+    </div>
+
+    <div class="lesson-card">
+      <h3>Line 5 — Working Space</h3>
+      <p>
+        <strong>What it covers:</strong> room deliberately reserved,
+        inside the same fixed window, for the model's own reasoning and
+        output — a real cost that shrinks how much budget the other four
+        lines can spend, easy to forget when "budget" gets treated as
+        only an input-side concern.
+      </p>
+      <p>
+        <strong>What Brackwater got wrong:</strong> SignalDesk's
+        MAX_CHARS cap accounted for input content only; a long,
+        detailed troubleshooting response left even less real headroom
+        than the nominal cap suggested, compounding the same-session
+        squeeze on Lines 2 and 3.
+      </p>
+      <p>
+        <strong>What this course builds (Chapter 2):</strong> a
+        complete budget allocation across all five lines, output space
+        included, for a given request type and hard context-window
+        limit.
+      </p>
+    </div>
+  </section>
+
+  <section id="walkthrough" class="subtopic">
+    <h2>Ledger Walkthrough: What Actually Failed at Brackwater</h2>
+    <p>
+      Trace the hook through all five ledger lines at once, the way a
+      real context-engineering review would — this is the move Chapter
+      12 formalizes as a repeatable evaluation; Chapter 1's job is to
+      show you can already do a rough version of it today.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Ledger line</th>
+          <th>What was missing</th>
+          <th>What it would have caught</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1 — System Instructions</td>
+          <td>Nothing missing here — the template itself was fine.</td>
+          <td>N/A — confirms the failure is not a prompt-template problem, ruling out `ai-engineering-for-everyone` Chapter 3's territory.</td>
+        </tr>
+        <tr>
+          <td>2 — Grounding Context</td>
+          <td>No eviction policy on retrieved KB articles; stale hits stayed in the request indefinitely.</td>
+          <td>Dropping KB articles no longer relevant to the current sub-topic would have freed real budget before any transcript truncation was even needed.</td>
+        </tr>
+        <tr>
+          <td>3 — Conversation History</td>
+          <td>No summarization, no explicit budget, and a blind end-of-pipeline truncation that always sacrifices the oldest turns first.</td>
+          <td>A real short-term-memory policy (summarize old turns, explicitly pin load-bearing facts) would have kept the Gen2 fact available at turn 34, whether or not it was ever re-stated.</td>
+        </tr>
+        <tr>
+          <td>4 — Recalled Long-Term Memory</td>
+          <td>No persistent memory layer at all — a fact available in Brackwater's own account system was never re-recalled once the transcript reference to it decayed.</td>
+          <td>A recall policy that re-checks account-critical facts (equipment generation, coverage zone) every turn, independent of transcript survival, would have supplied the fact a second, independent way.</td>
+        </tr>
+        <tr>
+          <td>5 — Working Space</td>
+          <td>No reserved output budget, so a long response shrank real input headroom further than the nominal cap implied.</td>
+          <td>An explicit output-token reservation would have made the real, tighter budget visible before it caused a surprise truncation.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Notice that two separate mechanisms compounded here, not one:
+      the Gen2 fact was already degraded by its position (Line 3, no
+      ordering discipline) well before it was physically removed (Line
+      3, no eviction policy). A fix that only addressed the hard
+      truncation (say, a bigger context window) would have delayed the
+      failure, not prevented it — the position effect alone would still
+      have made the fact progressively less reliable the longer the
+      conversation ran. That's the real argument for treating this as a
+      budget with real allocation and ordering discipline across every
+      line, not a single knob to turn up.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a long-running LLM feature gives a
+      confidently wrong answer that contradicts something the system
+      itself correctly said earlier in the very same conversation, with
+      no code change, no model change, and no attacker involved.</p>
+      <p><strong>Assumption being made:</strong> that "the model has a
+      huge context window now, so it'll just remember" is the same kind
+      of guarantee a database gives you when you write a row and read it
+      back later. It isn't — a context window is a per-request
+      construction job, rebuilt from scratch every turn out of whatever
+      the surrounding code decides to include, and a fact's survival
+      depends entirely on whether something in that pipeline deliberately
+      kept it in budget and positioned it where the model can actually
+      use it.</p>
+      <p><strong>What actually distinguishes a context-engineered
+      system:</strong> not a bigger context window or a smarter model,
+      but whether every ledger line has a real, explicit policy — a
+      budget for grounding context that evicts stale material, a
+      short-term memory policy that compresses instead of blindly
+      truncating, a long-term recall policy that doesn't depend on
+      the transcript surviving, and a reserved output allowance that
+      makes the real, tighter input budget visible up front.</p>
+      <p><strong>Why this matters before Chapter 2:</strong> Chapter 2
+      asks you to design a complete token-budget allocation across all
+      five ledger lines for a new request type, before a single request
+      is sent — you can't do that meaningfully without this chapter's
+      vocabulary for what each line is actually responsible for and how
+      they compete.</p>
+      <p><strong>Working definition to carry forward:</strong> a context
+      window is a fixed, finite, costed resource rebuilt fresh every
+      request; context engineering means every ledger line — system
+      instructions, grounding context, conversation history, recalled
+      long-term memory, and working space — has a real, deliberate
+      policy, not a hope that "more context" or "a bigger window"
+      papers over the gap.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>A context window is a fixed, finite, costed resource —
+        every token inside it competes with every other token for a
+        limited budget, and treating it as effectively unbounded is
+        exactly the failure that broke SignalDesk.</li>
+        <li>Model performance degrades before a window's hard limit is
+        even reached ("context rot," an attention budget that depletes
+        with token count) — a bigger window delays a budget failure, it
+        doesn't fix it.</li>
+        <li>Position matters as much as presence: information in the
+        middle of a long context is used less reliably than information
+        at the beginning or end — a real, independently documented
+        effect, not a one-off anecdote.</li>
+        <li>The Context Budget Ledger has five lines: System
+        Instructions, Grounding Context, Conversation History, Recalled
+        Long-Term Memory, and Working Space. A system can have a
+        perfect, versioned prompt template (Line 1) and still fail in
+        production because of what fills the other four lines, fresh,
+        every request.</li>
+        <li>This course is not RAG, not MCP, and not prompt-template
+        versioning — it starts exactly where a well-managed template,
+        a good retriever, and a clean tool result hand off, and asks
+        what actually earns a place in the window from there.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing Limitation</h2>
+    <p>
+      This course's default model setup points the plain <code>openai</code>
+      Python client at a local Ollama server
+      (<code>base_url="http://localhost:11434/v1"</code>), zero cost, zero
+      API key — see <code>docs/course-architecture.md</code> for the full
+      policy. Checked fresh this session before writing this chapter:
+      Ollama's <code>/api/tags</code> endpoint responded normally and
+      confirmed one installed model (<code>llama3.2:latest</code>), but a
+      <code>POST /api/chat</code> completion request did not return
+      within a 20-second timeout. This is the same behavior every
+      sibling TechNaom course has independently reported in this sandbox
+      environment. Consequence, stated plainly: Brackwater's example
+      request-building code and turn-34 outcome above are a realistic,
+      carefully constructed illustration of a real, well-documented
+      failure mechanism (see sources 1-2 below for independently
+      reported versions of the position effect and context-rot
+      mechanism), not a transcript this session actually captured from a
+      running model. No number or claim in this chapter is presented as
+      a live model output. Later chapters that build a runnable
+      compression, memory, or evaluation harness will need to re-check
+      Ollama's chat endpoint before claiming any live output from it, and
+      will disclose the result honestly whatever it is.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data:</p>
+    <ol>
+      <li id="src-1">Anthropic, <em>"Effective context engineering for AI agents"</em> —
+      <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a>.
+      States that "context, therefore, must be treated as a finite
+      resource with diminishing marginal returns," names "context rot"
+      (accuracy declining as token count increases, driven by an
+      "attention budget" that depletes with each new token), and
+      describes compaction, structured note-taking, and sub-agent
+      architectures as the primary mitigations — the direct source for
+      this chapter's "costed, finite before the hard limit" framing and
+      the Context Budget Ledger's Line 3/Line 4 mitigations.</li>
+      <li id="src-2">Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni, and
+      Liang, <em>"Lost in the Middle: How Language Models Use Long
+      Contexts"</em> —
+      <a href="https://arxiv.org/abs/2307.03172" target="_blank" rel="noopener">arxiv.org/abs/2307.03172</a>.
+      Finds that "performance is often highest when relevant information
+      occurs at the beginning or end of the input context, and
+      significantly degrades when models must access relevant
+      information in the middle of long contexts" — the direct,
+      peer-reviewed source for this chapter's position-effect claim and
+      the U-shaped performance curve this course calls "lost in the
+      middle" throughout (Chapter 6's own subject).</li>
+      <li id="src-3">OpenAI, <em>Prompt Engineering guide</em> —
+      <a href="https://developers.openai.com/api/docs/guides/prompt-engineering" target="_blank" rel="noopener">developers.openai.com/api/docs/guides/prompt-engineering</a>
+      (this session's fetch of the historical
+      <code>platform.openai.com/docs/guides/prompt-engineering</code> URL
+      redirected here, confirmed live). States that context windows
+      range "from the low 100k range up to one million tokens for newer
+      GPT-4.1 models" and that models "can only handle so much data
+      within the context they consider during a generation request" —
+      the source for this chapter's "fixed, costed" framing from the
+      model-provider side.</li>
+      <li id="src-4">Anthropic / Claude Developer Platform, <em>"Building
+      more with long-running agents: context editing and memory"</em> —
+      <a href="https://claude.com/blog/context-management" target="_blank" rel="noopener">claude.com/blog/context-management</a>
+      (this session's fetch of the historical
+      <code>anthropic.com/news/context-management</code> URL redirected
+      here, confirmed live). States that "as production agents handle
+      more complex tasks and generate more tool results, they often
+      exhaust their effective context windows," and that automatic
+      context editing "removes stale content while preserving the
+      conversation flow" — direct evidence that unmanaged context growth
+      from tool results and transcripts is a real, current production
+      problem model providers are actively building mitigations for, not
+      a hypothetical this chapter invented.</li>
+      <li id="src-5">LangChain, <em>"Memory for agents"</em> —
+      <a href="https://www.langchain.com/blog/memory-for-agents" target="_blank" rel="noopener">langchain.com/blog/memory-for-agents</a>.
+      States that "memory is application-specific" and describes two
+      concrete mechanisms for writing memory — "in the hot path" (the
+      agent explicitly decides to remember facts before responding) versus
+      "in the background" (an async process updates memory after the
+      fact) — the direct source for this chapter's framing of Line 4
+      (Recalled Long-Term Memory) as a deliberate policy decision, not
+      an automatic side effect of a conversation happening.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this framework out loud — see
+    <a href="interview-questions.html">Chapter 1 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../../index.html">&larr; All Chapters</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>
