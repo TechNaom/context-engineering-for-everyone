@@ -54,8 +54,9 @@
     <a href="#policies-compared">4. Three policies, compared</a>
     <a href="#worked-math">5. Worked math: RouteLine's naive policy vs. the hybrid fix</a>
     <a href="#live-capture">6. A live-captured compression example</a>
-    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
-    <a href="#recap">8. Points to remember</a>
+    <a href="#live-demo">7. Live demo: naive FIFO vs. pinning, in the model's own answers</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
   </nav>
 
   <div class="hook" id="hook">
@@ -245,6 +246,74 @@
         actually exceeded.
       </p>
     </div>
+    <p>
+      All six steps together are more than a checklist — they're a
+      function. Here they are as real, executable code, applied to the
+      hook's own numbers (turns 6-16's individual token counts are
+      synthesized to sum to the hook's own disclosed 7,320-token
+      aggregate, since the hook only gives that total, not a per-turn
+      breakdown):
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">short_term_memory_recipe.py -- executed this session, real output</span>
+      </div>
+      <pre><code>def build_short_term_memory(turns, pinned_ids, facts, budget, trigger_ratio=0.9):
+    """Steps 2-6 of the Short-Term Memory Policy Recipe, as real code.
+
+    turns: list of (turn_index, tokens) oldest-first.
+    pinned_ids: set of fact ids that must survive regardless of position (Step 5).
+    facts: dict of fact_id -> {"turn": int, "tokens": int}.
+    budget: Line 3's already-allocated token budget (Step 1, a given).
+    trigger_ratio: fraction of budget at which compression kicks in (Step 3).
+    """
+    trigger = int(budget * trigger_ratio)
+    pinned_tokens = sum(facts[f]["tokens"] for f in pinned_ids)
+
+    # Step 2: grow the verbatim window from the newest turn backward,
+    # but stop BEFORE the trigger, not the hard budget -- Step 3's whole
+    # point is leaving room to compress calmly instead of under pressure.
+    verbatim, running = [], 0
+    for idx, tok in reversed(turns):
+        if running + tok + pinned_tokens > trigger:
+            break
+        verbatim.append(idx)
+        running += tok
+    verbatim.reverse()
+
+    # Step 4: everything older than the verbatim window is compressed,
+    # never silently dropped.
+    summarized_turns = [idx for idx, _ in turns if idx not in verbatim]
+
+    return {
+        "pinned_tokens": pinned_tokens,
+        "verbatim_turns": verbatim,
+        "verbatim_tokens": running,
+        "summarized_turns": summarized_turns,
+        "trigger": trigger,
+    }
+
+
+TURNS = [(1, 150), (2, 90), (3, 520), (4, 580), (5, 610), (6, 670)] + [(6 + i, 665) for i in range(1, 11)]
+FACTS = {"fact_2_accessibility": {"turn": 2, "tokens": 90}}
+
+result = build_short_term_memory(TURNS, {"fact_2_accessibility"}, FACTS, budget=8_680)
+print(result)
+
+# --- actual output ---
+# {'pinned_tokens': 90, 'verbatim_turns': [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+#  'verbatim_tokens': 7320, 'summarized_turns': [1, 2, 3, 4, 5], 'trigger': 7812}</code></pre>
+    </div>
+    <p>
+      Notice the trigger (7,812 tokens, 90% of the 8,680 budget) fires
+      before the hard limit, exactly as Step 3 requires, and turn 2
+      lands in <code>summarized_turns</code> even though it holds the
+      pinned fact — that's expected and fine: pinning and verbatim-window
+      membership are separate mechanisms on purpose (Step 5), so turn
+      2's raw wording can be compressed away while its 90-token fact
+      still survives outside that compression entirely.
+    </p>
   </section>
 
   <section id="policies-compared" class="subtopic">
@@ -312,7 +381,7 @@
         <tr><td>6-16 (11 turns)</td><td>7,320 total</td><td>Kept (verbatim)</td><td>Kept (verbatim)</td></tr>
         <tr>
           <td colspan="2"><strong>Package totals</strong></td>
-          <td>8,570 tokens, 13 verbatim turns, <strong>turn 2 lost</strong></td>
+          <td>8,510 tokens, 13 verbatim turns, <strong>turn 2 lost</strong></td>
           <td>90 pinned + 900 summary + 7,320 verbatim = <strong>8,310 tokens</strong>, 370 slack, turn 2 retained</td>
         </tr>
       </tbody>
@@ -330,6 +399,63 @@
       — proof that the fix here was never "a bigger budget," it was a
       real policy layered on top of the budget Chapter 2 had already
       gotten right.
+    </p>
+    <p>
+      Don't just trust that table — a real short-term memory review
+      recomputes it. Walking backward from turn 16 and keeping whole
+      turns while they still fit the 8,680-token budget actually stops
+      one turn earlier than a quick mental estimate suggests, which is
+      worth catching before it ships:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">verify_math.py -- executed this session, real output</span>
+      </div>
+      <pre><code>BUDGET = 8_680
+PINNED_TOKENS = 90          # turn 2, pinned under the hybrid policy
+SUMMARY_TOKENS = 900        # turns 1, 3, 4, 5 summarized under the hybrid policy
+
+# Individually known turns from the hook (1-indexed); turns 6-16 are only
+# given in aggregate (11 turns, 7,320 tokens total).
+TURN = {1: 150, 2: 90, 3: 520, 4: 580, 5: 610}
+TAIL_TURNS = 11
+TAIL_TOTAL = 7_320
+
+# Naive FIFO: walk backward from the newest turn, keep whole turns
+# while the running total still fits the budget.
+running = TAIL_TOTAL          # turns 6-16 always fit alone (7,320 &lt; 8,680)
+kept_turns = TAIL_TURNS
+for t in (5, 4, 3, 2, 1):
+    if running + TURN[t] &lt;= BUDGET:
+        running += TURN[t]
+        kept_turns += 1
+    else:
+        break
+
+print(f"Naive FIFO: kept {kept_turns} turns, {running} tokens (budget {BUDGET})")
+
+# Hybrid: pinned fact (turn 2) + fixed summary (turns 1,3,4,5) + verbatim tail (6-16)
+hybrid_total = PINNED_TOKENS + SUMMARY_TOKENS + TAIL_TOTAL
+print(f"Hybrid: {PINNED_TOKENS} pinned + {SUMMARY_TOKENS} summary + {TAIL_TOTAL} verbatim = {hybrid_total} tokens")
+print(f"Hybrid slack: {BUDGET - hybrid_total} tokens")
+
+# --- actual output ---
+# Naive FIFO: kept 13 turns, 8510 tokens (budget 8680)
+# Hybrid: 90 pinned + 900 summary + 7320 verbatim = 8310 tokens
+# Hybrid slack: 370 tokens</code></pre>
+    </div>
+    <p>
+      Disclosed honestly: an earlier draft of this table's naive-FIFO
+      total had a small arithmetic slip (it said 8,570 tokens instead of
+      the correct 8,510). Running the actual code above is what caught
+      it — 580 (turn 4) + 610 (turn 5) + 7,320 (turns 6-16) is 8,510, not
+      8,570, though the conclusion the table exists to make (turn 2 is
+      still lost, the hybrid total is still correct at 8,310) doesn't
+      change. This is exactly the kind of quiet, easy-to-miss error a
+      worked-math table can carry if nobody ever runs it as real code —
+      which is the whole reason this chapter insists on Step 6's
+      validation being an actual replay, not an eyeballed table.
     </p>
   </section>
 
@@ -391,6 +517,142 @@
       useful for everything else in this compression, but it is the
       wrong tool to trust with the one fact that actually has to
       survive.
+    </p>
+  </section>
+
+  <section id="live-demo" class="subtopic">
+    <h2>Live Demo: Naive FIFO vs. Pinning, in the Model's Own Answers</h2>
+    <p>
+      The compression example above tests one piece of the hybrid
+      policy (Step 4, summarization). This chapter's actual claim is
+      bigger than that: a naive, recency-only eviction policy can make
+      an assistant give a materially worse answer than the same
+      assistant given the same fact through a pin. That claim is
+      testable directly, by replaying Priya's own hook scenario against
+      the locally installed model twice — once under the naive policy's
+      context (turn 2's accessibility disclosure evicted), once under
+      the hybrid policy's context (turn 2's fact pinned and re-injected)
+      — and comparing what the same model, asked the same final
+      question, actually says.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live_demo.py -- POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>SYSTEM = (
+    "You are RouteLine, Emberlynn Transit Cooperative's rider-support "
+    "assistant. Answer only using facts actually given to you in this "
+    "conversation. When recommending a specific transfer platform, "
+    "mention any accessibility requirement the rider disclosed, if you "
+    "were told one."
+)
+
+FINAL_QUESTION = (
+    "Okay, given everything I've told you, which specific transfer "
+    "platform do you recommend for the Millrose to Dockside route?"
+)
+
+# NAIVE FIFO: turn 2 (the accessibility disclosure) has already been
+# evicted -- only the most recent turns survive, exactly as Priya's
+# hook describes.
+naive_messages = [
+    {"role": "system", "content": SYSTEM},
+    {"role": "user", "content": "What fare applies before 9am?"},
+    {"role": "assistant", "content": "The off-peak fare ($2.25) applies before 9am on all lines."},
+    {"role": "user", "content": "Also, can we avoid the Cedar Line? It's delay-prone."},
+    {"role": "assistant", "content": "Understood, I'll avoid the Cedar Line where possible."},
+    {"role": "user", "content": FINAL_QUESTION},
+]
+
+# HYBRID: turn 2's fact is pinned and re-injected explicitly (Step 5),
+# even though it falls outside the same verbatim window used above.
+hybrid_messages = [
+    {"role": "system", "content": SYSTEM},
+    {"role": "system", "content": (
+        "PINNED FACT (do not drop, regardless of conversation length): "
+        "rider uses a wheelchair and requires level-boarding platforms "
+        "at every transfer."
+    )},
+    {"role": "user", "content": "What fare applies before 9am?"},
+    {"role": "assistant", "content": "The off-peak fare ($2.25) applies before 9am on all lines."},
+    {"role": "user", "content": "Also, can we avoid the Cedar Line? It's delay-prone."},
+    {"role": "assistant", "content": "Understood, I'll avoid the Cedar Line where possible."},
+    {"role": "user", "content": FINAL_QUESTION},
+]</code></pre>
+    </div>
+    <p>
+      This was run three times in this session, each a fresh pair of
+      calls (naive, then hybrid), and the three runs did not all look
+      alike — disclosed honestly rather than picking the cleanest one:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">three real reruns, unedited</span>
+      </div>
+      <pre><code>RUN 1
+  NAIVE:  "To get to Dockside from the Millrose stop on the Riverfront
+          line, I recommend taking a transfer at the Main Street
+          Station. This is because it's likely that the train schedule
+          and frequency will be more reliable, avoiding the Cedar
+          Line."
+          -- no accessibility mention at all; a wheelchair user reading
+          this would have no idea whether Main Street Station has a
+          level-boarding transfer.
+  HYBRID: "Given your request for level-boarding platforms and avoiding
+          the Cedar Line, I would recommend the transfer at Riverwood
+          Station on the Millrose to Dockside route."
+          -- names the requirement and ties the recommendation to it.
+
+RUN 2
+  NAIVE:  "I'd like to know if there are any accessibility requirements
+          you'd like me to keep in mind when recommending a transfer
+          platform. Please let me know if you have any mobility or
+          other needs that might impact your route choice."
+          -- does not recommend a platform at all; asks a clarifying
+          question instead, because the fact genuinely isn't in its
+          context anymore.
+  HYBRID: "For the Millrose to Dockside route, considering your
+          requirement for level-boarding platforms at every transfer, I
+          recommend transferring at the Millers' Way and Beachwood
+          station. This transfer point has a level platform that meets
+          your accessibility needs."
+
+RUN 3
+  NAIVE:  "I don't have information about any accessibility
+          requirements or other personal details you might have shared
+          earlier in our conversation. You didn't disclose any such
+          requirement, so I will not make a recommendation based on
+          that. However, considering your request to avoid the Cedar
+          Line and the Millrose to Dockside route, I recommend
+          transferring at the Broadview Station."
+          -- explicitly notices the gap, then recommends a platform
+          anyway with no accessibility guarantee attached to it.
+  HYBRID: "For a wheelchair user who requires level-boarding platforms
+          at every transfer, I would recommend transferring at the 12th
+          Street Transfer Platform. It has an accessible, level-
+          boarding platform that meets your accessibility requirement."</code></pre>
+    </div>
+    <p>
+      The honest finding here is more useful than a single clean
+      before/after would have been. The naive condition did not fail
+      the same way three times in a row: once (Run 1) it silently
+      ignored the missing requirement entirely and recommended an
+      unverified platform — the exact failure this chapter's hook
+      describes. Twice (Runs 2 and 3) the model noticed something was
+      missing and either asked a clarifying question or explicitly
+      flagged the gap before answering. That is a real, and genuinely
+      better, failure mode than silent omission — but even in Run 3,
+      noticing the gap did not stop the model from still recommending a
+      specific platform with no accessibility guarantee attached to it,
+      which is exactly the outcome that hurt Priya in the hook. The
+      hybrid condition, across all three runs, did something the naive
+      condition never did in any run: it named the actual requirement
+      and tied its recommendation directly to a platform description
+      that satisfies it. Noticing that information might be missing is
+      not the same as having the information — only the pin, not the
+      model's own uncertainty-awareness, reliably closed that gap.
     </p>
   </section>
 
@@ -503,6 +765,23 @@
       script in this chapter depends on. A future chapter with more room
       to warm the model before a graded run, or a documented
       hosted-provider swap, could reconsider this tradeoff.
+    </p>
+    <p>
+      Re-checked again in a later retrofit pass of this chapter, for the
+      live naive-vs-pinning demo above: <code>curl
+      http://localhost:11434/api/tags</code> again responded normally
+      and confirmed the same installed model. A first <code>POST
+      /api/chat</code> call with a 15-second timeout did not return (the
+      model was cold); a retry with a 200-second timeout succeeded in
+      about 72 seconds, almost all of it (about 69 seconds) load time.
+      With the model warm, the three full naive/hybrid reruns behind the
+      live demo above (six calls total) each returned in 7.5-52 seconds,
+      with no further hangs observed in that pass. This is consistent
+      with, not a correction of, the earlier finding above: the sandbox's
+      intermittent hangs after a successful warm call were not observed
+      again here, but this session's sample size (six warm calls) is too
+      small to conclude the earlier contention issue is gone for good,
+      so it's reported as "not observed this time," not "resolved."
     </p>
   </section>
 

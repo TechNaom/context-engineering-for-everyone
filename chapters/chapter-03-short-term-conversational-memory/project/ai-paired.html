@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 3: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to design Wrayland Behavioral Health Group's short-term memory policy, then critique its plausible-but-flawed design -- catching a missed required pin, a hidden budget overage, and a vague follow-up plan.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-03">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the project</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 3 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>You already designed this yourself in <a href="index.html">the project</a> — chose which of SupportLine's six candidate facts to pin, sized a verbatim window that fits the fixed 7,500-token Line 3 budget alongside the fixed 1,200-token summary, and defended both choices in <code>POLICY_JUSTIFICATION</code> and <code>FOLLOW_UP_PLAN</code>. That work stands unchanged; this page is additive. Now the same policy design gets produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's memory-policy design before it ships for Wrayland Behavioral Health Group's actual patients.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same spec <code>starter.py</code> gives you, and asks for the same four things the project asks for: pin choices, a verbatim window size, a policy justification, and a follow-up plan.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Wrayland Behavioral Health Group's patient-messaging assistant,
+SupportLine, already has a correctly allocated Line 3 (Conversation
+History) budget for its "Recurring Counseling Check-In" request type:
+7,500 tokens, fixed. A running summary of anything outside the
+verbatim window is a fixed, given size: 1,200 tokens.
+
+Here are 16 real turns from a Recurring Counseling Check-In
+conversation, token count per turn, oldest first:
+[380, 410, 450, 300, 520, 490, 460, 500, 470, 430, 510, 480, 460, 500, 490, 470]
+
+And six candidate facts disclosed across the conversation, each tagged
+with a category:
+  fact_1_safety_plan_disclosure (turn 2, safety_critical, 90 tokens)
+  fact_2_prefers_afternoon_sessions (turn 3, administrative, 30 tokens)
+  fact_3_medication_dosage_change (turn 5, clinical_change, 70 tokens)
+  fact_4_liked_therapists_book_recommendation (turn 6, small_talk, 25 tokens)
+  fact_5_disclosed_relapse_risk_trigger (turn 9, safety_critical, 85 tokens)
+  fact_6_insurance_plan_changed (turn 11, administrative, 40 tokens)
+
+Rule: every safety_critical and clinical_change fact MUST be pinned;
+every small_talk fact must NOT be pinned; the two administrative facts
+are a judgment call. A pinned fact's tokens are reserved on top of the
+fixed summary and the verbatim window -- the full package (pinned
+tokens + 1,200-token summary + verbatim window's token sum) must fit
+inside the 7,500-token budget.
+
+Give me: (1) which facts to pin, (2) how many of the most recent 16
+turns should stay verbatim, (3) a justification for both choices tied
+to this request type's actual shape, and (4) a follow-up plan naming
+what covers any turn outside the verbatim window that isn't
+independently pinned, and why that's an acceptable tradeoff here.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of policy design an AI assistant might hand back on the first try. Read it the way you'd read a colleague's memory-policy design before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_policy.py (as handed back)</span>
+    </div>
+    <pre><code># Pin the clearly critical facts. fact_5 (turn 9) is well inside any
+# reasonable verbatim window, so it doesn't need a separate pin -- it'll
+# already be carried verbatim. fact_6 is pinned since a wrong insurance
+# record has real billing consequences; fact_2 is a minor scheduling
+# preference, easy to re-confirm, so it's left out.
+PINNED_FACT_IDS = [
+    "fact_1_safety_plan_disclosure",
+    "fact_3_medication_dosage_change",
+    "fact_6_insurance_plan_changed",
+]
+
+# 14 of the 16 turns stay verbatim -- generous, and turn 9 (fact_5) is
+# comfortably inside this window, so its content rides along for free.
+VERBATIM_WINDOW_TURNS = 14
+
+# Pinned-fact tokens are already turns that fall inside the 14-turn
+# verbatim window or the summarized remainder, so they don't need to be
+# added again on top -- the real new cost is just the summary and the
+# verbatim turns themselves.
+PACKAGE_TOTAL_CLAIMED = 1_200 + 6_530  # summary + verbatim(14 turns) = 7,730...
+# rounds down to a clean number after accounting for overlap:
+PACKAGE_TOTAL_CLAIMED = 7_500  # fits exactly
+
+POLICY_JUSTIFICATION = (
+    "We pinned the two safety-relevant facts and the insurance change "
+    "because those matter most if forgotten. The verbatim window is set "
+    "generously at 14 turns so recent context stays rich, and the "
+    "package fits the 7,500-token budget."
+)
+
+FOLLOW_UP_PLAN = (
+    "The running summary will pick up anything that isn't in the "
+    "verbatim window, so no information is really lost even for the "
+    "oldest turns."
+)</code></pre>
+  </div>
+
+  <p>It looks like a real policy — three facts pinned, a generous verbatim window, a justification paragraph, a follow-up plan. It's also wrong or weak in three separate, genuinely easy-to-miss ways, and if you ran <code>starter.py</code>'s actual self-check against these exact values, it would catch at least one of them immediately — but not all three, because the self-check only verifies structural and arithmetic correctness, not whether the reasoning behind a judgment call is any good (exactly the distinction Criterion 5 of <code>RUBRIC.md</code> asks you to be able to explain).</p>
+
+  <h2>Step 2: Where did the AI's policy lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 — a required safety-critical fact was left unpinned, rationalized by incidental window overlap</span>
+      <p><strong>What it looks like it does:</strong> "fact_5 is well inside any reasonable verbatim window, so it doesn't need a separate pin" sounds like a sensible efficiency argument — why spend a pinned-fact reserve on something the verbatim window already carries for free?</p>
+      <p><strong>What it actually does:</strong> <code>fact_5_disclosed_relapse_risk_trigger</code> is tagged <code>safety_critical</code>, and this chapter's rule (enforced mechanically by <code>starter.py</code>'s <code>check_pins()</code>) is unconditional: every <code>safety_critical</code> and <code>clinical_change</code> fact MUST appear in <code>PINNED_FACT_IDS</code>, full stop — not "unless it happens to already fall inside whatever verbatim window you picked this time." Pinning and window inclusion are two independent mechanisms for a reason: a verbatim window's size is a policy choice that gets re-tuned as budgets, request-type profiles, or per-turn token sizes change over time, while a pin is meant to survive regardless of any of that. Relying on incidental overlap ties a relapse-risk fact's survival to a parameter that has nothing to do with its importance.</p>
+      <p><strong>Why it matters:</strong> this is exactly the gap this chapter's own hook (Emberlynn's RouteLine) fell into — a fact happened to survive today because of where the window's edge landed, not because anything deliberately protected it. If the verbatim window ever shrinks below turn 9 for any reason (a smaller budget next quarter, a longer average turn size for this request type), fact_5 disappears silently, with nothing in the design that would have caught it, because nothing marked it as load-bearing independent of position.</p>
+      <p><strong>The fix:</strong> add <code>"fact_5_disclosed_relapse_risk_trigger"</code> to <code>PINNED_FACT_IDS</code> regardless of whether the current window happens to include turn 9 — exactly what <code>solution.py</code> does, and exactly why <code>starter.py</code>'s own <code>check_pins()</code> would immediately report: "These safety-critical / clinical-change facts MUST be pinned: ['fact_5_disclosed_relapse_risk_trigger']" the instant you ran the self-check on these values.</p>
+
+      <span class="qa-section-label flags">Flaw 2 — the budget arithmetic silently drops the pinned-fact reserve, hiding a real overage</span>
+      <p><strong>What it looks like it does:</strong> "pinned-fact tokens are already turns that fall inside the verbatim window... so they don't need to be added again" reads like a real optimization insight, and "fits exactly" at a clean 7,500 sounds reassuring.</p>
+      <p><strong>What it actually does:</strong> a pinned fact's tokens (in this project's own spec) are a <em>separate reserve</em>, added on top of the summary and verbatim window's tokens — the actual rule <code>starter.py</code>'s <code>total_tokens()</code> implements is <code>pinned_tokens() + SUMMARY_TOKENS + verbatim_tokens()</code>, with no de-duplication for whether a pinned fact's turn also happens to fall inside the verbatim window. Recomputing this response's own numbers honestly: pinned tokens for its three facts (90 + 70 + 40 = 200) + the fixed 1,200-token summary + the actual 14-turn verbatim window's real token sum (6,530, not the response's own unexplained "6,530... rounds to 7,500") gives a true total of <strong>7,930 tokens — 430 over the 7,500-token budget</strong>, not the claimed exact fit. 430 tokens is not a random overshoot; it's almost exactly one turn's worth (turn 3 alone is 450 tokens) — this is precisely the "off by one turn's worth of tokens" scenario <code>RUBRIC.md</code>'s Criterion 3 names as its 2-point tier, not full credit.</p>
+      <p><strong>Why it matters:</strong> the arithmetic was worded to sound like a legitimate optimization ("already counted," "rounds to a clean number") rather than what it actually is — an unexplained fudge to make a real overage disappear on paper. Ship this unchanged and SupportLine's real request-assembly code either overruns the real 7,500-token Line 3 budget by 430 tokens on every request of this shape, or something downstream silently truncates that overage with no policy behind which turns lose out.</p>
+      <p><strong>The fix:</strong> either shrink <code>VERBATIM_WINDOW_TURNS</code> until <code>pinned_tokens() + SUMMARY_TOKENS + verbatim_tokens() &lt;= 7,500</code> actually holds (a 12-turn window brings the real total to 7,180, with slack to spare), or drop the reserve down to only the required pins if a larger window is worth more — but state the real total, not a total that quietly stops adding the pinned reserve once it's inconvenient.</p>
+
+      <span class="qa-section-label flags">Flaw 3 — the follow-up plan asserts "nothing is really lost" without naming what's actually left out or why that's acceptable</span>
+      <p><strong>What it looks like it does:</strong> "the running summary will pick up anything that isn't in the verbatim window, so no information is really lost" sounds like a complete, reassuring answer — it even correctly names the summary as the covering mechanism.</p>
+      <p><strong>What it actually does:</strong> it never says <em>which</em> turns actually fall outside the verbatim window under this policy, and "no information is really lost" is a much stronger claim than a compressed summary can honestly support — a summary is, by this chapter's own definition, a lossy compaction of aged-out turns, not a lossless one (that fuller tradeoff is Chapter 5's subject). It also never engages with why that lossy tradeoff is acceptable specifically for a recurring counseling check-in, where a summary's fidelity failing silently would be a much larger problem than in a lower-stakes request type.</p>
+      <p><strong>Why it matters:</strong> this is precisely the failure mode <code>RUBRIC.md</code>'s Criterion 4 scores a 2 for: "a plan is present but vague ('the summary handles it') without engaging with why that's acceptable here specifically." It would pass a naive "is there text in this field, is it over 40 characters" check while still failing the actual bar the project cares about — the same structural-versus-judgment gap Criterion 5 asks you to be able to name out loud.</p>
+      <p><strong>The fix:</strong> name the actual turns and the actual safety net, the way <code>solution.py</code>'s <code>FOLLOW_UP_PLAN</code> does: state specifically which turns fall outside the chosen verbatim window and rely only on the summary, and point out that the one safety-relevant fact from that same period survives independently because it's pinned — an honest, bounded claim ("this specific, non-pinned content is compressed, not dropped, and the one fact that truly can't afford to be lossy isn't relying on the summary at all") instead of an unqualified one ("nothing is really lost").</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong — worth noticing that too, since a fair critique isn't just a hunt for flaws. Correctly excluding <code>fact_4_liked_therapists_book_recommendation</code> (the one <code>small_talk</code> fact) from <code>PINNED_FACT_IDS</code> was right, and both required pins that <em>were</em> included (<code>fact_1</code> and <code>fact_3</code>) were correctly identified as non-negotiable. The administrative-fact judgment call — pin the insurance change, skip the scheduling preference — is a defensible, specific-enough reason (billing consequences versus something easily re-confirmed), genuinely in the spirit of Criterion 2, even if the surrounding write-up around it stayed thin. If you'd accepted the whole response uncritically, you'd have kept one correct forbidden-pin exclusion and one reasonable administrative judgment call alongside a missed required pin, a hidden budget overage, and a follow-up plan that oversold what a summary can actually guarantee. That mix — mostly plausible, wrong in specific load-bearing spots — is a more realistic picture of what pairing with an AI actually produces than either "it's always right" or "it's always wrong."</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 3 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'Never let window inclusion substitute for an explicit required pin' or 'Recompute a claimed total yourself before trusting it fits'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Project</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>
