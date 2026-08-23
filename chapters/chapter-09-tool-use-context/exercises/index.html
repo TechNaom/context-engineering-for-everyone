@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool-Use Context Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Context Engineering for Tool Use.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-09">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 9 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Tool-Use Context</h1>
+  <p>
+    These exercises use a fresh scenario, deliberately different from
+    the lesson's Sagebrush Regional Field Services Cooperative/
+    DispatchLine hook: <strong>Kestrel Regional Grid Operations
+    Cooperative</strong>, a fictional multi-substation electric grid
+    operator. Its dispatcher-support assistant, <strong>RelayLine</strong>,
+    has nine registered tools but only ever calls two of them for a
+    "Substation Overload Risk Check" request. Chapters 1-8's own
+    recipes have already run for this request type — a correct budget,
+    correct memory handling, nothing over budget needing compression,
+    no positional risk, and no multi-source contradiction left
+    unresolved. The protocol carrying a tool call is correct and out of
+    scope — your job is this chapter's own new skill: scoping tool
+    definitions, curating and boundary-safely fitting a tool's raw
+    result, and managing tool-call history across a multi-step loop.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — schema-scoping
+    arithmetic, result curation, field-boundary-safe budget fit,
+    tool-call history eviction, a naive-vs-recipe regression gate, and
+    source-assembly handoff typing, not just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match scenarios to tool-context approaches</h3>
+    <p>Decide which of three RelayLine scenarios show unconditional full-registry inclusion, scoped-tools-but-raw-passthrough, or the full Tool Context Recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the Tool Context Recipe</h3>
+    <p>Put the lesson's six recipe steps in the correct sequence, from request-type scoping to the handoff to Chapter 7's own Source Assembly Recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Request-type tool scoping and schema budget</h3>
+    <p>Given nine registered tools' schema token costs, compute the scoped-vs-unconditional schema token cost and the tokens saved.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Result curation</h3>
+    <p>Decide which of a substation-status tool's eleven raw fields the request type actually needs kept.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Field-boundary-safe budget fit</h3>
+    <p>Fit the curated result to a token budget, keeping whole fields only, never truncating mid-field.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Tool-call history eviction</h3>
+    <p>Across a four-call agentic loop, decide which prior tool-call results are superseded and should be evicted or marked stale.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Naive-vs-recipe regression gate</h3>
+    <p>Confirm a load-bearing field a naive character-count cutoff would drop is correctly preserved by the recipe, within budget.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Source-assembly handoff typing</h3>
+    <p>Decide which of four candidate context items are correctly typed, curated <code>tool_result</code> sources ready to hand to Chapter 7's own Source Assembly Recipe.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

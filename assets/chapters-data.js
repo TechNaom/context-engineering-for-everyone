@@ -107,7 +107,8 @@ window.CEFE_MODULES = [
         id: "chapter-09",
         num: 9,
         title: "Context Engineering for Tool Use",
-        description: "Deciding what tool definitions, results, and history a model needs in context for a tool call -- distinct from the protocol MCP defines."
+        description: "Deciding what tool definitions, results, and history a model needs in context for a tool call -- distinct from the protocol MCP defines.",
+        path: "chapters/chapter-09-tool-use-context/lesson.html"
       },
       {
         id: "chapter-10",

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool-Use Context Quiz — Context Engineering for Everyone</title>
+<meta name="description" content="Interactive quiz for Context Engineering for Tool Use.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-09" data-chapter-id="chapter-09">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="lesson.html">&larr; Back to the lesson</a></p>
+
+  <span class="chapter-badge">Chapter 9 Quiz</span>
+  <h1>Context Engineering for Tool Use</h1>
+  <p>Fill in each blank, then check your answers. A perfect score marks this chapter complete.</p>
+
+  <div class="quiz-progress-wrap" aria-hidden="true">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+
+  <form onsubmit="return false;">
+
+    <div class="quiz-question">
+      <label for="q1"><span class="q-num">1</span> DispatchLine's pipeline sent all twelve registered tools' schemas on every call, even though "Dispatch Safety Check" only ever used two — a cost paid whether or not a tool is actually ______ that turn.</label>
+      <div class="fib-row">
+        <input type="text" id="q1" class="fib-blank" data-answers="called,invoked" aria-label="Answer for question 1">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q2"><span class="q-num">2</span> Step 1 of the Tool Context Recipe ______ tool definitions to the request type, rather than including every registered tool's schema unconditionally.</label>
+      <div class="fib-row">
+        <input type="text" id="q2" class="fib-blank" data-answers="scopes" aria-label="Answer for question 2">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q3"><span class="q-num">3</span> Step 2 budgets each included tool's schema as its own explicit line ______, paid whether or not the model ever calls that tool this turn.</label>
+      <div class="fib-row">
+        <input type="text" id="q3" class="fib-blank" data-answers="item" aria-label="Answer for question 3">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q4"><span class="q-num">4</span> Step 3 ______ a tool's raw result before it enters context, extracting only the fields this request type actually needs rather than passing a full API payload through verbatim.</label>
+      <div class="fib-row">
+        <input type="text" id="q4" class="fib-blank" data-answers="curates" aria-label="Answer for question 4">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q5"><span class="q-num">5</span> Step 4 fits the curated result to budget at a field ______, never truncating mid-key or mid-value the way DispatchLine's naive cutoff did to <code>wind_gust_mph</code>.</label>
+      <div class="fib-row">
+        <input type="text" id="q5" class="fib-blank" data-answers="boundary" aria-label="Answer for question 5">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q6"><span class="q-num">6</span> Step 5 budgets and ______ tool-call history across a multi-step loop, so a superseded earlier result isn't left in context as if it were still current.</label>
+      <div class="fib-row">
+        <input type="text" id="q6" class="fib-blank" data-answers="evicts" aria-label="Answer for question 6">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q7"><span class="q-num">7</span> Step 6 hands the resolved, curated, typed <code>tool_result</code> to Chapter ______'s own Source Assembly Recipe, rather than skipping straight to its inventory step.</label>
+      <div class="fib-row">
+        <input type="text" id="q7" class="fib-blank" data-answers="7,seven" aria-label="Answer for question 7">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q8"><span class="q-num">8</span> This chapter deliberately does not teach how a tool call is negotiated, discovered, authorized, or transported — that protocol-level subject belongs to `mcp-for-______`.</label>
+      <div class="fib-row">
+        <input type="text" id="q8" class="fib-blank" data-answers="everyone" aria-label="Answer for question 8">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div id="check-all-wrap">
+      <button type="button" id="check-all-btn" class="check-btn">Check All Answers</button>
+      <span id="quiz-score"></span>
+    </div>
+
+    <div class="quiz-celebration" id="quiz-celebration" aria-live="polite">
+      Perfect score. Chapter complete.
+    </div>
+  </form>
+
+  <div class="chapter-nav">
+    <a href="lesson.html">&larr; Back to Lesson</a>
+    <a href="exercises/index.html">Exercises &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/quiz-engine.js"></script>
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

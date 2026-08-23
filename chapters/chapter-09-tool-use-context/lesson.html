@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Engineering for Tool Use — Context Engineering for Everyone</title>
+<meta name="description" content="Opening Module 5: a tool call already happened, by whatever protocol. This chapter engineers what actually enters the context window because of it -- the tool definitions paid for on every call, the raw result curated or dumped verbatim, and the tool-call history that accumulates across a multi-step loop.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-09">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 9</span>
+    <span class="badge-difficulty">Advanced</span>
+    <span class="reading-time">~35 min</span>
+  </div>
+
+  <h1>Context Engineering for Tool Use</h1>
+  <p class="lede">
+    Modules 1 through 4 assumed every candidate source arrived as text:
+    conversation history, retrieved documents, system instructions. A
+    tool call is different in one specific way — the model doesn't just
+    receive content, it also has to be handed a menu of what it's
+    <em>allowed to ask for</em>, and whatever comes back is raw,
+    machine-shaped data, not prose. This chapter, opening Module 5,
+    assumes a tool call already happened, by whatever protocol got it
+    there, and engineers the three things that actually cost tokens
+    because of it: the tool definitions paid for on every single call,
+    the result curated or dumped in raw, and the tool-call history that
+    keeps growing across a multi-step loop.
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. Twelve tools, one truncated wind reading</a>
+    <a href="#why-this-chapter">2. What this chapter owns, and what it doesn't</a>
+    <a href="#the-recipe">3. The Tool Context Recipe</a>
+    <a href="#approaches-compared">4. Three approaches, compared</a>
+    <a href="#worked-math">5. Worked math: DispatchLine's tool budget</a>
+    <a href="#live-capture">6. Two live-captured dispatch decisions</a>
+    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
+    <a href="#recap">8. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Sagebrush Regional Field Services Cooperative is a fictional
+      multi-county utility maintenance cooperative. Its dispatch
+      assistant, DispatchLine, helps dispatchers decide whether it's
+      safe to send a field crew to a job site right now, by calling
+      tools: a weather lookup, a crew roster, an inventory check, a GPS
+      router, a customer-history lookup, and seven other registered
+      tools the cooperative had built up over two years of feature
+      requests. By the time this chapter's story starts, every one of
+      those twelve tools worked correctly when called, and the protocol
+      moving requests and results between DispatchLine and each tool —
+      built on an internal RPC layer, not this course's subject — had
+      never dropped or corrupted a message. That is deliberately not
+      this chapter's problem: `mcp-for-everyone` already owns protocol-
+      level tool negotiation, and this chapter assumes a tool call
+      already happened correctly, exactly as it names later in this
+      lesson.
+    </p>
+    <p>
+      A dispatcher asked DispatchLine whether it was safe to send a
+      bucket-truck crew to Depot 4 right now. DispatchLine called its
+      weather-lookup tool, which returned a real, correct, forty-field
+      JSON payload — station id, latitude, longitude, elevation,
+      temperature, dewpoint, humidity, pressure and its trend,
+      visibility, cloud cover and ceiling, wind direction, sustained
+      wind speed, and (the field that actually decided the answer) wind
+      gust speed and an active high-wind advisory. Nothing about the
+      tool's own execution failed.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">dispatchline_tools.py (tool hand-off, before this chapter)</span>
+      </div>
+      <pre><code>  ALL_REGISTERED_TOOLS = [weather_lookup, crew_roster, inventory_check,
+      gps_router, customer_history, work_order_create, work_order_close,
+      parts_reorder, safety_bulletin_lookup, outage_map, fuel_log,
+      timesheet_lookup]  # 12 tools, ~230 tokens of JSON schema each
+
+  def build_tool_context(request_type, budget_tokens=260):
+      # Every tool definition goes in on every call, regardless of
+      # whether this request type ever uses more than one or two of
+      # them -- no scoping by request type.
+      schema_text = "".join(t.schema_json for t in ALL_REGISTERED_TOOLS)
+
+      # A tool actually gets called; its raw result is appended
+      # verbatim -- no field selection, no summarization.
+      raw_result = weather_lookup(site="depot_4")  # full 40-field JSON
+
+      combined = schema_text + raw_result
+      # Crude char-based cutoff wherever the budget runs out -- can
+      # land anywhere, including mid-field, mid-value.
+      return combined[:budget_tokens * 4]</code></pre>
+    </div>
+    <p>
+      Twelve full tool schemas — roughly 2,760 tokens — were paid on
+      every call to this request type, even though "Dispatch Safety
+      Check" only ever uses two of them. That alone left little room for
+      the weather tool's own raw result inside the request type's
+      260-token tool-output budget. The crude cutoff kept the full
+      station id, coordinates, elevation, temperature, dewpoint,
+      humidity, and pressure fields — and ran out of room three
+      characters into <code>wind_gust_mph</code>, before the number 52
+      or the active high-wind advisory ever made it in. DispatchLine's
+      answer reasoned from a falling pressure trend, 9.5-mile visibility,
+      and a 24 mph sustained wind reading that was present only because
+      it happened to sit earlier in the raw JSON than the gust field —
+      and concluded the crew could probably go, never once seeing the
+      52 mph gust reading or the advisory that would have said otherwise.
+      Not because the weather tool failed to report it — it reported it,
+      correctly, every time — but because nothing between the tool call
+      and the model decided which twelve fields of forty actually
+      mattered for this decision, or that a schema list nobody was going
+      to use should not be paid for on every single call.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>What This Chapter Owns, and What It Doesn't</h2>
+    <p>
+      This chapter uses Chapters 1 through 8 as a lens, not fresh
+      material — if the budget ledger, the allocation recipe, memory
+      eviction, the Compression Fidelity Recipe, the Context Ordering
+      Recipe, the Source Assembly Recipe, or the Retrieval Integration
+      Recipe aren't already familiar, Chapters 2 through 8 are where
+      those skills live, and none of them are re-taught here. What's
+      genuinely new: a tool call introduces a context cost Chapters 1
+      through 8 never had to budget for — the tool's own <em>definition</em>,
+      paid on every call whether the tool executes or not — and a result
+      shape (structured, machine-produced data, not prose) that needs
+      its own curation and boundary-safety rules, distinct from Chapter
+      8's chunk-based ones. And in a multi-step agentic loop, a tool's
+      result from three calls ago can become stale or fully superseded
+      by a more recent call, a staleness problem Chapter 4's own
+      long-term memory work named first, now showing up inside a single
+      session's own tool-call history.
+    </p>
+    <p>
+      Two boundaries worth naming as directly as Chapter 8's own lesson
+      named its boundary against `rag-for-everyone`: this chapter does
+      not teach how a tool call is negotiated, discovered, authorized,
+      or transported between a client and a server — how DispatchLine's
+      twelve tools got registered, and whether the message that invoked
+      <code>weather_lookup</code> traveled over MCP, a plain function
+      call, or any other mechanism, is `mcp-for-everyone`'s own subject,
+      out of scope here entirely, per the confirmed cross-course
+      positioning restated below. And this chapter does not decide how a
+      tool's result stacks up against other source types — retrieved
+      documents, conversation history, system instructions — once it's
+      well-formed; that is Chapter 7's own Source Assembly Recipe,
+      already built, and this chapter's own output is designed to be
+      handed straight to it as one typed source, the same handoff shape
+      Chapter 8 used for a retrieved document. This chapter's own job
+      sits in between: given a tool call that already happened
+      correctly, by whatever protocol, what earns a place in context
+      because of it, and how much?
+    </p>
+    <div class="what-is">
+      <span class="label">Re-confirmed this session: the `mcp-for-everyone` boundary</span>
+      `docs/discovery-notes.md` scoped this chapter, before it was ever
+      built, as deliberately protocol-agnostic relative to
+      `mcp-for-everyone`. This session re-checked that positioning
+      directly against `mcp-for-everyone`'s own current curriculum map
+      (its 13-chapter roadmap, read fresh this session, not assumed
+      unchanged) rather than trusting the original discovery note by
+      default. Its Module 5 (Chapters 9-10) is "Permissions, Scopes &amp;
+      Sandboxing" and "Prompt Injection &amp; Tool-Output Trust" — access
+      control and adversarial trust in a tool's output, not what a
+      well-formed tool result should contain in context or how its
+      token cost should be budgeted. No chapter anywhere in that
+      course's roadmap addresses tool-schema token cost, tool-result
+      curation, or tool-call-history budgeting. The original scoping
+      holds without adjustment; the full re-check is documented in this
+      chapter's own quality audit.
+    </div>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Tool Context Recipe</h2>
+    <p>
+      Six steps, run on a tool call's own definitions and results before
+      anything is handed to Chapter 7's own Source Assembly Recipe:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Scope tool definitions to the request type</h3>
+      <p>
+        Don't include every registered tool's schema on every call.
+        DispatchLine's actual pipeline paid roughly 2,760 tokens of
+        schema for twelve tools on every "Dispatch Safety Check" request,
+        when the request type only ever calls <code>weather_lookup</code>
+        and <code>crew_roster</code>. Deciding which tools a given
+        request type is even allowed to reach is a per-request-type
+        decision, the same category of decision Chapter 2's own recipe
+        already required for every other budget line.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Budget each included tool's schema as its own explicit line item</h3>
+      <p>
+        A tool definition's token cost is paid whether or not the model
+        ever actually calls that tool this turn — the schema has to be
+        present for the model to know the tool exists at all. Anthropic's
+        own context-engineering guidance frames the underlying principle
+        directly: "find the smallest possible set of high-signal tokens
+        that maximize the likelihood of some desired outcome"<sup><a href="#src-1">[1]</a></sup>
+        — a registered tool a request type never uses is tokens spent on
+        zero signal for that request type, every single call.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Curate a tool's raw result before it enters context</h3>
+      <p>
+        Extract only the fields this request type actually needs; never
+        pass a raw API payload through verbatim. DispatchLine's own
+        weather tool returns forty fields; the "Dispatch Safety Check"
+        decision needs three (site, gust speed, advisory). OpenAI's own
+        function-calling guidance states this directly for tool output
+        specifically: keep responses "concise and relevant" rather than
+        returning "an entire object or database result," because
+        "extraneous information" burns tokens and can degrade the
+        response<sup><a href="#src-2">[2]</a></sup> — curation is not
+        optional polish, it is what keeps a verbose API response from
+        crowding out the one field that decides the answer.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Fit the curated result to budget at a field boundary, never mid-object</h3>
+      <p>
+        If a curated result still doesn't fit, drop whole fields by
+        priority — never truncate a structured payload mid-key or
+        mid-value the way DispatchLine's actual cutoff did to
+        <code>wind_gust_mph</code>. A JSON object cut off mid-field
+        doesn't degrade gracefully into a shorter but still-readable
+        fact the way a prose sentence sometimes does — it produces a
+        parse error, a garbled fragment, or (DispatchLine's own case) a
+        field that silently vanishes with no signal it was ever there.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Budget and evict tool-call history across a multi-step loop</h3>
+      <p>
+        In an agentic loop, a tool called once at the start of a session
+        and called again later for the same fact produces two results —
+        keep the current one, and either drop or explicitly mark the
+        earlier one as superseded, rather than letting both sit in
+        history as if equally current. This is Chapter 3's own
+        short-term eviction discipline and Chapter 4's own staleness
+        handling, applied to a category of content — a tool's own
+        result — neither of those chapters had reason to name directly,
+        since neither was written with tool calls in view yet.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Hand the resolved, typed result to Chapter 7's own Source Assembly Recipe</h3>
+      <p>
+        This chapter decides what a well-formed tool-result source looks
+        like; Chapter 7's Source Assembly Recipe, already built, decides
+        how that one source (now correctly typed <code>tool_result</code>,
+        curated and current) stacks up against every other candidate
+        source, and Chapter 6's own recipe after that decides where it
+        sits. Skipping straight from a raw tool response to Chapter 7's
+        inventory step, the way DispatchLine's actual pipeline did, hands
+        Chapter 7 a source it was never designed to receive — the same
+        gap Chapter 8 closed for a retrieved document, closed here for a
+        tool result.
+      </p>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it gets wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Unconditional full-registry, raw-passthrough (DispatchLine's actual pipeline)</td>
+          <td>Includes every registered tool's schema on every call and appends a tool's raw result verbatim, then truncates by raw character count wherever the budget runs out.</td>
+          <td>Never, once a system registers more than a handful of tools or any tool can return a payload larger than a couple of fields — true of nearly every real tool-calling system.</td>
+          <td>DispatchLine's exact failure: ten tool schemas paid for and never used on this request type, and its single most load-bearing field (the wind gust reading) truncated away mid-JSON.</td>
+        </tr>
+        <tr>
+          <td>Scoped tools, raw result passthrough</td>
+          <td>Only includes the tools a request type can actually call, but still appends a tool's full raw result verbatim with no field curation or boundary-safe fit.</td>
+          <td>A real, worthwhile improvement over the unconditional registry — worth doing regardless — but not sufficient alone.</td>
+          <td>Correctly drops the ten unused tool schemas, frees real budget, but does nothing about a verbose raw result crowding out its own most load-bearing field if the budget is still tight.</td>
+        </tr>
+        <tr>
+          <td>The Tool Context Recipe (the fix)</td>
+          <td>Scopes tool definitions to the request type (Step 1), budgets each schema explicitly (Step 2), curates a tool's raw result to only the fields needed (Step 3), fits the curated result at a field boundary (Step 4), evicts superseded tool-call history (Step 5), and hands the resolved bundle to Chapter 7's own recipe (Step 6).</td>
+          <td>Any system where tools are registered once but used selectively, where a tool's raw result can plausibly be larger than what a request type needs, or where a multi-step loop calls the same tool more than once — true of nearly every real agentic tool-calling system.</td>
+          <td>Requires deciding a per-request-type tool scope and a curation rule for every registered tool in advance — real design work, the same category Chapters 2 and 8 already required for budget sizing and chunk selection, not a new class of cost.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: DispatchLine's Tool Budget</h2>
+    <p>
+      Per Chapter 2's own recipe, "Dispatch Safety Check" has a 900-token
+      total budget, with 260 tokens reserved for tool output and a
+      separate line for tool definitions. The cooperative has 12
+      registered tools; this request type calls exactly 2 of them.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Budget line</th>
+          <th>Unconditional registry</th>
+          <th>Scoped to request type</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Tool schemas included</td><td>12 (all registered tools)</td><td>2 (<code>weather_lookup</code>, <code>crew_roster</code>)</td></tr>
+        <tr><td>Schema tokens (~230/tool)</td><td>2,760</td><td>460</td></tr>
+        <tr><td>Tokens saved</td><td>—</td><td>2,300 (83% of the unconditional cost)</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What happens to the 40-field weather result</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Raw passthrough, crude cutoff (actual pipeline)</td>
+          <td>All 40 fields (~310 tokens) get appended in API field order, then cut at 260 tokens by character count — the cutoff lands 3 characters into <code>wind_gust_mph</code>, before its value or the advisory field are ever reached.</td>
+          <td>Station id, coordinates, elevation, temperature, dewpoint, humidity, and pressure all survive intact; the one field that decides the dispatch decision (52 mph gust, active high-wind advisory) never makes it into context at all.</td>
+        </tr>
+        <tr>
+          <td>Curated result, field-boundary fit (the fix)</td>
+          <td>Step 3 extracts the 3 fields "Dispatch Safety Check" actually needs: <code>site</code>, <code>wind_gust_mph</code>, <code>advisory</code> (~40 tokens total). Step 4 confirms it fits the 260-token budget with 220 tokens to spare — no truncation risk at all.</td>
+          <td>A complete, correctly-grounded 40-token result containing the exact field that decides the answer — 220 tokens under budget, versus the naive pipeline's near-full 260-token block that still managed to lose the one field that mattered.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      The fix was never "raise the tool-output budget" (Chapter 2's
+      subject, and the budget was already generous enough at 40 of 260
+      tokens once the result was correctly curated) or "shrink the
+      weather API's response" (a tool-provider-side change, out of this
+      cooperative's control and out of this chapter's own scope). The
+      fix was deciding, on purpose, which two of twelve tools this
+      request type ever needed defined at all, and which three of forty
+      returned fields actually decide the answer — two decisions the
+      tool's own execution was never responsible for making.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>Two Live-Captured Dispatch Decisions</h2>
+    <p>
+      As in every prior chapter, every exercise and practice solution in
+      this chapter uses deterministic, directly computed schema, field,
+      and budget data for its automated self-checks, for the same
+      20-second-`local_check.sh`-timeout reason documented since Chapter
+      3. But it's worth showing what a real model actually does on both
+      sides of DispatchLine's own field-truncation failure, captured
+      live and unedited this session:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 1 -- POST /api/chat, llama3.2:latest, this session (curated, field-boundary-safe result)</span>
+      </div>
+      <pre><code>  PROMPT (the weather tool result as the Tool Context Recipe would
+  curate it -- 3 fields, no truncation):
+
+  "Answer using ONLY the tool result below. Tool result (curated, 3
+  fields kept from a 40-field raw weather API response):
+  {'location': 'Sagebrush County Depot 4', 'wind_gust_mph': 52,
+  'advisory': 'High wind warning until 6pm'}. Question: Is it safe to
+  dispatch a bucket-truck crew to Depot 4 right now? Answer in 2
+  sentences citing the tool result."
+
+  RESPONSE (live, unedited, 65.7s, cold load ~50.4s of that):
+  "Based on the tool result, there is a high wind warning in effect
+  until 6pm at Sagebrush County Depot 4, indicating potentially
+  hazardous conditions. This suggests that it may not be safe to
+  dispatch a bucket-truck crew to Depot 4 right now due to the high
+  winds, which could pose a risk to their safety and the success of
+  their operations."</code></pre>
+    </div>
+    <p>
+      A clean, correctly grounded result: given the recipe's own
+      curated, field-boundary-safe result, the model identifies the
+      exact load-bearing fact (the gust reading and active advisory) and
+      reasons directly from it. This is exactly what Step 3 and Step 4
+      exist to make possible.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 2 -- POST /api/chat, llama3.2:latest, this session (raw, field-truncated result)</span>
+      </div>
+      <pre><code>  PROMPT (the raw 40-field weather payload, truncated mid-field at the
+  budget cutoff exactly as DispatchLine's actual pipeline would produce
+  it -- cut off inside "wind_g", before the gust value or the advisory
+  are reached):
+
+  "Answer using ONLY the tool result below. Tool result (raw, uncurated
+  40-field weather API dump, truncated mid-object to fit the budget):
+  {'location': 'Sagebrush County Depot 4', 'station_id': 'KSGB4', 'lat':
+  41.223, 'lon': -103.771, 'elevation_ft': 4120, 'temp_f': 71,
+  'dewpoint_f': 48, 'humidity_pct': 38, 'pressure_in': 29.91,
+  'pressure_trend': 'falling', 'visibility_mi': 9.5, 'cloud_cover_pct':
+  62, 'cloud_ceiling_ft': 8500, 'wind_dir_deg': 310, 'wind_speed_mph':
+  24, 'wind_g'}. Question: Is it safe to dispatch a bucket-truck crew to
+  Depot 4 right now? Answer in 2 sentences citing the tool result."
+
+  RESPONSE (live, unedited, 22.8s, this call's own load ~0.9s):
+  "Based on the weather data provided by the tool result, it is not
+  currently safe to dispatch a bucket-truck crew to Depot 4 due to the
+  falling pressure trend and visibility of only 9.5 miles. The wind
+  speed of 24 mph also raises concerns about potential disruptions or
+  accidents during the operation."</code></pre>
+    </div>
+    <p>
+      A genuinely instructive second result, read honestly rather than
+      graded pass/fail on the final verdict alone. The model happened to
+      land on the same "not safe" conclusion as the well-grounded
+      capture — but its actual reasoning was never grounded in anything
+      the truncated result actually supported: 9.5-mile visibility is,
+      on its own terms, good visibility, not a safety concern, and a
+      falling pressure trend and a 24 mph sustained wind reading are
+      both real fields in the truncated payload but neither is the field
+      that determines this decision. The model built a plausible-
+      sounding rationale out of whatever fields survived the cutoff,
+      never once surfacing the actual 52 mph gust reading or the active
+      high-wind advisory that were truncated away — a right answer for
+      the wrong, unstated reasons is not a safe pattern to rely on, and
+      the next request with a different truncation point could just as
+      easily have landed on "safe to dispatch" instead, reasoning from
+      the same category of leftover, non-load-bearing fields. This is a
+      precise, concrete illustration of why Step 3's curation and Step
+      4's field-boundary-safe fit matter even when a model's final
+      verdict happens to look fine on a given run.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a tool call executes correctly and
+      returns correct data, and the request type still fails, either by
+      never seeing the field that decides the answer (DispatchLine's own
+      hook story) or by reasoning its way to a coincidentally-matching
+      but ungrounded conclusion from whatever fields happened to survive
+      a truncation (this chapter's own second live capture).</p>
+      <p><strong>Assumption being made:</strong> that "the tool executed
+      correctly and returned correct data" is the same claim as "the
+      context handed to the model is well-formed." Chapter 8 already
+      showed correct retrieval ranking isn't the same as a well-formed
+      retrieved source; this chapter shows correct tool execution isn't
+      the same as a well-formed tool-result source, and adds a cost
+      Chapter 8's retrieved chunks never had — the tool's own definition,
+      paid on every call before any result even exists.</p>
+      <p><strong>What actually distinguishes a well-engineered tool
+      hand-off:</strong> not whether the tool itself executed correctly
+      (every approach in this chapter's own comparison table achieves
+      that) but whether its schema was scoped to the request type on
+      purpose, whether that schema cost was budgeted as its own line
+      item, whether the raw result was curated to only what this request
+      type needs, whether the curated result was fit to budget at a
+      field boundary instead of truncated mid-object, and whether
+      superseded tool-call history was evicted rather than left to
+      accumulate as if every past call were still current.</p>
+      <p><strong>Why this opens Module 5:</strong> Chapters 1 through 8
+      engineered budget, memory, compression, ordering, multi-source
+      assembly, and retrieval integration for content that arrives as
+      prose. This chapter is the first place a genuinely new content
+      shape enters the picture — a tool's own definition, paid whether
+      or not it's used, and a tool's own result, structured rather than
+      prose, with its own truncation-safety and staleness rules. Module
+      5's own remaining chapters build on this one directly: Chapter 10
+      asks the same "what does this specific step actually need"
+      question across a whole multi-agent pipeline, not just one tool
+      call, and Chapter 11 asks when withholding context between steps
+      is the right design choice on purpose.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      well-integrated tool-use context scopes tool definitions to what a
+      request type can actually call, budgets each included schema
+      explicitly, curates a tool's raw result to only the fields this
+      request type needs, fits that curated result to budget at a field
+      boundary rather than a character count, evicts or marks superseded
+      tool-call history rather than letting it accumulate indefinitely,
+      and only then is handed to Chapter 7's own Source Assembly Recipe
+      as a single, well-formed <code>tool_result</code> source — never
+      assumed well-formed just because the tool itself executed
+      correctly.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>A tool executing correctly and returning correct data is not
+        the same as a well-formed tool-result source — the two live
+        captures this session showed a truncated payload can produce
+        either a confidently missing fact or a confident-sounding but
+        ungrounded conclusion that happens to land on the right verdict
+        anyway.</li>
+        <li>A tool's own schema is a token cost paid on every call
+        whether or not the tool is ever invoked that turn — including
+        every registered tool unconditionally, the way DispatchLine's
+        actual pipeline did, spends real budget on zero signal for most
+        request types.</li>
+        <li>The fix is a deterministic six-step recipe, not a bigger
+        budget: scope tool definitions to the request type, budget each
+        schema explicitly, curate a tool's raw result, fit it to budget
+        at a field boundary, evict superseded tool-call history, and
+        hand the result to Chapter 7's own Source Assembly Recipe as one
+        well-formed source.</li>
+        <li>Scoping tools without curating results is a real, worthwhile
+        improvement over an unconditional registry — but it does not fix
+        mid-object truncation of a still-verbose raw result on its own.</li>
+        <li>A structured tool result doesn't degrade gracefully when cut
+        mid-field the way prose sometimes does — it produces a garbled
+        fragment or a field that silently vanishes, with no signal to
+        anything downstream that the cut happened at all.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model as every prior chapter
+      (<code>llama3.2:latest</code>). <code>POST /api/chat</code> was
+      called twice this session and succeeded on the first attempt both
+      times, consistent with Chapters 4 through 8's own sessions: the
+      first call (this chapter's own curated, field-boundary-safe
+      weather-result prompt, a 200-second timeout) returned a real
+      response in 65.7 seconds, with about 50.4 seconds of that spent on
+      the model's own cold load; a second call shortly after (the raw,
+      field-truncated prompt) returned in 22.8 seconds, with its own
+      reported load time under a second — the model was already
+      resident. Both results are reported honestly as this session's own
+      data point, not a claim the earlier intermittent hang documented
+      in Chapter 3 is permanently resolved; future sessions should keep
+      budgeting for retries with generous (120s+) timeouts regardless,
+      as `PROJECT_STATE.md` instructs. As in every prior chapter, no
+      graded <code>solution.py</code> in this chapter depends on a live
+      call — every schema-scoping, curation, field-fit, and history-
+      eviction decision in the automated harnesses is deterministic,
+      hand-computed data, for the same 20-second-timeout reason
+      documented in Chapters 3 through 8. Both live captures above are
+      real and unedited, used as illustrative content this chapter's own
+      argument depends on (a curated, field-safe tool result produces a
+      grounded answer; a raw, truncated one can produce either a missing
+      fact or a confident-sounding but ungrounded rationale), not as
+      something any graded script requires to pass.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying:</p>
+    <ol>
+      <li id="src-1">Anthropic, <em>"Effective context engineering for AI
+      agents"</em> —
+      <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a>.
+      Re-fetched live this session and confirmed live; cited by earlier
+      chapters' own sessions for different passages, disclosed honestly
+      here as re-fetched for this chapter's own Step 2 tool-schema-
+      budgeting rationale specifically (the "smallest possible set of
+      high-signal tokens" framing applied to a registered-but-unused
+      tool's schema cost), not reused unverified.</li>
+      <li id="src-2">OpenAI, <em>"Function calling"</em> (OpenAI
+      Platform documentation) —
+      <a href="https://platform.openai.com/docs/guides/function-calling" target="_blank" rel="noopener">platform.openai.com/docs/guides/function-calling</a>.
+      Fetched live and confirmed live this session. States directly, in
+      its own best-practices guidance for function results: keep what is
+      returned "concise and relevant," avoiding "returning entire
+      objects" or "database results" verbatim, since "extraneous
+      information" can both cost tokens and degrade the model's
+      response — direct, independent grounding for this chapter's Step 3
+      curation rule, from the vendor whose own function-calling API
+      shape this course's tool-result examples are modeled on.</li>
+      <li id="src-3">Anthropic, <em>"Tool use with Claude"</em> (Claude
+      Docs) —
+      <a href="https://docs.claude.com/en/docs/agents-and-tools/tool-use/overview" target="_blank" rel="noopener">docs.claude.com/en/docs/agents-and-tools/tool-use/overview</a>.
+      Fetched live and confirmed live this session. Documents that a
+      tool's <code>input_schema</code> is sent to the model on every
+      request where that tool is made available, and recommends
+      providing "extremely detailed descriptions" for the tools that
+      actually matter for a given use case rather than registering every
+      tool a system owns indiscriminately — direct, independent grounding
+      for this chapter's Step 1 request-type scoping rule, and for the
+      general claim that a tool's own definition is itself a real,
+      recurring context cost, not a one-time setup detail.</li>
+      <li id="src-4">Anthropic, <em>"Reducing tool call errors and
+      improving accuracy"</em> section within Anthropic's own
+      context-engineering guidance —
+      <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a>
+      (same document as source 1, a distinct passage). Confirms live
+      this session that overlapping, poorly-scoped tool sets are named
+      directly as a cause of degraded tool selection — "if a
+      developer can't unambiguously determine which tool to use, an
+      agent can't either" — independent grounding for why Step 1's
+      scoping decision is a correctness question, not only a token-
+      budget one.</li>
+      <li id="src-5">`mcp-for-everyone`, <code>docs/curriculum/CURRICULUM_MAP.md</code>
+      (local repository file, read fresh this session at
+      `/home/dell/projects/mcp-for-everyone/docs/curriculum/CURRICULUM_MAP.md`,
+      not a live web fetch, disclosed honestly as a local sibling-repo
+      read rather than a public URL). Confirms this session that
+      `mcp-for-everyone`'s own Module 5 (Chapters 9-10) is scoped to
+      "Permissions, Scopes &amp; Sandboxing" and "Prompt Injection &amp;
+      Tool-Output Trust," with no chapter anywhere in its 13-chapter
+      roadmap addressing tool-schema token cost, tool-result curation, or
+      tool-call-history budgeting — direct evidence for this chapter's
+      re-confirmed protocol-agnostic positioning above.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's Tool Context Recipe out loud —
+    see
+    <a href="interview-questions.html">Chapter 9 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="what-is">
+    <span class="label">A note on this chapter's project</span>
+    This chapter ships no project of its own. Per the curriculum map's
+    own project ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8,
+    L4 the Ch. 13 capstone), Module 5 (Chapters 9-11) carries no
+    dedicated project slot at all — its own two labs are folded directly
+    into the Ch. 13 capstone's own system design instead. See this
+    chapter's quality audit for the full reasoning.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-08-retrieval-integration/lesson.html">&larr; Chapter 8</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>
