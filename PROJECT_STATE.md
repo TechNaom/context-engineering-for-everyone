@@ -1,10 +1,11 @@
 # PROJECT_STATE.md — Context Engineering for Everyone
 
-Last updated: 2026-08-23 (Session 4 — Chapter 4, "Long-Term and
-Persistent Memory Systems," complete, closing Module 2 in full.
-Session 3 built Chapter 3, opening Module 2. Session 2 built Chapter 2,
-completing Module 1. Session 1 built Discovery, the curriculum map, the
-full repository scaffold, and Chapter 1.)
+Last updated: 2026-08-23 (Session 5 — Chapter 5, "Context Compression
+and Summarization," complete, opening Module 3. Session 4 built Chapter
+4, closing Module 2 in full. Session 3 built Chapter 3, opening Module
+2. Session 2 built Chapter 2, completing Module 1. Session 1 built
+Discovery, the curriculum map, the full repository scaffold, and
+Chapter 1.)
 
 ## Course Objective
 
@@ -387,13 +388,116 @@ only).
       judgment. No graded `solution.py` in Chapter 4 depends on a live
       call, for the same 20-second-`local_check.sh`-timeout reason
       Chapter 3 documented.
+- [x] **Ollama re-checked fresh in Session 5, two consecutive
+      first-attempt successes**: `/api/tags` responded normally
+      (`llama3.2:latest` still installed). `/api/chat` was called
+      twice, both under a 200-second timeout: a first call (a
+      compression prompt with an explicit exclusion instruction)
+      returned in **64 seconds**, mostly cold model-load time; a second,
+      warm call a few minutes later returned in **8 seconds**. Reported
+      honestly as this session's own result, following the same two
+      consecutive first-attempt successes Session 4 got — not treated as
+      evidence the earlier intermittent-hang finding no longer applies,
+      since Session 3 already showed a warm success can still be
+      followed by a later timeout within one session. The first capture
+      is used in Chapter 5's `lesson.html` as a live, unedited
+      "Live-Captured Compression Example," notable for a genuinely
+      partial result: the model correctly omitted a literal PIN value it
+      was told to exclude, but still described the excluded fact's shape
+      ("a 4-digit account number") — read honestly as a small, real
+      instance of the "decontextualization" fidelity-loss pattern named
+      in this chapter's own fifth citation, neither a clean pass nor a
+      clean failure. No graded `solution.py` in Chapter 5 depends on a
+      live call, for the same 20-second-`local_check.sh`-timeout reason
+      every prior chapter documented.
+- [x] **Chapter 5 built and live — "Context Compression and
+      Summarization," opening Module 3**. Uses Chapters 1-4 as a lens,
+      not fresh material: the token budget, the compression trigger, the
+      pin/summary/window shape, and the long-term write/retrieval
+      policy are all given inputs, not re-derived. This chapter's own
+      job is the one thing Chapter 3's own recipe named but deliberately
+      left unengineered — the actual mechanics a compression call uses
+      to decide what survives when content no longer fits its budget.
+      Hook: Brannigan Home Energy Services' GridLine, a meter-
+      troubleshooting assistant that implemented every recipe through
+      Chapter 4 correctly (a real budget, a real trigger, a real
+      pin/summary/window shape, a real long-term policy) and still lost
+      a load-bearing detail — a cross-turn correlation between meter
+      resets and furnace timing, real but never individually pin-worthy
+      or write-worthy — because its compression step was a single
+      "summarize as concisely as possible" call with no pre-extraction
+      and no post-hoc check. A genuinely distinct failure from all four
+      prior chapters' hooks (no budget; wrong-shaped budget; correct
+      budget, naive within-session eviction; correct short-term policy,
+      no cross-session memory at all). Builds a six-step Compression
+      Fidelity Recipe (identify what's already exempt; extract
+      load-bearing candidates before compressing; choose a strategy
+      matched to content type; bound the target explicitly; run the
+      compression; validate fidelity before shipping) and a
+      three-approach comparison table (no compression needed; naive
+      summarization — never sufficient alone; the fidelity-checked
+      pipeline: pre-extraction + bounded, strategy-matched compression +
+      post-hoc validation). Full worked math for GridLine's 2,400-token
+      hook segment compressed to the same 480-token target under both
+      naive and fidelity-checked approaches, showing the fix was never
+      "compress less" but compressing on purpose. Grounded in 5 real,
+      live-verified sources this session (Anthropic's "Effective context
+      engineering for AI agents," OpenAI's Cookbook "Summarizing long
+      documents" following a live redirect, LangChain's "Short-term
+      memory" docs, Google's Gemini "Long context" docs, and an arXiv
+      preprint on information fidelity in LLM-compressed financial
+      analysis — the first non-vendor-documentation academic source
+      since Chapter 1's Liu et al. citation, disclosed honestly as a
+      preprint rather than a peer-reviewed or long-established source).
+      8 exercises (6 production-gear: compression ratio arithmetic,
+      load-bearing candidate classification, a fidelity check,
+      extractive-vs-abstractive strategy selection, a naive-vs-
+      fidelity-checked regression gate, an escalation decision), 8
+      practice scenarios (4 judgment calls, 4 production-gear) across 8
+      fresh fictional orgs, and 8 interview questions across all 4
+      levels. **No chapter project this session, by design** — per the
+      now-confirmed one-project-per-module convention (see "Open
+      Decisions" below), Module 3's single project ships once, solo, at
+      the end of Chapter 6; `interview-questions.html` says so
+      explicitly rather than silently omitting the section a reader
+      would expect after four straight chapters that each had one.
+- [x] **Quality audit** (`quality-audits/chapter-05-audit.md`) — honest
+      self-critique (including the disclosed gap that this chapter's
+      fidelity-check exercises test clean string-token matching, not the
+      harder real-world problem of detecting a paraphrased or
+      partially-present candidate, flagged for a later chapter), an
+      explicit confirmation (not a silent omission) that Chapter 5 ships
+      no project this session and why, a fictional-org exclusion check
+      extending Chapters 1-4's list with 10 new orgs (54 total in this
+      repo), checked against `ai-engineering-for-everyone`'s own full
+      compiled list with zero collision found (verified with a live
+      grep across this repo and that repo's own audit file, not just
+      visual inspection), and full documentation of the citation churn
+      (one live redirect, one candidate page set aside for a more
+      directly relevant one) encountered during verification.
+- [x] **Step 5: Validation (Chapter 5)** — `scripts/local_check.sh` run
+      at the end of this session; passed clean (folder structure,
+      placeholder-text scan, Python syntax, every `solution.py` executed
+      for real, JS syntax and chapter-path validation, secret scan).
+- [x] **Registration updated in the same session (Chapter 5)**:
+      `assets/chapters-data.js` (Chapter 5's `path` added), root
+      `index.html` (hero-stats now "5 of 13 chapters live" — "2 of 6
+      modules complete" stays as-is, since Module 3 also needs Chapter
+      6 — and the "All Chapters" intro paragraph rewritten to describe
+      all five live chapters and Module 3 opening), and
+      `docs/curriculum/index.html` (Chapter 5's chapter-card now "Live"
+      with a working link, and its own lede paragraph updated to
+      describe Module 3 opening and the deferred Chapter 6 project).
 
 ## Pending / Not Started
 
-- Chapters 5-13 (Module 3 onward) — scaffolded with `.gitkeep` only, no
+- Chapter 6 and Chapters 7-13 — scaffolded with `.gitkeep` only, no
   content. Per this ecosystem's standing discipline, they are built one
   chapter at a time in future sessions, each validated before the next
-  begins — do not mass-build multiple chapters in one pass.
+  begins — do not mass-build multiple chapters in one pass. Chapter 6
+  also owns Module 3's single project (per the one-project-per-module
+  convention), so it is not a drop-in-content-only session the way
+  Chapters 2, 3, and 5 were.
 - No module written exams, module-assessments, or architecture
   challenges exist yet — `assessments/` is fully scaffolded but empty
   (`.gitkeep` in every subdirectory) until the modules they cover are
@@ -429,6 +533,19 @@ only).
   as something Chapter 6 (which owns this topic in depth) should
   re-verify against more current research before treating the finding
   as settled across all current model families.
+- Chapter 5's own fifth citation (`arxiv.org/abs/2606.29251`, "When
+  Summaries Distort Decisions: Information Fidelity in LLM-Compressed
+  Financial Analysis") is an arXiv preprint, not a peer-reviewed or
+  long-established source — flagged in `quality-audits/chapter-05-audit.md`
+  for a future revision to re-check whether it has since been published,
+  revised, or superseded.
+- Chapter 5's own fidelity-check exercises (Exercise 5, Practice
+  Scenario 4) test candidate-presence matching against clean,
+  hand-authored string tokens, not the harder real-world problem of
+  detecting a paraphrased or partially-present candidate inside natural
+  language — flagged in `quality-audits/chapter-05-audit.md` as an open
+  gap for a later chapter or revision, the same way Chapter 4's audit
+  flagged staleness *detection* (vs. staleness *policy*) as unexercised.
 - A real bug was caught and fixed during Chapter 2's own build: two of
   the four request-type profile rows in the lesson's allocation table
   (tool-heavy agentic, long-document review) originally had
@@ -468,6 +585,12 @@ only).
   single L2/L3-tier-appropriate project shipping once, at the end of
   Chapter 6 — not a project at the end of each of Chapters 5 and 6
   individually. This question should not resurface as "open."
+  **Session 5 (Chapter 5) applied this convention as intended**: Chapter
+  5 shipped no project of its own, confirmed explicitly in both
+  `lesson.html`/`interview-questions.html` and
+  `quality-audits/chapter-05-audit.md`, rather than silently omitting
+  the section. Chapter 6 must ship Module 3's single project — this is
+  now a firm commitment, not a default to re-litigate.
 
 ## Design Standards
 
@@ -482,109 +605,104 @@ extended (not restarted) in each chapter's own quality audit.
 
 ## Next Recommended Task
 
-**Chapter 5 — "Context Compression and Summarization," opening Module 3.**
+**Chapter 6 — "Avoiding Lost-in-the-Middle," closing Module 3 — and
+shipping Module 3's single project.**
 
 Per `docs/curriculum/CURRICULUM_MAP.md`: Module 3 (Context Compression
 and Curation), Chapters 5-6. Module 3's outcomes: "compress/summarize
 context without losing load-bearing content; order context to avoid
-lost-in-the-middle degradation." Chapter 5 owns the first outcome
-directly, and is where this course's own compression/summarization
-mechanics finally get full depth — Chapter 3 deliberately built only
-the minimum compression discipline needed to keep short-term memory in
-budget (a fixed-size running summary, treated as a given, never
-mechanized), and said so directly in its own lesson text; Chapter 4
-did the same for its own write-criteria decisions. Chapter 5's own lab,
-per the module outcomes: "build a summarization pipeline that preserves
-load-bearing facts." Chapter 6 (Avoiding Lost-in-the-Middle) is the
-next chapter after that, closing Module 3 — do not build both in one
-session, per this ecosystem's one-chapter-at-a-time discipline.
+lost-in-the-middle degradation." Chapter 5 (this session) owned the
+first outcome — the real compression *mechanics* (a six-step
+Compression Fidelity Recipe) that decide what survives when content no
+longer fits its budget. Chapter 6 owns the second outcome: given that
+content has survived compression intact (Chapter 5's own subject),
+*where* it gets placed inside the final assembled context window
+measurably changes how reliably the model actually uses it — the "lost
+in the middle" effect Chapter 1's own hook first named in passing.
+Chapter 6's own lab, per the module outcomes: "reorder a context window
+to fix a lost-in-the-middle failure." Per the now-confirmed
+one-project-per-module convention (see "Open Decisions" above, applied
+as intended in Chapter 5's own session), **Chapter 6 must also ship
+Module 3's single project** — this is a firm commitment carried forward
+from Chapter 5's session, not a default to re-litigate. Read Chapter
+5's own quality audit before scoping Chapter 6's project shape against
+the module's stated lab and outcomes, per `AI_HANDOFF.md`'s standing
+instruction not to assume Chapter 6's scope from the curriculum map
+alone.
 
 What NOT to re-derive:
 - The five-line Context Budget Ledger (Chapter 1), the five-step
   Budget Allocation Recipe (Chapter 2), the six-step Short-Term Memory
-  Policy Recipe (Chapter 3), and the six-step Long-Term Memory Policy
-  Recipe (Chapter 4) are already-built material. Chapter 5 should
-  re-read Chapter 3's own "Why This Chapter" section (it explicitly
-  named compression mechanics as deferred to Chapter 5) before scoping
-  its own content, so it neither re-teaches what Chapter 3 already
-  covered (running summaries as a *policy concept*: when to trigger,
-  what a summary is *for*) nor leaves a gap between the two. Chapter
-  5's own new job is the mechanics Chapters 3 and 4 both assumed as a
-  fixed given: how a real summarization step actually decides what to
-  keep and what to drop, how to measure or bound information loss, and
-  how to validate a summary preserved what a downstream pinning/write
-  step depends on. Do not re-explain pinning, verbatim windows,
-  write-criteria categories, or staleness handling — Chapter 5 can
-  reference them briefly as the *inputs* its own compression pipeline
-  receives, not re-teach them.
+  Policy Recipe (Chapter 3), the six-step Long-Term Memory Policy
+  Recipe (Chapter 4), and the six-step Compression Fidelity Recipe
+  (Chapter 5) are already-built material. Chapter 6 should re-read
+  Chapter 5's own "Context Engineering Builder Thought Process" section
+  (it explicitly named ordering/positioning as deferred to Chapter 6)
+  before scoping its own content, so it neither re-teaches what Chapter
+  5 already covered (deciding what content survives compression) nor
+  leaves a gap between the two. Chapter 6's own new job is the
+  positional question every prior chapter assumed as out of scope: given
+  a final, assembled set of content (already correctly budgeted per
+  Chapters 1-2, already correctly evicted/compressed per Chapters 3-5,
+  already correctly retrieved per Chapter 4), where in the window does
+  each piece go, and how does that placement change whether the model
+  actually attends to it. Do not re-explain budgeting, pinning,
+  write/retrieval criteria, or compression mechanics — Chapter 6 can
+  reference them briefly as the *inputs* its own ordering step receives,
+  not re-teach them.
 - The course's positioning relative to `rag-for-everyone`,
   `mcp-for-everyone`, and `ai-engineering-for-everyone` Chapter 3 is
   already established in `docs/discovery-notes.md` and Chapter 1's own
-  "Why This Course Exists" section — Chapter 5 can reference it briefly
+  "Why This Course Exists" section — Chapter 6 can reference it briefly
   but should not re-argue it from scratch.
-- Read Chapter 4's own quality audit
-  (`quality-audits/chapter-04-audit.md`) before starting, not just the
+- Read Chapter 5's own quality audit
+  (`quality-audits/chapter-05-audit.md`) before starting, not just the
   curriculum map — per `AI_HANDOFF.md`'s own standing instruction, it
-  may surface scope notes this file doesn't fully capture. In
-  particular: the now-confirmed project-ladder convention (one project
-  per module, at the ladder's own stated tier — see "Open Decisions"
-  above) means Chapter 5 should NOT ship its own project; Module 3's
-  single project ships once, solo, at the end of Chapter 6, matching
-  the curriculum map's own project ladder (the "L3 Independent" tier is
-  tied to Chapter 8, so Module 3's own project is not yet named at a
-  specific tier in the map — Chapter 6's own session should resolve
-  its exact shape against the module's stated lab and outcomes, the
-  same way Chapter 4 resolved Module 2's).
-- The "Lost in the Middle" citation (Liu et al., 2023) is flagged in
-  the Known Issues section above as the original finding, not a more
-  recent replication — Chapter 6, not Chapter 5, owns re-verifying it
-  against more current research, but Chapter 5 should not cite it as
-  settled either if it comes up in scoping compression-quality claims.
+  may surface scope notes this file doesn't fully capture.
+- **Re-verify the "Lost in the Middle" citation (Liu et al., 2023)
+  against more current research before treating the finding as settled
+  across all current model families** — flagged in the Known Issues
+  section above across multiple prior chapters as something Chapter 6
+  specifically, not any earlier chapter, owns resolving, since this is
+  the chapter where that finding moves from a supporting citation to
+  the chapter's own central subject.
 
-New-org exclusion list: read `quality-audits/chapter-04-audit.md`'s
-full running list (Chapters 1-3's combined 33 orgs plus Chapter 4's 11
-new orgs — Nightbourne Senior Living Network, Caldermere Home Health
-Alliance, Underholt Family Medicine Network, Presswick Disability
-Services Cooperative, Dunmere Memory Care Residences, Oxbridge
-Pediatric Home Care, Wetherby Insurance Trust, Camberwell Independent
-Pharmacy Group, Penrose Estate Planning Partners, Rushbrook K-12
-Special Education Cooperative, Brightmoor Elder Law Group — 44 total in
-this repo) plus `ai-engineering-for-everyone`'s own full compiled list
-(see that repo's `quality-audits/chapter-13-audit.md`) before naming
-any new fictional org for Chapter 5, and extend — don't restart — the
-list in `quality-audits/chapter-05-audit.md`.
+New-org exclusion list: read `quality-audits/chapter-05-audit.md`'s
+full running list (Chapters 1-4's combined 44 orgs plus Chapter 5's 10
+new orgs — Brannigan Home Energy Services, Kirkholme Public Transit
+Safety Board, Lynhaven Community Health Partners, Sablewood Legal
+Trust, Coalridge Municipal Transit Authority, Pikestone Logistics
+Group, Rowancraig Insurance Underwriters, Draymoor Agricultural
+Cooperative, Osprey Ridge Wealth Management, Talmarsh Veterinary
+Alliance — 54 total in this repo) plus `ai-engineering-for-everyone`'s
+own full compiled list (see that repo's
+`quality-audits/chapter-13-audit.md`) before naming any new fictional
+org for Chapter 6, and extend — don't restart — the list in
+`quality-audits/chapter-06-audit.md`.
 
-Citation/Ollama re-verification discipline: do not assume Chapter 4's
+Citation/Ollama re-verification discipline: do not assume Chapter 5's
 five citations are still live — re-fetch and re-read anything reused,
-and treat all-new sources as the default (Chapter 4's own session
-needed to follow one live redirect, replace one initially attempted
-URL, and drop four more candidate URLs that 404'd or 403'd along the
-way — expect similar churn, not stability by default). Re-check
-Ollama's `/api/tags` and `/api/chat` fresh at the start of the session,
-even though Chapter 4's own session got two consecutive first-attempt
-successes (74.4s cold, 21.8s warm) — Chapter 3 already showed a
-successful warm call can still be followed by a later timeout within
-the same session, so treat the endpoint as intermittently
-slow/hanging by default, budget for retries throughout the session,
-not just at the start, and keep timeouts generous (120s+) throughout.
-Chapter 5 is a strong candidate for a genuinely load-bearing live
-capture (an actual summarization call, since this chapter's whole
-subject is summarization mechanics) if the session has room for it —
-but keep any such example illustrative-only in the lesson text, not
-wired into a graded `solution.py`, given `scripts/local_check.sh`'s
-20-second per-solution timeout and this sandbox's demonstrated latency
-variance.
+and treat all-new sources as the default (Chapter 5's own session
+needed to follow one live redirect and set aside one initially
+attempted candidate page in favor of a more directly relevant one —
+expect similar churn, not stability by default). Re-check Ollama's
+`/api/tags` and `/api/chat` fresh at the start of the session, even
+though Chapters 4 and 5 both got two consecutive first-attempt
+successes — Chapter 3 already showed a successful warm call can still
+be followed by a later timeout within the same session, so treat the
+endpoint as intermittently slow/hanging by default, budget for retries
+throughout the session, not just at the start, and keep timeouts
+generous (120s+) throughout.
 
-Registration-staleness check reminders: once Chapter 5's `lesson.html`
+Registration-staleness check reminders: once Chapter 6's `lesson.html`
 exists, update `assets/chapters-data.js` (add its `path`), the root
 `index.html` (`hero-stats` counts and the "All Chapters" intro
-paragraph — it should read "5 of 13 chapters live" once Chapter 5
-ships; Module 3 will not yet be complete, since it also includes
-Chapter 6, so "2 of 6 modules complete" stays as-is until Chapter 6
-ships), and `docs/curriculum/index.html` (its own chapter-card status
-and lede paragraph) in the same session — these four locations drifted
-stale in multiple sibling courses' own build histories when a chapter
-shipped without updating all four at once.
+paragraph — it should read "6 of 13 chapters live" AND "3 of 6 modules
+complete" once Chapter 6 ships, since it closes Module 3), and
+`docs/curriculum/index.html` (its own chapter-card status and lede
+paragraph) in the same session — these four locations drifted stale in
+multiple sibling courses' own build histories when a chapter shipped
+without updating all four at once.
 
 Local validation, done at the end of every session:
 
@@ -592,7 +710,7 @@ Local validation, done at the end of every session:
 $ bash scripts/local_check.sh
 ```
 
-Passed clean at the end of this session (Chapter 4) — folder
+Passed clean at the end of this session (Chapter 5) — folder
 structure, placeholder-text scan, Python syntax, every `solution.py`
 executed for real, JS syntax and chapter-path validation, secret scan.
 See this session's own commit message / `AI_HANDOFF.md` for the exact

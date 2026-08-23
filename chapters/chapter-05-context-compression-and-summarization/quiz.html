@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Compression and Summarization Quiz — Context Engineering for Everyone</title>
+<meta name="description" content="Interactive quiz for Context Compression and Summarization.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-05" data-chapter-id="chapter-05">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="lesson.html">&larr; Back to the lesson</a></p>
+
+  <span class="chapter-badge">Chapter 5 Quiz</span>
+  <h1>Context Compression and Summarization</h1>
+  <p>Fill in each blank, then check your answers. A perfect score marks this chapter complete.</p>
+
+  <div class="quiz-progress-wrap" aria-hidden="true">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+
+  <form onsubmit="return false;">
+
+    <div class="quiz-question">
+      <label for="q1"><span class="q-num">1</span> Chapter 3's recipe named "compress, don't truncate" as a step but left the compression call's own ______ unengineered -- this chapter's own subject.</label>
+      <div class="fib-row">
+        <input type="text" id="q1" class="fib-blank" data-answers="mechanics,procedure" aria-label="Answer for question 1">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q2"><span class="q-num">2</span> In the lesson's hook, GridLine's dropped detail was a cross-turn ______, not any single fact -- which is why it was neither pin-worthy nor write-worthy on its own.</label>
+      <div class="fib-row">
+        <input type="text" id="q2" class="fib-blank" data-answers="correlation,pattern" aria-label="Answer for question 2">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q3"><span class="q-num">3</span> The recipe's Step 2 extracts load-bearing ______ before any lossy compression call runs.</label>
+      <div class="fib-row">
+        <input type="text" id="q3" class="fib-blank" data-answers="candidates" aria-label="Answer for question 3">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q4"><span class="q-num">4</span> Step 3 matches compression strategy to content type: ______ compression keeps exact wording for structured or technical content, while abstractive compression is safe for narrative content.</label>
+      <div class="fib-row">
+        <input type="text" id="q4" class="fib-blank" data-answers="extractive" aria-label="Answer for question 4">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q5"><span class="q-num">5</span> Step 6's fidelity check must fail ______ -- retry, widen, or escalate -- whenever a flagged candidate is missing from the compressed output, never ship silently.</label>
+      <div class="fib-row">
+        <input type="text" id="q5" class="fib-blank" data-answers="closed" aria-label="Answer for question 5">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q6"><span class="q-num">6</span> Per the arXiv paper cited in this chapter, a specific fidelity-loss pattern where salient evidence survives but its caveats and context don't is called ______.</label>
+      <div class="fib-row">
+        <input type="text" id="q6" class="fib-blank" data-answers="decontextualization" aria-label="Answer for question 6">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q7"><span class="q-num">7</span> This chapter does not design a chunking ______ for source documents -- that is <code>rag-for-everyone</code>'s subject; this chapter compresses content already inside a request's context.</label>
+      <div class="fib-row">
+        <input type="text" id="q7" class="fib-blank" data-answers="architecture" aria-label="Answer for question 7">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q8"><span class="q-num">8</span> An instruction to compress "as ______ as possible," with no explicit target, has no floor and gives a compression call every incentive to cut anything not obviously essential.</label>
+      <div class="fib-row">
+        <input type="text" id="q8" class="fib-blank" data-answers="concisely,concise" aria-label="Answer for question 8">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div id="check-all-wrap">
+      <button type="button" id="check-all-btn" class="check-btn">Check All Answers</button>
+      <span id="quiz-score"></span>
+    </div>
+
+    <div class="quiz-celebration" id="quiz-celebration" aria-live="polite">
+      Perfect score. Chapter complete.
+    </div>
+  </form>
+
+  <div class="chapter-nav">
+    <a href="lesson.html">&larr; Back to Lesson</a>
+    <a href="exercises/index.html">Exercises &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/quiz-engine.js"></script>
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

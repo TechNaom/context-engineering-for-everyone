@@ -7,9 +7,10 @@
   applies to a module's `examPath`: set it to null until that module's
   written exam actually exists in assessments/written-exams/.
 
-  Chapters 1-2 (Module 1, complete) and Chapters 3-4 (Module 2,
-  complete) are live as of this build -- see PROJECT_STATE.md for
-  status. Chapters 5-13 are planned, `.gitkeep`'d, not yet built.
+  Chapters 1-2 (Module 1, complete), Chapters 3-4 (Module 2, complete),
+  and Chapter 5 (Module 3, opened) are live as of this build -- see
+  PROJECT_STATE.md for status. Chapter 6 and Chapters 7-13 are planned,
+  `.gitkeep`'d, not yet built.
 */
 
 window.CEFE_MODULES = [
@@ -64,7 +65,8 @@ window.CEFE_MODULES = [
         id: "chapter-05",
         num: 5,
         title: "Context Compression and Summarization",
-        description: "Summarizing or truncating prior turns intelligently instead of blindly -- and knowing what compression actually loses."
+        description: "Summarizing or truncating prior turns intelligently instead of blindly -- and knowing what compression actually loses.",
+        path: "chapters/chapter-05-context-compression-and-summarization/lesson.html"
       },
       {
         id: "chapter-06",

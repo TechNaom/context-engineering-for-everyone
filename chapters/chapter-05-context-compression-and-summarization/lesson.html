@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Compression and Summarization — Context Engineering for Everyone</title>
+<meta name="description" content="Chapter 3 decided WHEN to compress and WHAT shape the result should take. Chapter 4 decided what survives across sessions. This chapter opens Module 3 by opening the black box in between: the actual mechanics of compressing content without silently losing what a downstream step depends on.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-05">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 5</span>
+    <span class="badge-difficulty">Intermediate</span>
+    <span class="reading-time">~30 min</span>
+  </div>
+
+  <h1>Context Compression and Summarization</h1>
+  <p class="lede">
+    Chapter 3 built a real policy for <em>when</em> to compress a long
+    conversation and <em>what shape</em> the result should take — a
+    verbatim window, a running summary, explicit pins. It deliberately
+    left one thing unopened: the compression call itself, the step
+    that actually decides, sentence by sentence, what survives and what
+    gets cut. Opening Module 3, this chapter is where that black box
+    gets opened — the real mechanics of compressing content without
+    silently losing what a downstream step, a diagnosis, or a decision
+    actually depends on.
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. A shorter summary, a missing correlation</a>
+    <a href="#why-this-chapter">2. Why Chapter 3's recipe left this open</a>
+    <a href="#the-recipe">3. The Compression Fidelity Recipe</a>
+    <a href="#approaches-compared">4. Three approaches, compared</a>
+    <a href="#worked-math">5. Worked math: GridLine's dropped correlation</a>
+    <a href="#live-capture">6. A live-captured compression example</a>
+    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
+    <a href="#recap">8. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Brannigan Home Energy Services is a fictional residential energy
+      provider. Its customer-support assistant, GridLine, handles
+      "Meter Troubleshooting" — a request type that can run long,
+      because a real diagnosis often takes a customer describing
+      several failed attempts, symptoms, and timings before a pattern
+      emerges. The team behind GridLine had, by this point, done real
+      work: Chapter 2's recipe gave Line 3 a correctly sized budget for
+      this request type; Chapter 3's hybrid policy was implemented
+      exactly as specified, with a verbatim window, explicit pins for
+      anything safety-critical, and a compression trigger that fires
+      well before the hard limit; Chapter 4's recipe gave any
+      cross-session facts (like a prior technician visit) a real write
+      and retrieval policy. Every recipe this course has taught so far
+      was in place.
+    </p>
+    <p>
+      The compression step itself, though, was a single line: when the
+      trigger fired, GridLine called a model with the prompt
+      "summarize the following conversation as concisely as possible"
+      and replaced the aged-out turns with whatever came back. No part
+      of the pipeline checked what the summary actually contained
+      against what the original turns actually said.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">gridline_compress.py (the entire compression step, before this chapter)</span>
+      </div>
+      <pre><code>  def compress(aged_out_turns):
+      # Chapter 3's own recipe correctly decided WHEN this runs (the
+      # trigger) and WHAT shape the result joins (a running summary,
+      # ahead of the verbatim window). It never specified HOW this
+      # call decides what to keep -- that's the gap this chapter closes.
+      prompt = "Summarize the following conversation as concisely as possible."
+      return call_model(prompt, aged_out_turns)
+      # Whatever comes back replaces the aged-out turns. Nothing
+      # checks it against what the original turns actually said.</code></pre>
+    </div>
+    <p>
+      In one real troubleshooting session, a customer described the
+      meter resetting to zero five separate times over eighteen turns.
+      None of those turns, individually, met Chapter 3's pin criteria —
+      "the meter reset again" isn't a safety-critical fact on its own,
+      the way a gas-smell disclosure would be. But across the
+      conversation, a pattern was there: every reset the customer
+      mentioned happened within a few minutes of also mentioning the
+      furnace kicking on. That correlation — meter reset, furnace,
+      timing — is the one detail a technician actually needs to
+      diagnose a wiring interaction between the meter and an
+      undersized breaker shared with the HVAC circuit, instead of
+      replacing a perfectly good meter.
+    </p>
+    <p>
+      When the trigger fired and those eighteen turns were compressed,
+      the model's "as concisely as possible" summary kept the fact that
+      resets happened, dropped the furnace timing detail entirely (it
+      wasn't load-bearing from a generic summarization standpoint — no
+      instruction ever told the model that detail mattered), and
+      GridLine recommended a meter replacement. The correlation that
+      would have caught the real cause was gone — not because it was
+      never pinned (it was never pin-worthy under Chapter 3's own
+      criteria, being neither safety-critical nor a single discrete
+      fact) and not because it was never written to long-term storage
+      (it had no cross-session value; Chapter 4's write criteria don't
+      apply within one session). It was gone because the compression
+      step itself had no concept of what it was compressing <em>for</em>
+      — it optimized purely for brevity, with nothing checking what
+      brevity cost.
+    </p>
+    <p>
+      This is a genuinely different failure from every chapter so far.
+      SignalDesk (Ch. 1) had no budget. TriageLine (Ch. 2) had a budget
+      shaped for the wrong request type. RouteLine (Ch. 3) had a
+      correct budget and a naive within-session eviction mechanism.
+      HearthLine (Ch. 4) got Chapters 1-3 completely right and lost a
+      fact at a session boundary nothing was watching. GridLine got
+      Chapters 1-4 completely right — a real budget, a real trigger, a
+      real pin/summary/window shape, a real long-term policy — and
+      still lost a load-bearing detail <em>inside the compression call
+      itself</em>, because nothing engineered what that call actually
+      optimized for.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>Why Chapter 3's Recipe Left This Open</h2>
+    <p>
+      This chapter uses Chapters 1 through 4 as a lens, not fresh
+      material. If proactive budgeting, pinning, verbatim windows, or
+      long-term write/retrieval policy aren't already familiar,
+      Chapters 2 through 4 are where those skills live — none of them
+      are re-taught here. Chapter 3's own recipe named "compress, don't
+      truncate" as one of its six steps and stopped there deliberately:
+      its subject was the policy shape around a conversation (what
+      triggers compression, what gets pinned, how big the verbatim
+      window is), not the mechanics of the compression call itself.
+      That gap — the actual decision procedure a compression step uses
+      to decide what to keep — is this chapter's own subject, and it
+      applies wherever something gets compressed to fit a budget, not
+      only Line 3's running summary: a large tool output, a long
+      retrieved document excerpt, or a long conversation history all
+      face the identical problem once they no longer fit.
+    </p>
+    <p>
+      One boundary worth stating as directly as prior chapters have
+      stated theirs: this chapter does not design a retrieval or
+      chunking <em>architecture</em> for source documents — splitting a
+      large corpus into retrievable pieces ahead of time is
+      <code>rag-for-everyone</code>'s subject. This chapter's compression
+      always runs on content that is already inside a request's
+      context — a conversation history, a tool result, a document
+      excerpt already pulled in — and asks how to shrink <em>that</em>
+      content without losing what a downstream consumer depends on. A
+      retrieval system can chunk and rank perfectly and still hand a
+      context assembler a document excerpt that later needs compressing
+      to fit budget; this chapter is what happens at that second step,
+      regardless of how the content arrived.
+    </p>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Compression Fidelity Recipe</h2>
+    <p>
+      Anthropic's own guidance on compacting long agent conversations
+      states the discipline this chapter's recipe formalizes: an agent
+      "preserves architectural decisions, unresolved bugs, and
+      implementation details" while "discarding redundant tool outputs
+      or messages"<sup><a href="#src-1">[1]</a></sup> — compression is
+      never "shrink everything equally," it is "keep what a later step
+      needs, discard what a later step doesn't." Six steps, run every
+      time real content has to be compressed to fit a budget:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Identify what's already exempt</h3>
+      <p>
+        Anything already pinned (Chapter 3) or already written to
+        persistent storage (Chapter 4) is never subject to compression
+        at all — it survives by a separate mechanism. Compression only
+        ever touches the remaining "middle" material: the part of a
+        conversation, tool output, or document excerpt that isn't
+        individually pin-worthy or write-worthy, but can still matter
+        collectively, the way GridLine's furnace-timing correlation did.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Extract load-bearing candidates before compressing</h3>
+      <p>
+        A lightweight, deterministic pre-pass over the content to be
+        compressed — pattern matching, structured field extraction, or
+        an explicit checklist — that flags specific details a
+        compression step must either preserve or explicitly justify
+        dropping. This runs <em>before</em> any lossy summarization call,
+        precisely because a paper studying LLM-based financial
+        compression found that fidelity loss often takes the form of
+        "decontextualization" — "salient evidence is retained but
+        separated from the caveats and contextual qualifiers needed for
+        correct interpretation"<sup><a href="#src-5">[5]</a></sup> — the
+        evidence survives, but the detail that makes it interpretable
+        doesn't, unless something flagged that detail as required in
+        advance.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Choose a strategy matched to content type</h3>
+      <p>
+        Extractive compression (keep exact key sentences, fields, or
+        numbers verbatim) for structured or technical content where
+        precise wording matters — IDs, timestamps, measurements.
+        Abstractive compression (a model rewrites in its own words) for
+        narrative content where paraphrase is safe and often more
+        useful. Treating every content type identically is itself the
+        naive approach's mistake.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Bound the target explicitly</h3>
+      <p>
+        Set a specific target length or ratio before compressing, not
+        "shrink as much as possible." An unbounded instruction gives a
+        compression call every incentive to cut anything that isn't
+        obviously essential, which is exactly how GridLine's furnace
+        correlation disappeared — "as concisely as possible" has no
+        floor. A production summarization workflow controls this the
+        same way: "by controlling the number of text chunks and their
+        sizes, we can ultimately control the level of detail in the
+        output"<sup><a href="#src-2">[2]</a></sup>, treating detail as a
+        deliberate, tunable target rather than an accident of however
+        terse the model happened to be that call.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Run the compression</h3>
+      <p>
+        Execute the chosen strategy against the bounded target. This is
+        the step every naive pipeline stops at — and the only step a
+        naive pipeline actually has.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Validate fidelity before shipping the result</h3>
+      <p>
+        Check the output against Step 2's candidate list: does every
+        flagged load-bearing detail actually appear (verbatim or its
+        clear semantic equivalent) in the compressed result? If a
+        candidate is missing, the compression fails closed — retry with
+        a stronger extraction constraint, widen the target, or escalate
+        for a human decision. It never ships silently. This is the one
+        step a plain "summarize this" call has no way to perform on
+        itself, because a single call has no independent check on its
+        own output.
+      </p>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <p>
+      As with every prior chapter's own three-way comparison, most
+      real compression needs resolve into one of three approaches:
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it gets wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No compression needed</td>
+          <td>Content already fits the target budget as-is; nothing gets shrunk.</td>
+          <td>A conversation, tool result, or excerpt that's short enough that no lossy step is required at all.</td>
+          <td>Nothing — there's genuinely no compression decision to make yet.</td>
+        </tr>
+        <tr>
+          <td>Naive summarization</td>
+          <td>One prompt ("summarize this concisely"), no pre-extraction, no fidelity check on the result.</td>
+          <td>Genuinely never in production for anything a downstream decision depends on — it optimizes purely for brevity with no concept of what brevity is allowed to cost.</td>
+          <td>GridLine's exact failure: a real, useful, non-pinnable, non-writable detail (a cross-turn correlation) silently dropped because nothing told the compression step it mattered, and nothing checked afterward that it survived.</td>
+        </tr>
+        <tr>
+          <td>Fidelity-checked pipeline: pre-extraction + bounded, strategy-matched compression + post-hoc validation</td>
+          <td>Load-bearing candidates are flagged before compressing; the right strategy (extractive or abstractive) runs against an explicit target; the result is checked against the candidate list before it ships.</td>
+          <td>Any content whose compressed form feeds a real decision — a diagnosis, a recommendation, an escalation — where losing a specific detail changes the outcome.</td>
+          <td>Anything genuinely outside the extraction pass's own coverage (an accepted, bounded gap, the same tradeoff every prior chapter's own bounded policy accepted) — never a flagged candidate silently missing with no signal raised.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: GridLine's Dropped Correlation</h2>
+    <p>
+      Run the actual numbers for the hook's eighteen-turn troubleshooting
+      segment, once Chapter 3's own trigger has already fired and
+      established a fixed 480-token target for the running summary that
+      replaces it.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What happens to the 2,400-token raw segment</th>
+          <th>Result at diagnosis time</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No compression (hypothetical)</td>
+          <td>All 2,400 tokens kept — 1,920 tokens over the 480-token target Chapter 3's own budget allows for this slot.</td>
+          <td>Correlation present, but Line 3's budget is blown; not a real option once the trigger has fired.</td>
+        </tr>
+        <tr>
+          <td>Naive summarization (GridLine's actual pipeline)</td>
+          <td>One "as concisely as possible" call compresses to roughly 480 tokens (a 20% retention ratio) with no extraction pass and no fidelity check.</td>
+          <td>Fits the budget. The furnace-timing correlation — never flagged as required — does not survive the cut. GridLine recommends a meter replacement.</td>
+        </tr>
+        <tr>
+          <td>Fidelity-checked pipeline (the fix)</td>
+          <td>Step 2 flags 3 candidate details before compressing (the reset count, the furnace-timing correlation, one specific error code); an extractive pass preserves all 3 verbatim inside the same 480-token target; Step 6 confirms all 3 are present.</td>
+          <td>Fits the same 480-token budget. All 3 candidates present, including the correlation. GridLine correctly flags a probable wiring/breaker interaction for the technician.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      The same 480-token target produced two completely different
+      outcomes. The fix was never "compress less" — both the naive and
+      fidelity-checked approaches hit the identical 20% retention
+      ratio. The fix was compressing <em>on purpose</em>: deciding in
+      advance what had to survive, choosing a strategy that could
+      actually preserve it verbatim, and checking afterward that it
+      did — the same precision-on-both-ends discipline Chapter 4's own
+      worked example demonstrated for write and retrieval policy, one
+      layer over.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>A Live-Captured Compression Example</h2>
+    <p>
+      Every exercise and practice solution in this chapter uses
+      deterministic, directly computed candidate/summary data for its
+      automated self-checks, the same discipline every prior chapter
+      used, for the same reason: this repository's own
+      <code>local_check.sh</code> runs every <code>solution.py</code>
+      under a 20-second timeout. But it's worth showing what a real
+      compression call actually does when given an explicit exclusion
+      instruction, captured live and unedited this session:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture -- POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>  PROMPT (compressing three turns into one running-memory note,
+  explicitly instructed to exclude a value that must never appear in a
+  general-purpose summary):
+
+  "Compress the following three conversational turns into one compact
+  running-memory note under 35 words. Do not include the customer
+  account PIN number (it is tracked separately and must never appear in
+  a summary). Turns: (1) Customer asks Brannigan Home Energy Services
+  assistant GridLine about their next smart-meter reading date. (2)
+  Customer mentions their account PIN is 4471 for reference. (3)
+  Customer says they would like text alerts instead of email going
+  forward."
+
+  RESPONSE (live, unedited):
+  "The customer inquired about their next smart-meter reading date,
+  referenced a 4-digit account number, and requested to receive text
+  alerts instead of email notifications moving forward, seeking an
+  alternative notification method."</code></pre>
+    </div>
+    <p>
+      The literal digits "4471" never appear — a real success. But look
+      closely: the response still says "referenced a 4-digit account
+      number," which tells a reader that a PIN was disclosed and even
+      how many digits it has, information the instruction never asked
+      to be preserved and that a compliance-sensitive summary shouldn't
+      characterize at all. This is a small, concrete instance of exactly
+      the "decontextualization" pattern the financial-compression paper
+      cited in this chapter's Step 2 describes<sup><a href="#src-5">[5]</a></sup>:
+      the model partially followed the instruction (no literal PIN) while
+      still leaking an attribute of the excluded fact (its format) that
+      a purely output-level scan for the string "4471" would have missed
+      entirely. It's exactly why Step 6's fidelity check has to be
+      built against an explicit candidate list — including exclusion
+      candidates, not only inclusion candidates — rather than trusting a
+      single instruction inside the compression prompt to fully control
+      what the output contains.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a request type correctly implements
+      every recipe this course has taught so far — a real budget, a
+      real trigger, a real pin/summary/window shape, a real long-term
+      policy — and still loses a load-bearing detail the moment
+      something actually gets compressed.</p>
+      <p><strong>Assumption being made:</strong> that "compress, don't
+      truncate" (Chapter 3's own phrase) is itself a complete
+      instruction. It names a category of operation, not a procedure —
+      the same way "write a test" isn't a complete instruction until
+      someone specifies what the test actually has to assert.</p>
+      <p><strong>What actually distinguishes a well-engineered
+      compression step:</strong> not whether it produces a shorter
+      result — every approach in this chapter's own comparison table
+      produces one — but whether what had to survive was decided
+      <em>before</em> compressing, whether the compression strategy
+      could actually preserve it, and whether something checked
+      afterward that it did.</p>
+      <p><strong>Why this matters before Chapter 6:</strong> Chapter 6
+      asks a related but distinct question — once content survives
+      compression and is assembled into the final context window,
+      <em>where</em> it sits in that window measurably affects how
+      reliably the model actually uses it (the "lost in the middle"
+      effect this course's very first chapter already named). This
+      chapter deliberately stopped at "does the compressed content still
+      contain what's needed" — Chapter 6 is where "and is it positioned
+      somewhere the model will actually attend to it" gets full depth.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      compression step is a per-content-type artifact that exempts
+      already-pinned and already-persisted material, extracts a bounded
+      set of load-bearing candidates before compressing, matches its
+      strategy (extractive or abstractive) to whether exact wording
+      matters, compresses against an explicit target rather than
+      "as much as possible," and fails closed — retry, widen, or
+      escalate, never ship silently — whenever its own post-hoc
+      validation finds a required candidate missing.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>"Compress, don't truncate" (Chapter 3) names a category of
+        operation, not a procedure — GridLine implemented every recipe
+        through Chapter 4 correctly and still lost a load-bearing
+        detail because the compression call itself had no concept of
+        what it was compressing for.</li>
+        <li>A detail can be real and load-bearing without being
+        individually pin-worthy (Chapter 3) or write-worthy (Chapter
+        4) — a cross-turn correlation, not any single fact, is what
+        GridLine's naive summarization dropped.</li>
+        <li>An unbounded instruction ("as concisely as possible") gives
+        a compression call every incentive to cut anything not
+        obviously essential; a bounded target with pre-flagged
+        candidates removes that incentive.</li>
+        <li>Fidelity loss can be partial and easy to miss: this
+        chapter's own live capture excluded a literal PIN value while
+        still leaking that a PIN existed and its format — a check built
+        only around the literal excluded string would have passed a
+        summary that still leaked information.</li>
+        <li>A compression pipeline without a post-hoc fidelity check has
+        no way to know it failed — the fix is never "compress less," it
+        is deciding what must survive before compressing and verifying
+        it did afterward.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model (<code>llama3.2:latest</code>).
+      <code>POST /api/chat</code> was called twice this session and
+      succeeded on the first attempt both times — consistent with
+      Chapter 4's session, not Chapter 3's, but reported honestly as
+      this session's own result, not a claim the earlier intermittent
+      hang is resolved: a first call (a 200-second timeout, this
+      course's standing generous-patience discipline) returned a real
+      response in about 64 seconds, most of it the model's own cold
+      load time; a second, warm call a few minutes later (also a
+      200-second timeout) returned in about 8 seconds. Future sessions
+      should keep budgeting for retries with generous (120s+) timeouts
+      regardless, exactly as `PROJECT_STATE.md` instructs, since Chapter
+      3's own session already showed a successful warm call can still
+      be followed by a later timeout within the same session. As in
+      every prior chapter, no graded <code>solution.py</code> in this
+      chapter depends on a live call — every candidate-extraction and
+      fidelity-check decision in the automated harnesses is
+      deterministic, hand-computed data, for the same
+      20-second-timeout reason documented in Chapters 3 and 4. The live
+      capture above is real and unedited, used as illustrative content
+      this chapter's own argument depends on (that partial
+      instruction-following is a real, easy-to-miss fidelity risk), not
+      as something any graded script requires to pass.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying:</p>
+    <ol>
+      <li id="src-1">Anthropic, <em>"Effective context engineering for AI agents"</em> —
+      <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a>.
+      This session's own live fetch found its "Compaction" section states
+      that an agent "preserves architectural decisions, unresolved bugs,
+      and implementation details" while "discarding redundant tool
+      outputs or messages" — direct grounding for this chapter's own
+      Step 1 (exempt/preserve categories) and the general principle that
+      compression must be selective, not uniform.</li>
+      <li id="src-2">OpenAI, <em>"Summarizing long documents"</em> (Cookbook) —
+      <a href="https://developers.openai.com/cookbook/examples/summarizing_long_documents" target="_blank" rel="noopener">developers.openai.com/cookbook/examples/summarizing_long_documents</a>
+      (this session's fetch of the historical
+      <code>cookbook.openai.com/...</code> URL 308-redirected here,
+      confirmed live). Documents a chunk-based approach where "by
+      controlling the number of text chunks and their sizes, we can
+      ultimately control the level of detail in the output," with an
+      explicit `detail` parameter and an optional recursive mode where
+      "each summary is based on the previous summaries" — direct support
+      for this chapter's Step 4 (an explicit, tunable compression
+      target, not "as concisely as possible").</li>
+      <li id="src-3">LangChain, <em>"Short-term memory"</em> —
+      <a href="https://docs.langchain.com/oss/python/langchain/short-term-memory" target="_blank" rel="noopener">docs.langchain.com/oss/python/langchain/short-term-memory</a>.
+      States the core tradeoff this chapter builds on: "the problem with
+      trimming or removing messages... is that you may lose information
+      from culling of the message queue," motivating "a more
+      sophisticated approach of summarizing the message history using a
+      chat model" — direct grounding for treating summarization as
+      strictly different from truncation, the same distinction Chapter
+      3's own recipe already drew and this chapter engineers further.</li>
+      <li id="src-4">Google, <em>"Long context"</em> (Gemini API docs) —
+      <a href="https://ai.google.dev/gemini-api/docs/long-context" target="_blank" rel="noopener">ai.google.dev/gemini-api/docs/long-context</a>.
+      Names this chapter's own subject from the outside: "the more
+      limited context windows common in many other models often require
+      strategies like arbitrarily dropping old messages, summarizing
+      content, using RAG with vector databases, or filtering prompts to
+      save tokens," while noting that models with very large context
+      windows sometimes invite skipping compression and "providing all
+      relevant information upfront" instead — honest, real-world
+      evidence that compression is a deliberate engineering tradeoff for
+      a bounded budget, not a universal requirement independent of
+      window size.</li>
+      <li id="src-5">Anonymous authors (arXiv preprint), <em>"When
+      Summaries Distort Decisions: Information Fidelity in
+      LLM-Compressed Financial Analysis"</em> —
+      <a href="https://arxiv.org/abs/2606.29251" target="_blank" rel="noopener">arxiv.org/abs/2606.29251</a>.
+      States that "compression loses fidelity when it changes the
+      decision induced by the source," and identifies
+      "decontextualization" as a specific failure pattern where "salient
+      evidence is retained but separated from the caveats and contextual
+      qualifiers needed for correct interpretation" — direct grounding
+      for this chapter's Step 2 and Step 6, and for the live-capture
+      section's own reading of the PIN-exclusion example as a small,
+      real instance of the same pattern.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's compression fidelity recipe out
+    loud — see
+    <a href="interview-questions.html">Chapter 5 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-04-long-term-and-persistent-memory-systems/lesson.html">&larr; Chapter 4</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

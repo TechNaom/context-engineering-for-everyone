@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Compression and Summarization Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Context Compression and Summarization.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-05">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 5 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Context Compression and Summarization</h1>
+  <p>
+    These exercises use a second scenario, deliberately different from
+    the lesson's Brannigan Home Energy Services/GridLine hook:
+    <strong>Kirkholme Public Transit Safety Board</strong>, a fictional
+    transit safety oversight agency. Its incident-intake assistant,
+    <strong>TransitLine</strong>, handles conversations that can run
+    long before a mechanical or safety pattern emerges. Chapter 3's
+    recipe already fired here: the compression trigger and a fixed
+    480-token summary target are both given. Building the real
+    compression mechanics that decide what survives inside that target
+    is the point.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — compression
+    ratio arithmetic, candidate classification, a fidelity check,
+    strategy selection, a naive-vs-fidelity-checked regression gate,
+    and an escalation decision, not just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match scenarios to compression approaches</h3>
+    <p>Decide which of three TransitLine scenarios need no compression, naive summarization, or the full fidelity-checked pipeline.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the Compression Fidelity Recipe</h3>
+    <p>Put the lesson's six recipe steps in the correct sequence, from exempting already-pinned content to validating fidelity.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Compression ratio arithmetic</h3>
+    <p>Compute tokens to cut and retention percentage to hit the 480-token target from a 2,400-token raw segment.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Load-bearing candidate classification</h3>
+    <p>Decide which incident-report details must be flagged as candidates to preserve before compressing.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Fidelity check</h3>
+    <p>Find which flagged candidates are missing from a produced summary, and whether the compression passes its own gate.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Extractive vs. abstractive strategy selection</h3>
+    <p>Classify six content types by whether exact wording or safe paraphrase is the right fit.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Naive-vs-fidelity-checked regression gate</h3>
+    <p>Confirm a load-bearing technical detail naive compression would drop is correctly preserved by the fidelity-checked pipeline.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Escalation decision</h3>
+    <p>For three fidelity-check outcomes, decide whether to ship the compressed result or retry/escalate.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

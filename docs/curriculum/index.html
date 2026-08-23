@@ -75,7 +75,7 @@
     <a class="chapter-card" data-chapter-link="chapter-02" href="../../chapters/chapter-02-designing-context-window-budgets/lesson.html"><span class="chapter-card-num">Chapter 2 — Live</span><h3>Designing Context Window Budgets</h3><p>Allocating a fixed token budget across system instructions, history, retrieved context, and tool output.</p></a>
     <a class="chapter-card" data-chapter-link="chapter-03" href="../../chapters/chapter-03-short-term-conversational-memory/lesson.html"><span class="chapter-card-num">Chapter 3 — Live</span><h3>Short-Term Conversational Memory</h3><p>Managing turn-by-turn history inside a bounded window without silently truncating something load-bearing.</p></a>
     <a class="chapter-card" data-chapter-link="chapter-04" href="../../chapters/chapter-04-long-term-and-persistent-memory-systems/lesson.html"><span class="chapter-card-num">Chapter 4 — Live</span><h3>Long-Term and Persistent Memory Systems</h3><p>What a system should remember across sessions, and the real decision of what to retrieve back into context later.</p></a>
-    <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 5 — Planned</span><h3>Context Compression and Summarization</h3><p>Summarizing or truncating prior turns intelligently instead of blindly.</p></a>
+    <a class="chapter-card" data-chapter-link="chapter-05" href="../../chapters/chapter-05-context-compression-and-summarization/lesson.html"><span class="chapter-card-num">Chapter 5 — Live</span><h3>Context Compression and Summarization</h3><p>The real mechanics a compression call uses to decide what survives -- opening Module 3, without losing what a downstream step depends on.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 6 — Planned</span><h3>Avoiding Lost-in-the-Middle</h3><p>Why position inside the context window changes how well a model uses information.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 7 — Planned</span><h3>Multi-Source Context Assembly</h3><p>Composing several context sources into one window without the pieces contradicting each other.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 8 — Planned</span><h3>Retrieval Integration: From Ranked Results to Context</h3><p>Turning a retriever's ranked results into well-formed context — the handoff point with RAG.</p></a>
@@ -95,8 +95,15 @@
     and Chapter 4 builds the real write and retrieval policy that
     decides what a system persists across sessions and what comes back
     into context for a given turn, closing the module with an L2
-    Assisted project. Chapters 5-13 are scaffolded (`.gitkeep`'d
-    directories under <code>chapters/</code>) and planned per
+    Assisted project. Chapter 5 is now live too, opening Module 3
+    (Context Compression and Curation): it engineers the real mechanics
+    a compression call uses to decide what survives once content no
+    longer fits its budget, a step Chapter 3's own recipe deliberately
+    left unopened. Per this course's one-project-per-module convention,
+    Chapter 5 does not ship its own project — Module 3's single project
+    ships once, solo, at the end of Chapter 6. Chapter 6 and Chapters
+    7-13 are scaffolded (`.gitkeep`'d directories under
+    <code>chapters/</code>) and planned per
     <a href="CURRICULUM_MAP.md">CURRICULUM_MAP.md</a>, not yet built —
     see <code>PROJECT_STATE.md</code> for the current, authoritative
     build status and the next recommended session's task.
