@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Source Context Assembly Interview Questions — Context Engineering for Everyone</title>
+<meta name="description" content="Interview questions for Multi-Source Context Assembly.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-07">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="practice/index.html">&larr; Back to practice bank</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 7 Interview Questions</span>
+    <span class="reading-time">~18 min</span>
+  </div>
+  <h1>Interview Questions: Multi-Source Context Assembly</h1>
+  <p>Grouped by level — beginner, intermediate, senior, architect. Each includes a strong answer, a red flag, a follow-up, and what the question actually proves.</p>
+
+  <div class="lesson-card">
+    <h2>1. (Beginner) ConfluenceLine had a correct budget, correct memory handling, nothing needing compression, and no positional risk. Why did it still give a wrong answer?</h2>
+    <p><strong>Strong answer:</strong> Chapters 1-6 all answer questions about a single already-decided set of content: how much fits, what's kept, what survives compression, where it sits. None of them ask whether two different sources feeding the same request might be making incompatible claims about the same fact. ConfluenceLine's retrieved document and its live tool output were each individually correct and correctly included — the failure was that nothing ever decided which one should govern when they disagreed, or even flagged that they disagreed at all.</p>
+    <p><strong>Red flag:</strong> Blames the budget, the retrieval step, or the model's own reasoning, rather than identifying that no source-assembly decision was ever made.</p>
+    <p><strong>Follow-up:</strong> "If the team had just retrieved a fresher document, would that have fixed the actual problem?"</p>
+    <p><strong>What this proves:</strong> Understands that correct retrieval per source is not the same as a coherent combination of sources.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>2. (Beginner) What does "multi-source context assembly" mean, in one sentence a non-technical stakeholder would understand?</h2>
+    <p><strong>Strong answer:</strong> When a request pulls information from more than one place at once — a retrieved document, a live tool call, the conversation, the system's own instructions — someone has to decide which pieces belong, which one wins if two disagree, and how to avoid saying the same thing twice, before any of it reaches the model.</p>
+    <p><strong>Red flag:</strong> Describes it as simply "combining data" with no mention of authority, contradiction, or deduplication.</p>
+    <p><strong>Follow-up:</strong> "Is this the same thing as retrieval — picking which documents to fetch in the first place?"</p>
+    <p><strong>What this proves:</strong> Can distinguish source combination (this chapter) from source production/retrieval (Chapter 8 and <code>rag-for-everyone</code>'s own subject).</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>3. (Intermediate) A teammate says: "we already deduplicate identical strings across our sources, so we're covered." How do you respond?</h2>
+    <p><strong>Strong answer:</strong> String-level deduplication is a useful, cheap first pass, and worth doing regardless — but it only catches exact or near-exact duplicate text. It catches nothing when two sources disagree about the same fact using different wording, which is exactly ConfluenceLine's own failure: "advisory in effect" and "advisory lifted yesterday" share no duplicate substring to strip, so string-dedup alone would leave the contradiction fully present while the team believed they'd addressed redundancy.</p>
+    <p><strong>Red flag:</strong> Treats string-dedup as sufficient, or conflates "deduplicated" with "contradiction-free."</p>
+    <p><strong>Follow-up:</strong> "What would it take to catch two sources disagreeing in different words, not just repeating the same words?"</p>
+    <p><strong>What this proves:</strong> Understands the real gap between string-level deduplication and semantic contradiction detection.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>4. (Intermediate) How is this chapter's subject different from what Chapter 6 (Avoiding Lost-in-the-Middle) already taught?</h2>
+    <p><strong>Strong answer:</strong> Chapter 6 assumed the window's own content was already decided and asked only where each already-included, already-correct piece should sit. This chapter answers an earlier question: which sources belong in the window at all, and how do several different sources get combined into one coherent set — deciding authority, resolving contradictions, deduplicating restatements — before Chapter 6's own ordering recipe ever runs on the result. A system could nail this chapter's assembly perfectly and still get Chapter 6's ordering wrong, or vice versa.</p>
+    <p><strong>Red flag:</strong> Conflates "which sources are included and how they're resolved" with "where included content sits," or can't say which chapter's recipe runs first.</p>
+    <p><strong>Follow-up:</strong> "If two sources contradict each other and you order the window perfectly, have you actually fixed anything?"</p>
+    <p><strong>What this proves:</strong> Can hold the sequential, complementary boundary between Chapters 6 and 7 explicitly.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>5. (Senior) You're reviewing a new multi-source assembly pipeline before it ships. What do you check beyond "every source individually returns correct data"?</h2>
+    <p><strong>Strong answer:</strong> Individual correctness is necessary but not sufficient. Check that every candidate source is explicitly inventoried and typed, not silently merged. Check that an authority ranking exists per request type, decided in advance, not improvised per conflict. Check that overlap and contradiction detection actually runs before assembly, not left to the model to notice once everything is already in the window. And check that resolution is deterministic — using the ranking, or explicitly surfacing a disagreement authority doesn't settle — rather than hoping the model reasons its way to the right answer at generation time.</p>
+    <p><strong>Red flag:</strong> Signs off purely because every individual source's own data is accurate, with no scrutiny of how sources combine.</p>
+    <p><strong>Follow-up:</strong> "Show me the authority ranking for this request type. Who decided it, and when was it last reviewed?"</p>
+    <p><strong>What this proves:</strong> Understands that per-source correctness is a floor, and that assembly needs its own explicit, testable rules.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>6. (Senior) How do you decide how much engineering investment a given request type's source assembly deserves?</h2>
+    <p><strong>Strong answer:</strong> Look at how many sources can plausibly speak to the same fact, and what's at stake if a contradiction goes unresolved — a safety advisory, a medication conflict, a financial figure, versus a low-stakes FAQ answer with a single source and no real overlap risk. Multi-source, high-stakes request types justify the full Source Assembly Recipe: inventory, authority ranking, contradiction detection, resolution, deduplication. A single-source or low-stakes request type may reasonably skip most of it — the same proportionate-judgment discipline every prior chapter's own comparison table required, applied here to assembly investment instead.</p>
+    <p><strong>Red flag:</strong> Proposes the full recipe for every request "to be safe" with no engagement with actual overlap risk, or the reverse — skips authority ranking for a request type where two sources clearly can disagree about something that matters.</p>
+    <p><strong>Follow-up:</strong> "Your team wants authority ranking for every request type, no exceptions. What's the cost of that policy for a single-source lookup?"</p>
+    <p><strong>What this proves:</strong> Applies proportionate judgment consistently, rather than treating this chapter's recipe as free or universally required.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>7. (Architect) Design a lightweight governance process so every multi-source pipeline in a production system actually gets contradiction review, not just a data-freshness review.</h2>
+    <p><strong>Strong answer:</strong> Require a standard artifact per request type that pulls from more than one source: the source inventory, the authority ranking and the reasoning behind it, evidence that contradiction detection actually ran (not just that individual sources passed their own health checks), and the resolution or escalation outcome for every conflict found. Pair it with a regression suite of known load-bearing contradictions (like ConfluenceLine's own advisory conflict) that must resolve correctly before a pipeline change ships, and track unresolved-contradiction and tie/escalation rates as first-class production metrics.</p>
+    <p><strong>Red flag:</strong> A process that only checks whether each source itself is fresh and correct, with no requirement that combinations of sources were ever tested against a known contradiction.</p>
+    <p><strong>Follow-up:</strong> "A new source type gets added to the pipeline next quarter. How does your process catch that its authority rank was never assigned?"</p>
+    <p><strong>What this proves:</strong> Architect-level judgment — treats multi-source coherence as something that needs continuous verification as sources change, not a one-time design decision.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>8. (Architect) Leadership says: "our new model is much better at reasoning through conflicting information in its context — do we still need explicit authority ranking and conflict resolution?"</h2>
+    <p><strong>Strong answer:</strong> A more capable model changes the calculus but doesn't eliminate the need. This chapter's own live-captured example shows exactly the risk: the model reasoned its way to the correct authority conclusion in the abstract (trust the live source over the static document) and then gave a concrete recommendation that contradicted its own stated reasoning. A model being generally better at reasoning about conflicts is not the same as "tested and confirmed to reliably act on that reasoning for our specific request type" — that claim needs an explicit regression test against known contradictions, re-run per model, not an assumption carried over from a general capability claim.</p>
+    <p><strong>Red flag:</strong> Treats general model reasoning improvements as sufficient replacement for a deterministic resolution step, with no engagement with the specific failure mode (correct reasoning, inconsistent action) this chapter's own live capture demonstrated.</p>
+    <p><strong>Follow-up:</strong> "What's the smallest, cheapest test you'd run before trusting that claim for a safety-critical request type?"</p>
+    <p><strong>What this proves:</strong> Can reason about model capability improvements as a reason to keep testing, not a reason to remove a deterministic safeguard.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Strategy Tips</h2>
+    <ul>
+      <li>Ground every answer in ConfluenceLine's actual failure (every recipe through Chapter 6 correct, two individually correct sources contradicting each other with nothing deciding which should govern) rather than a generic "just combine your data sources" answer.</li>
+      <li>For senior/architect questions, always name the explicit, deterministic resolution step specifically — it's the one piece of this chapter's recipe a naive "just concatenate everything" pipeline, or even a capable model's own unprompted reasoning, has no reliable equivalent of.</li>
+      <li>If you're new to engineering interviews: reason out loud by naming which of this chapter's two failure-prone moments (deciding authority and detecting a conflict, versus actually resolving or surfacing it once found) a given scenario is testing, before proposing a fix.</li>
+    </ul>
+  </div>
+
+  <div class="what-is">
+    <span class="label">A note on this chapter's project</span>
+    Chapter 7 does not ship its own guided project. Per this course's
+    one-project-per-module convention, Module 4's single project is
+    planned for the end of Chapter 8, once retrieval integration is
+    also in place — see
+    <code>quality-audits/chapter-07-audit.md</code> for the full
+    reasoning.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="practice/index.html">&larr; Practice Bank</a>
+    <a href="../../index.html">All Chapters &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

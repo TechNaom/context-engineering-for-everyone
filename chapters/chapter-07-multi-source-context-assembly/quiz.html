@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Source Context Assembly Quiz — Context Engineering for Everyone</title>
+<meta name="description" content="Interactive quiz for Multi-Source Context Assembly.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-07" data-chapter-id="chapter-07">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="lesson.html">&larr; Back to the lesson</a></p>
+
+  <span class="chapter-badge">Chapter 7 Quiz</span>
+  <h1>Multi-Source Context Assembly</h1>
+  <p>Fill in each blank, then check your answers. A perfect score marks this chapter complete.</p>
+
+  <div class="quiz-progress-wrap" aria-hidden="true">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+
+  <form onsubmit="return false;">
+
+    <div class="quiz-question">
+      <label for="q1"><span class="q-num">1</span> In the hook, ConfluenceLine's retrieved document and its live tool output were both individually ______, yet still produced a wrong answer together.</label>
+      <div class="fib-row">
+        <input type="text" id="q1" class="fib-blank" data-answers="correct" aria-label="Answer for question 1">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q2"><span class="q-num">2</span> Chapter 6's own recipe decided WHERE already-selected content sits; this chapter decides ______ sources belong in the window at all and how they combine.</label>
+      <div class="fib-row">
+        <input type="text" id="q2" class="fib-blank" data-answers="which" aria-label="Answer for question 2">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q3"><span class="q-num">3</span> The Source Assembly Recipe's Step 2 assigns each source type an ______ rank for a given request type, deciding in advance which source wins when two disagree.</label>
+      <div class="fib-row">
+        <input type="text" id="q3" class="fib-blank" data-answers="authority" aria-label="Answer for question 3">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q4"><span class="q-num">4</span> Per the 2024 survey's own taxonomy, a contradiction within or across multiple provided context sources is called an ______-context conflict.</label>
+      <div class="fib-row">
+        <input type="text" id="q4" class="fib-blank" data-answers="inter" aria-label="Answer for question 4">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q5"><span class="q-num">5</span> Per the "Resolving Knowledge Conflicts" paper, LLMs reliably ______ a conflict exists, but struggle to pinpoint the conflicting segments and provide distinct viewpoints when left unprompted.</label>
+      <div class="fib-row">
+        <input type="text" id="q5" class="fib-blank" data-answers="identify" aria-label="Answer for question 5">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q6"><span class="q-num">6</span> String-level ______ catches identical duplicate text across sources but catches nothing when two sources disagree using different wording.</label>
+      <div class="fib-row">
+        <input type="text" id="q6" class="fib-blank" data-answers="deduplication" aria-label="Answer for question 6">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q7"><span class="q-num">7</span> The Source Assembly Recipe's final step hands its resolved, deduplicated set to Chapter ______'s own ordering recipe, rather than re-deriving it.</label>
+      <div class="fib-row">
+        <input type="text" id="q7" class="fib-blank" data-answers="6,six" aria-label="Answer for question 7">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q8"><span class="q-num">8</span> This chapter assumes retrieval quality as a given input; turning one retriever's ranked results into well-formed context specifically is Chapter ______'s own subject, closing Module 4.</label>
+      <div class="fib-row">
+        <input type="text" id="q8" class="fib-blank" data-answers="8,eight" aria-label="Answer for question 8">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div id="check-all-wrap">
+      <button type="button" id="check-all-btn" class="check-btn">Check All Answers</button>
+      <span id="quiz-score"></span>
+    </div>
+
+    <div class="quiz-celebration" id="quiz-celebration" aria-live="polite">
+      Perfect score. Chapter complete.
+    </div>
+  </form>
+
+  <div class="chapter-nav">
+    <a href="lesson.html">&larr; Back to Lesson</a>
+    <a href="exercises/index.html">Exercises &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/quiz-engine.js"></script>
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

@@ -1,12 +1,14 @@
 # PROJECT_STATE.md — Context Engineering for Everyone
 
-Last updated: 2026-08-23 (Session 6 — Chapter 6, "Avoiding
-Lost-in-the-Middle," complete, closing Module 3 in full and shipping
-Module 3's single joint project. Session 5 built Chapter 5, opening
-Module 3. Session 4 built Chapter 4, closing Module 2 in full. Session
-3 built Chapter 3, opening Module 2. Session 2 built Chapter 2,
-completing Module 1. Session 1 built Discovery, the curriculum map, the
-full repository scaffold, and Chapter 1.)
+Last updated: 2026-08-23 (Session 7 — Chapter 7, "Multi-Source Context
+Assembly," complete, opening Module 4. Ships no project of its own;
+Module 4's single project is planned for the end of Chapter 8. Session 6
+built Chapter 6, closing Module 3 in full and shipping Module 3's single
+joint project. Session 5 built Chapter 5, opening Module 3. Session 4
+built Chapter 4, closing Module 2 in full. Session 3 built Chapter 3,
+opening Module 2. Session 2 built Chapter 2, completing Module 1.
+Session 1 built Discovery, the curriculum map, the full repository
+scaffold, and Chapter 1.)
 
 ## Course Objective
 
@@ -606,10 +608,114 @@ only).
       `docs/curriculum/index.html` (Chapter 6's chapter-card now "Live"
       with a working link, its own lede paragraph updated, and Module
       3's feature card marked "Complete").
+- [x] **Ollama re-checked fresh in Session 7 (after a session-interrupting
+      connection error), two consecutive first-attempt successes**:
+      `/api/tags` responded normally (`llama3.2:latest` still
+      installed). Before the interruption, `/api/chat` was called twice
+      and captured the chapter's own substantive live example (a
+      contradiction-resolution prompt using the hook's own two
+      disagreeing sources): a first call returned in ~109 seconds
+      (mostly cold load), a second warm call in ~5.1 seconds — used
+      directly in `lesson.html`'s "A Live-Captured Contradiction
+      Example" section. After resumption, this session re-confirmed
+      Ollama's availability with two more calls (a supplementary
+      connectivity check, not a new substantive capture): a first call
+      (150-second timeout) returned in **64.8 seconds** (~60.9s cold
+      load), a second warm call in **10.9 seconds**. Both rounds
+      consistent with Chapters 4, 5, and 6's own consecutive successes,
+      reported honestly as this session's own result, not evidence the
+      earlier intermittent hang is permanently resolved.
+- [x] **Chapter 7 built and live — "Multi-Source Context Assembly,"
+      opening Module 4**. Uses Chapters 1-6 as a lens, not fresh
+      material: the token budget, memory policies, the Compression
+      Fidelity Recipe, and the Context Ordering Recipe are all given
+      inputs, not re-derived. This chapter's own job is the question
+      every prior chapter deferred: which sources belong in a window at
+      all, and how do several different sources — retrieved documents,
+      live tool output, conversation history, system instructions — get
+      combined into one coherent window without silently contradicting
+      or crowding each other out, before Chapter 6's own ordering recipe
+      ever runs. Hook: Hadleworth Metro Water Authority's ConfluenceLine,
+      a customer-service assistant that implemented every recipe through
+      Chapter 6 correctly (a real budget, no eviction problem, nothing
+      to recall, nothing needing compression, both facts sitting at
+      reasonable positions with no lost-in-the-middle risk) and still
+      gave a functionally wrong, hedged answer, because a retrieved
+      knowledge-base article and a live advisory-status tool call — both
+      individually correct — contradicted each other about the same
+      fact, with nothing deciding which should govern. Builds a six-step
+      Source Assembly Recipe (inventory every candidate source; assign
+      each source type an authority rank per request type; detect
+      overlapping and contradicting claims before assembly; resolve or
+      explicitly surface each contradiction found; deduplicate restated
+      content; hand the resolved set to Chapter 6's own ordering recipe)
+      and a three-approach comparison table (naive concatenation; string-
+      level deduplication only — never sufficient alone; the Source
+      Assembly Recipe). Full worked math for Hadleworth's 610-token
+      assembled turn compared across all three approaches (610 tokens
+      naive/string-dedup vs. 470 tokens and one unambiguous claim under
+      the recipe). A genuinely nuanced live-captured example: the model
+      reasoned its way to the correct authority conclusion in the
+      abstract (trust the live source) but gave a concrete recommendation
+      that contradicted its own stated conclusion — used directly as the
+      lesson's own argument for why resolution must be a deterministic
+      pipeline step. Grounded in 5 real, live-verified sources this
+      session, all fetched clean with no redirects or dead links (a
+      different, less churny outcome than Chapters 3-6's own sessions):
+      Anthropic's "Effective context engineering for AI agents" (Step 5's
+      "informative, yet tight" citation), Wang et al.'s "Resolving
+      Knowledge Conflicts in Large Language Models" (2023, Step 4's three
+      desiderata), Xu et al.'s "Knowledge Conflicts for LLMs: A Survey"
+      (EMNLP 2024, Step 3's "inter-context conflict" taxonomy),
+      LangChain's `create_stuff_documents_chain` API reference (the
+      "stuff" pattern, naive-concatenation row), and Microsoft's Azure AI
+      Search RAG documentation ("multi-source data access" as a named RAG
+      challenge). 8 exercises (6 production-gear: authority-rank conflict
+      resolution, contradiction detection, deduplication arithmetic, a
+      post-resolution budget check, a naive-vs-recipe regression gate, an
+      escalation decision), 8 practice scenarios (4 judgment calls, 4
+      production-gear) across 8 fresh fictional orgs, and 8 interview
+      questions across all 4 levels. **No chapter project this session,
+      by design** — per the one-project-per-module convention, Module
+      4's single project is planned for the end of Chapter 8, once
+      retrieval integration is also in place;
+      `interview-questions.html` and `lesson.html` both say so
+      explicitly. This session also resumed cleanly from a
+      connection-error interruption partway through the build (after
+      `lesson.html`, `quiz.html`, and part of `exercises/` were already
+      on disk) — everything already on disk was verified correct before
+      the session continued, rather than restarted from scratch.
+- [x] **Quality audit** (`quality-audits/chapter-07-audit.md`) — honest
+      self-critique (including the disclosed gap that this chapter's
+      contradiction-detection exercises classify clean, hand-labeled
+      claim pairs rather than detecting contradictions from real
+      unlabeled natural-language text, flagged for a later chapter), an
+      explicit confirmation that Chapter 7 ships no project and why
+      (including the finding that Module 4's project lands cleanly on
+      the curriculum map's own L3 Independent tier already assigned to
+      Chapter 8, unlike Module 3's tier gap), a fictional-org exclusion
+      check extending Chapters 1-6's list with 10 new orgs (75 total in
+      this repo), checked against `ai-engineering-for-everyone`'s own
+      full compiled list with zero collision found, and confirmation
+      that all 5 citations were fetched clean this session with no
+      redirects or dead links.
+- [x] **Step 5: Validation (Chapter 7)** — `scripts/local_check.sh` run
+      at the end of this session; passed clean (folder structure,
+      placeholder-text scan, Python syntax, every `solution.py` executed
+      for real, JS syntax and chapter-path validation, secret scan).
+- [x] **Registration updated in the same session (Chapter 7)**:
+      `assets/chapters-data.js` (Chapter 7's `path` added), root
+      `index.html` (hero-stats now "7 of 13 chapters live" — "3 of 6
+      modules complete" stays as-is, since Module 4 also needs Chapter
+      8 — and the "All Chapters" intro paragraph rewritten to describe
+      all seven live chapters and Module 4 opening), and
+      `docs/curriculum/index.html` (Chapter 7's chapter-card now "Live"
+      with a working link, its own lede paragraph updated, and Module
+      4's feature card marked "In Progress").
 
 ## Pending / Not Started
 
-- Chapter 7 and Chapters 8-13 — scaffolded with `.gitkeep` only, no
+- Chapter 8 and Chapters 9-13 — scaffolded with `.gitkeep` only, no
   content. Per this ecosystem's standing discipline, they are built one
   chapter at a time in future sessions, each validated before the next
   begins — do not mass-build multiple chapters in one pass.
@@ -642,7 +748,14 @@ only).
   no retries needed — reported honestly as that session's own result,
   not as evidence the intermittent-hang finding above no longer holds;
   future sessions should still budget for retries and generous
-  timeouts by default.
+  timeouts by default. Session 7 (Chapter 7) also got two consecutive
+  first-attempt successes before its own session-interrupting
+  connection error (109s cold / 5.1s warm, used for the chapter's own
+  substantive live capture), and two more consecutive first-attempt
+  successes after resuming (64.8s cold / 10.9s warm, a supplementary
+  connectivity re-check) — four consecutive successes total across the
+  interruption, still reported as this session's own result, not
+  evidence the intermittent-hang finding no longer holds.
 - **RESOLVED in Session 6 (Chapter 6).** The "Lost in the Middle"
   citation (Liu et al., 2023) was flagged since Chapter 1 as the
   original finding, not a more recent replication. Chapter 6's own
@@ -747,105 +860,129 @@ extended (not restarted) in each chapter's own quality audit.
 
 ## Next Recommended Task
 
-**Chapter 7 — "Multi-Source Context Assembly," opening Module 4.**
+**Chapter 8 — "Retrieval Integration: From Ranked Results to Context,"
+closing Module 4.**
 
 Per `docs/curriculum/CURRICULUM_MAP.md`: Module 4 (Multi-Source Context
 Assembly), Chapters 7-8, difficulty Advanced. Module 4's outcomes:
 "assemble multi-source context without contradiction or crowding;
 integrate a RAG pipeline's ranked results into context correctly."
-Chapter 7's own lab, per the module outcomes: "assemble context from 3+
-real sources for one request." Chapter 6 (this session) closed Module 3
-having deliberately assumed the *set* of content going into a window as
-already decided, asking only where inside the window each already-
-included piece should sit (see Chapter 6's own "Why Every Recipe Before
-This One Left This Open" section, which states this boundary against
-Chapter 7 explicitly). Chapter 7 owns the question Chapter 6 deferred:
-which sources belong in the window at all — retrieved documents, tool
-output, conversation history, system instructions — and how several
-different sources get combined into one coherent window without
-contradicting or crowding each other out. Chapter 8 ("Retrieval
-Integration: From Ranked Results to Context") then narrows specifically
-to the RAG handoff: turning one retriever's ranked results into
-well-formed context, not re-teaching retrieval architecture itself
-(`rag-for-everyone`'s subject). Per this course's confirmed
-one-project-per-module convention (see "Open Decisions" above), Module
-4's own project should be planned once, likely at the end of Chapter 8
-— read Chapter 6's own quality audit (`quality-audits/chapter-06-audit.md`)
-for the honest project-tier-labeling precedent it set (no numbered
-ladder tier for a module the map doesn't itself assign one to) before
-assuming Chapter 8's project shape from the curriculum map alone.
+Chapter 7 (this session) owned the first outcome: which sources belong
+in a window at all, and how several different sources — retrieved
+documents, live tool output, conversation history, system instructions
+— get combined into one coherent window without contradicting or
+crowding each other out, via a six-step Source Assembly Recipe
+(inventory, authority rank, detect conflicts, resolve or surface,
+deduplicate, hand off to Chapter 6's ordering recipe). Chapter 7's own
+"Why Every Recipe Before This One Left This Open" section states the
+boundary against Chapter 8 explicitly: this course assumes retrieval
+quality and ranking as a given input, and Chapter 7's own Step 1
+inventory treats a RAG pipeline's ranked results as one candidate
+source among several, not the only one. Chapter 8 narrows specifically
+to the handoff Chapter 7 deferred: turning one retriever's own ranked
+output into well-formed context — not re-teaching retrieval
+architecture, chunking, embeddings, or ranking quality itself
+(`rag-for-everyone`'s subject).
+
+**Chapter 8 ships Module 4's single project, closing the module** — per
+this course's confirmed one-project-per-module convention. Unlike
+Module 3 (which fell in a gap the curriculum map's own numbered ladder
+didn't assign a tier to, resolved in Chapter 6's session as an honest
+unnumbered "Module 3 Project"), Module 4's project lands cleanly on the
+map's own **L3 Independent** tier, already explicitly assigned to
+Chapter 8 by the ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8,
+L4 the Ch. 13 capstone) — see `quality-audits/chapter-07-audit.md`'s "Chapter
+7 ships no project — confirmed, not a silent omission" section for the
+full reasoning. Plan the project to draw on both Chapter 7 (source
+assembly) and Chapter 8 (retrieval integration) together, per the
+curriculum map's own paired Module 4 labs ("assemble context from 3+
+real sources for one request" and "take a retriever's ranked output and
+produce well-formed context from it") — not a Chapter-8-only task
+wearing a Module 4 label, the same discipline Chapter 6's session
+applied to Module 3's project.
 
 What NOT to re-derive:
 - The five-line Context Budget Ledger (Chapter 1), the five-step Budget
   Allocation Recipe (Chapter 2), the six-step Short-Term Memory Policy
   Recipe (Chapter 3), the six-step Long-Term Memory Policy Recipe
-  (Chapter 4), the six-step Compression Fidelity Recipe (Chapter 5), and
-  the five-step Context Ordering Recipe (Chapter 6) are already-built
-  material. Chapter 7 should re-read Chapter 6's own "Why Every Recipe
-  Before This One Left This Open" and "Context Engineering Builder
-  Thought Process" sections (both explicitly name multi-source
-  composition as Chapter 7's own deferred subject) before scoping its
-  own content, so it neither re-teaches what Chapter 6 already covered
-  (positioning already-selected content) nor leaves a gap between the
-  two. Chapter 7's own new job is source *selection and combination*:
-  given several candidate sources for one request, which belong, how do
-  they get merged into one window without contradicting or crowding
-  each other, and how does Chapter 6's own ordering discipline apply
-  once multiple sources are combined rather than one. Do not re-explain
-  budgeting, pinning, write/retrieval criteria, compression mechanics,
-  or anchor/positional-probe mechanics — Chapter 7 can reference them
-  briefly as *inputs* its own assembly step receives, not re-teach them.
+  (Chapter 4), the six-step Compression Fidelity Recipe (Chapter 5), the
+  five-step Context Ordering Recipe (Chapter 6), and the six-step Source
+  Assembly Recipe (Chapter 7) are already-built material. Chapter 8
+  should re-read Chapter 7's own "Why Every Recipe Before This One Left
+  This Open" section (states retrieval integration as Chapter 8's own
+  deferred subject) and its "Context Engineering Builder Thought
+  Process" section before scoping its own content, so it neither
+  re-teaches source assembly (Chapter 7's own job — which sources
+  belong, authority ranking, contradiction resolution, deduplication)
+  nor leaves a gap between the two. Chapter 8's own new job is the RAG
+  handoff specifically: given one retriever's own ranked list of
+  results, how does it become well-formed context — chunk boundaries,
+  citation/provenance formatting, how many ranked results to include and
+  why, and how the resulting content then feeds as one input into
+  Chapter 7's own Step 1 inventory. Do not re-explain budgeting, memory
+  policies, compression mechanics, ordering/anchor mechanics, or
+  authority-ranking/contradiction-detection mechanics — Chapter 8 can
+  reference them briefly as complementary, already-built recipes, not
+  re-teach them.
 - The course's positioning relative to `rag-for-everyone`,
   `mcp-for-everyone`, and `ai-engineering-for-everyone` Chapter 3 is
-  already established in `docs/discovery-notes.md` and Chapter 1's own
-  "Why This Course Exists" section — Chapter 7 can reference it briefly
-  but should not re-argue it from scratch. Chapter 7's own boundary
-  against `rag-for-everyone` needs particular care: this course assumes
-  ranked/retrieved results as a given input (that's `rag-for-everyone`'s
-  and this course's own Chapter 8's subject), and Chapter 7's job is
-  combining that already-retrieved content with other sources, not
-  retrieval quality itself.
-- Read Chapter 6's own quality audit
-  (`quality-audits/chapter-06-audit.md`) before starting, not just the
+  already established in `docs/discovery-notes.md`, Chapter 1's own "Why
+  This Course Exists" section, and Chapter 7's own boundary statement —
+  Chapter 8 can reference it briefly but should not re-argue it from
+  scratch. Chapter 8's own boundary against `rag-for-everyone` needs the
+  most care of any chapter so far: this course assumes retrieval
+  architecture, chunking strategy, embeddings, and ranking algorithms as
+  `rag-for-everyone`'s own subject, and Chapter 8's job is strictly the
+  handoff point — what happens to an already-ranked list once it needs
+  to become context — not how that ranked list was produced.
+- Read Chapter 7's own quality audit
+  (`quality-audits/chapter-07-audit.md`) before starting, not just the
   curriculum map — per `AI_HANDOFF.md`'s own standing instruction, it
-  may surface scope notes this file doesn't fully capture.
+  may surface scope notes this file doesn't fully capture, including the
+  L3-tier project-planning note above.
+- The Open Decision logged in "Open Decisions" below (whether Chapter 8
+  needs its own small, runnable retriever stub or can use a
+  hand-authored, clearly-labeled ranked-results example) is still open
+  and should be resolved at the start of Chapter 8's own session, not
+  assumed either way.
 
-New-org exclusion list: read `quality-audits/chapter-06-audit.md`'s
-full running list (Chapters 1-5's combined 54 orgs plus Chapter 6's 11
-new orgs — Marchside Regional Trauma Network, Calverton Public
-Defender's Office, Nunroth Independent Bookstore Cooperative, Vesparro
-Marine Salvage, Holstead Grain Exchange, Quenby Historical Archive
-Society, Farrowline Dairy Cooperative, Delacroix Regional Airport
-Authority, Pennwhistle Community Radio Network, Ostergaard Marine
-Insurance, Brackholt County Court Records Office — 65 total in this
-repo) plus `ai-engineering-for-everyone`'s own full compiled list (see
-that repo's `quality-audits/chapter-13-audit.md`) before naming any new
-fictional org for Chapter 7, and extend — don't restart — the list in
-`quality-audits/chapter-07-audit.md`.
+New-org exclusion list: read `quality-audits/chapter-07-audit.md`'s full
+running list (Chapters 1-6's combined 65 orgs plus Chapter 7's 10 new
+orgs — Hadleworth Metro Water Authority, Corrinvale Independent Pharmacy
+Network, Juniper Ridge Veterinary Partners, Quarrydale Auto Diagnostics
+Cooperative, Tamworth Regional Housing Trust, Wexford Maritime Charter
+Group, Dovetail Woodcraft Guild, Cinderfield Volunteer Fire Network,
+Barleycroft Grain & Feed Cooperative, Yewmarsh Wildlife Sanctuary — 75
+total in this repo) plus `ai-engineering-for-everyone`'s own full
+compiled list (see that repo's `quality-audits/chapter-13-audit.md`, as
+reproduced in Chapter 7's own audit) before naming any new fictional org
+for Chapter 8, and extend — don't restart — the list in
+`quality-audits/chapter-08-audit.md`.
 
-Citation/Ollama re-verification discipline: do not assume Chapter 6's
+Citation/Ollama re-verification discipline: do not assume Chapter 7's
 five citations are still live — re-fetch and re-read anything reused,
-and treat all-new sources as the default (Chapter 6's own session
-needed to follow two live redirects to relocated content and replace one
-initially attempted URL that turned out to be a genuine dead link —
-expect similar churn, not stability by default). Re-check Ollama's
-`/api/tags` and `/api/chat` fresh at the start of the session, even
-though Chapters 4, 5, and 6 all got two consecutive first-attempt
-successes — Chapter 3 already showed a successful warm call can still
-be followed by a later timeout within the same session, so treat the
-endpoint as intermittently slow/hanging by default, budget for retries
-throughout the session, not just at the start, and keep timeouts
+and treat all-new sources as the default. Chapter 7's own session fetched
+all 5 sources clean with zero redirects and zero dead links — a
+genuinely less churny outcome than Chapters 3-6's own sessions, disclosed
+explicitly as that session's own result, not evidence documentation URLs
+have generally stabilized; do not assume Chapter 8's own session will be
+equally clean. Re-check Ollama's `/api/tags` and `/api/chat` fresh at the
+start of the session, even though Chapters 4-7 all got two consecutive
+first-attempt successes — Chapter 3 already showed a successful warm call
+can still be followed by a later timeout within the same session, so
+treat the endpoint as intermittently slow/hanging by default, budget for
+retries throughout the session, not just at the start, and keep timeouts
 generous (120s+) throughout.
 
-Registration-staleness check reminders: once Chapter 7's `lesson.html`
+Registration-staleness check reminders: once Chapter 8's `lesson.html`
 exists, update `assets/chapters-data.js` (add its `path`), the root
-`index.html` (`hero-stats` counts — it should read "7 of 13 chapters
-live," with "3 of 6 modules complete" staying as-is until Chapter 8
-closes Module 4 — and the "All Chapters" intro paragraph), and
-`docs/curriculum/index.html` (its own chapter-card status and lede
-paragraph) in the same session — these four locations drifted stale in
-multiple sibling courses' own build histories when a chapter shipped
-without updating all four at once.
+`index.html` (`hero-stats` counts — it should read "8 of 13 chapters
+live" and "4 of 6 modules complete," since Chapter 8 closes Module 4 —
+and the "All Chapters" intro paragraph), and `docs/curriculum/index.html`
+(its own chapter-card status, lede paragraph, and Module 4's feature card
+changed from "In Progress" to "Complete") in the same session — these
+four locations drifted stale in multiple sibling courses' own build
+histories when a chapter shipped without updating all four at once.
 
 Local validation, done at the end of every session:
 
@@ -853,7 +990,7 @@ Local validation, done at the end of every session:
 $ bash scripts/local_check.sh
 ```
 
-Passed clean at the end of this session (Chapter 6) — folder
+Passed clean at the end of this session (Chapter 7) — folder
 structure, placeholder-text scan, Python syntax, every `solution.py`
 executed for real, JS syntax and chapter-path validation, secret scan.
 See this session's own commit message / `AI_HANDOFF.md` for the exact

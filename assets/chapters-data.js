@@ -86,7 +86,8 @@ window.CEFE_MODULES = [
         id: "chapter-07",
         num: 7,
         title: "Multi-Source Context Assembly",
-        description: "Composing several context sources into one window without the pieces contradicting or crowding out each other."
+        description: "Composing several context sources into one window without the pieces contradicting or crowding out each other.",
+        path: "chapters/chapter-07-multi-source-context-assembly/lesson.html"
       },
       {
         id: "chapter-08",

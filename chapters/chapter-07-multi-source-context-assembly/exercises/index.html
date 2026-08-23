@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Source Context Assembly Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Multi-Source Context Assembly.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-07">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 7 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Multi-Source Context Assembly</h1>
+  <p>
+    These exercises use a fresh scenario, deliberately different from
+    the lesson's Hadleworth Metro Water Authority/ConfluenceLine hook:
+    <strong>Corrinvale Independent Pharmacy Network</strong>, a
+    fictional independent pharmacy chain. Its pharmacist-facing
+    assistant, <strong>ScriptLine</strong>, assembles context for
+    "Refill Safety Review" requests from several sources at once: a
+    retrieved chart-summary document (sometimes stale), a live tool
+    call to the pharmacy-benefit and EHR systems, the conversation so
+    far with the patient, and the pharmacy's own system instructions.
+    Chapters 1-6's own recipes have already run for this request type —
+    a correct budget, correct short-term/long-term memory handling,
+    nothing over budget needing compression, and no positional risk.
+    Every source is individually correct — your job is this chapter's
+    own new skill: deciding which sources belong, ranking their
+    authority, detecting and resolving contradictions between them, and
+    deduplicating restated content, before Chapter 6's own ordering
+    recipe ever runs.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — authority-rank
+    conflict resolution, contradiction detection, deduplication
+    arithmetic, a post-resolution budget check, a naive-vs-recipe
+    regression gate, and an escalation decision, not just concept
+    recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match scenarios to assembly approaches</h3>
+    <p>Decide which of three ScriptLine scenarios show naive concatenation, string-dedup-only, or the full Source Assembly Recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the Source Assembly Recipe</h3>
+    <p>Put the lesson's six recipe steps in the correct sequence, from inventorying sources to handing off to Chapter 6's own ordering recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Authority-rank conflict resolution</h3>
+    <p>Given an authority ranking and three source conflicts, compute which source wins each one.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Contradiction detection</h3>
+    <p>Decide which of six claim pairs are genuine contradictions versus restatements or unrelated facts.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Deduplication arithmetic</h3>
+    <p>For three claims asserted by multiple sources, compute which source to keep and how many tokens dropping the rest saves.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Budget check after resolution</h3>
+    <p>Compute the resolved token total after dedup savings and confirm it fits the request type's budget.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Naive-vs-recipe regression gate</h3>
+    <p>Confirm a load-bearing contradiction naive concatenation would leave unresolved is correctly resolved by the recipe, within budget.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Escalation decision</h3>
+    <p>For three assembly-review outcomes, decide whether it's safe to ship or the pipeline must resolve/escalate.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

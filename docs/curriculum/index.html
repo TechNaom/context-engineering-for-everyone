@@ -53,7 +53,7 @@
       <p><strong>Outcome:</strong> compress/summarize context without losing load-bearing content; order context to avoid lost-in-the-middle degradation.</p>
     </div>
     <div class="feature-card">
-      <h3>Module 4: Multi-Source Context Assembly</h3>
+      <h3>Module 4: Multi-Source Context Assembly — In Progress</h3>
       <p>Combining retrieved documents, tool outputs, conversation history, and system instructions into one coherent context.</p>
       <p><strong>Outcome:</strong> assemble multi-source context without contradiction; integrate a RAG pipeline's ranked results into context correctly.</p>
     </div>
@@ -77,7 +77,7 @@
     <a class="chapter-card" data-chapter-link="chapter-04" href="../../chapters/chapter-04-long-term-and-persistent-memory-systems/lesson.html"><span class="chapter-card-num">Chapter 4 — Live</span><h3>Long-Term and Persistent Memory Systems</h3><p>What a system should remember across sessions, and the real decision of what to retrieve back into context later.</p></a>
     <a class="chapter-card" data-chapter-link="chapter-05" href="../../chapters/chapter-05-context-compression-and-summarization/lesson.html"><span class="chapter-card-num">Chapter 5 — Live</span><h3>Context Compression and Summarization</h3><p>The real mechanics a compression call uses to decide what survives -- opening Module 3, without losing what a downstream step depends on.</p></a>
     <a class="chapter-card" data-chapter-link="chapter-06" href="../../chapters/chapter-06-avoiding-lost-in-the-middle/lesson.html"><span class="chapter-card-num">Chapter 6 — Live</span><h3>Avoiding Lost-in-the-Middle</h3><p>Why position inside the context window changes how well a model uses information -- closing Module 3 with a re-verified look at the research and Module 3's own guided project.</p></a>
-    <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 7 — Planned</span><h3>Multi-Source Context Assembly</h3><p>Composing several context sources into one window without the pieces contradicting each other.</p></a>
+    <a class="chapter-card" data-chapter-link="chapter-07" href="../../chapters/chapter-07-multi-source-context-assembly/lesson.html"><span class="chapter-card-num">Chapter 7 — Live</span><h3>Multi-Source Context Assembly</h3><p>Composing several context sources into one window without the pieces contradicting each other -- opening Module 4, no project of its own.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 8 — Planned</span><h3>Retrieval Integration: From Ranked Results to Context</h3><p>Turning a retriever's ranked results into well-formed context — the handoff point with RAG.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 9 — Planned</span><h3>Context Engineering for Tool Use</h3><p>Deciding what tool definitions, results, and history a model needs in context for a tool call.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 10 — Planned</span><h3>Context Engineering for Multi-Agent Systems</h3><p>What context each step or sub-agent needs versus inheriting everything indiscriminately.</p></a>
@@ -106,8 +106,18 @@
     model families. Per this course's one-project-per-module convention,
     Chapter 5 shipped no project of its own — Module 3's single project,
     drawing on both chapters together, ships with Chapter 6, closing the
-    module. Chapters 7-13 are scaffolded (`.gitkeep`'d directories under
-    <code>chapters/</code>) and planned per
+    module. Chapter 7 is now live too, opening Module 4 (Multi-Source
+    Context Assembly): it owns the question every prior chapter
+    deferred — which sources belong in a window at all, and how several
+    different sources (retrieved documents, live tool output,
+    conversation history, system instructions) get combined into one
+    coherent window without contradicting or crowding each other out,
+    before Chapter 6's own ordering recipe ever runs on the result.
+    Chapter 7 ships no project of its own; Module 4's single project is
+    planned for the end of Chapter 8, once retrieval integration is also
+    in place, the same one-project-per-module convention Module 3
+    followed. Chapters 8-13 are scaffolded (`.gitkeep`'d directories
+    under <code>chapters/</code>) and planned per
     <a href="CURRICULUM_MAP.md">CURRICULUM_MAP.md</a>, not yet built —
     see <code>PROJECT_STATE.md</code> for the current, authoritative
     build status and the next recommended session's task.

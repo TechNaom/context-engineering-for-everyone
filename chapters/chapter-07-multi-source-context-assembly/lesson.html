@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Source Context Assembly — Context Engineering for Everyone</title>
+<meta name="description" content="Chapters 1-6 assumed a window's included content was already decided and asked how much of it fit, what survived, and where it sat. This chapter, opening Module 4, owns the question every prior chapter deferred: which sources belong in a window at all, and how do several different sources -- retrieved documents, tool output, conversation history, system instructions -- get combined without silently contradicting or crowding each other out?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-07">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 7</span>
+    <span class="badge-difficulty">Advanced</span>
+    <span class="reading-time">~35 min</span>
+  </div>
+
+  <h1>Multi-Source Context Assembly</h1>
+  <p class="lede">
+    Chapter 6 closed Module 3 by asking where an already-selected, already-
+    correct piece of content should sit inside a window. It deliberately
+    assumed the window's own contents as a given. This chapter, opening
+    Module 4, owns the question Chapter 6 left open on purpose: which
+    sources belong in a window at all, and once more than one source is
+    heading into the same request -- a retrieved document, a tool's live
+    output, the conversation so far, the system's own instructions -- how
+    do they get combined into one coherent window without silently
+    contradicting or crowding each other out?
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. Two correct sources, one wrong answer</a>
+    <a href="#why-this-chapter">2. Why every recipe before this one left this open</a>
+    <a href="#the-recipe">3. The Source Assembly Recipe</a>
+    <a href="#approaches-compared">4. Three approaches, compared</a>
+    <a href="#worked-math">5. Worked math: Hadleworth's contradicting advisory</a>
+    <a href="#live-capture">6. A live-captured contradiction example</a>
+    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
+    <a href="#recap">8. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Hadleworth Metro Water Authority is a fictional regional water
+      utility. Its customer-service assistant, ConfluenceLine, helps
+      support reps answer account and service questions by assembling
+      context from several places at once: a retrieved knowledge-base
+      article for the customer's service zone, a live tool call to the
+      utility's own advisory-status system, the conversation so far, and
+      the team's system instructions. By the time this chapter's story
+      starts, every recipe through Chapter 6 had already run correctly for
+      this request type -- a real budget (Chapter 2), no eviction problem
+      because the conversation was short (Chapter 3), nothing to recall
+      from long-term memory for a first-time caller (Chapter 4), nothing
+      needing compression because nothing was over budget (Chapter 5), and
+      both pieces of retrieved content sitting at reasonable positions in
+      a short window with no lost-in-the-middle risk at all (Chapter 6).
+    </p>
+    <p>
+      A customer in the Elmcrest service zone called in. ConfluenceLine's
+      retrieval step correctly pulled a knowledge-base article, written
+      three weeks earlier, stating a boil-water advisory was in effect for
+      Elmcrest after a water-main break. Its tool-calling step correctly
+      called the utility's live advisory-status endpoint, which correctly
+      returned that the same advisory had been lifted the previous
+      afternoon, water quality reconfirmed safe. Both facts were true when
+      each source produced them. Both were retrieved and included
+      correctly, by every mechanism this course has built so far.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">confluenceline_assemble.py (context assembly, before this chapter)</span>
+      </div>
+      <pre><code>  def assemble_context(system_instructions, retrieved_doc, tool_output, history, query):
+      # Chapters 1-6 correctly decided how much budget this request type
+      # gets (Ch. 2), managed the short conversation within it (Ch. 3),
+      # had nothing to recall from long-term memory (Ch. 4), had nothing
+      # over budget to compress (Ch. 5), and placed both short pieces of
+      # content at reasonable positions (Ch. 6). Nothing here ever asked
+      # whether the retrieved document and the live tool output were
+      # actually saying the same thing about the same fact.
+      return system_instructions + retrieved_doc + tool_output + history + [query]
+      # retrieved_doc said the Elmcrest advisory was "in effect."
+      # tool_output said the same advisory was "lifted yesterday."
+      # Both landed in the window, side by side, with no ranking between
+      # them and no flag that they were talking about the same thing.</code></pre>
+    </div>
+    <p>
+      The customer's own message, already in the conversation, said: "I
+      already switched back to drinking tap water yesterday evening, is
+      that okay?" ConfluenceLine's assembled window had both the honest,
+      correctly retrieved, three-week-old warning and the honest,
+      correctly retrieved, up-to-the-minute all-clear sitting next to each
+      other with no signal about which one should govern the answer. The
+      model split the difference: it told the customer that although the
+      advisory appeared to have been lifted, it would be safer to keep
+      boiling water and wait for official confirmation before trusting the
+      tap -- a hedge that read as cautious, but was functionally wrong,
+      since the live status endpoint <em>was</em> the official
+      confirmation, already sitting right there in the same window.
+    </p>
+    <p>
+      This is a genuinely new failure mode, distinct from every prior
+      chapter's own story. SignalDesk (Ch. 1) had no budget. TriageLine
+      (Ch. 2) had a budget shaped for the wrong request type. RouteLine
+      (Ch. 3) had a naive eviction mechanism. HearthLine (Ch. 4) lost a
+      fact at a session boundary nothing was watching. GridLine (Ch. 5)
+      lost a detail inside an uncontrolled compression call. VitalsLine
+      (Ch. 6) had a correct set of content sitting in the statistically
+      least-reliable position. ConfluenceLine got every one of those
+      right -- a correct budget, no eviction problem, nothing to recall,
+      nothing to compress, both facts sitting in fine positions -- and
+      still produced a wrong answer, because nothing ever decided which of
+      two disagreeing, individually-correct sources should win, or even
+      flagged that they disagreed at all.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>Why Every Recipe Before This One Left This Open</h2>
+    <p>
+      This chapter uses Chapters 1 through 6 as a lens, not fresh
+      material -- if the budget ledger, memory policies, the Compression
+      Fidelity Recipe, or the Context Ordering Recipe aren't already
+      familiar, Chapters 2 through 6 are where those skills live, and none
+      of them are re-taught here. Every one of those chapters assumed the
+      set of sources feeding a given request as a fixed, known input and
+      engineered something about the content once it was already inside
+      that set: how much fits, what's kept across turns and sessions, what
+      survives compression, where it sits once assembled. None of them
+      ever asked whether two of those already-included sources might be
+      making incompatible claims about the same underlying fact, or
+      whether the same fact showing up twice, worded two different ways,
+      was quietly costing the request twice. That is this chapter's own,
+      new job, opening Module 4.
+    </p>
+    <p>
+      One boundary worth stating as directly as Chapter 6's own lesson
+      stated its boundary against this one: this chapter does not decide
+      <em>where</em> inside the final window an already-resolved piece of
+      content should sit -- that is Chapter 6's Context Ordering Recipe,
+      already built, and this chapter's own recipe hands its output
+      straight to it rather than re-deriving it. And this chapter does not
+      teach retrieval architecture, chunking, embeddings, or ranking
+      quality -- that is `rag-for-everyone`'s subject, and this course's
+      own Chapter 8 (Retrieval Integration: From Ranked Results to
+      Context) narrows specifically to the handoff of turning one
+      retriever's ranked output into well-formed context. This chapter's
+      own job sits between those two: given several sources that have
+      already been selected and retrieved by whatever mechanism produced
+      them -- one of which may be a RAG pipeline's ranked results, but just
+      as often a tool call's live output, the conversation itself, or the
+      system's own instructions -- how do they get combined into one
+      window that doesn't contradict or crowd itself out, before Chapter
+      6's own ordering discipline ever runs on the result.
+    </p>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Source Assembly Recipe</h2>
+    <p>
+      Six steps, run once every candidate source for a request has already
+      been produced (by retrieval, a tool call, conversation state, or
+      configuration) and before Chapter 6's own ordering recipe ever sees
+      the result:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Inventory every candidate source explicitly</h3>
+      <p>
+        Name each source and its type before assembling anything: which
+        pieces are retrieved documents, which are live tool output, which
+        are conversation history, which are recalled long-term memory
+        (Chapter 4's own subject), and which are system instructions.
+        ConfluenceLine's actual pipeline never did this -- it simply
+        concatenated whatever arrived. A silent merge can't be checked for
+        contradiction or overlap; an inventory can.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Assign each source type an authority rank for this request</h3>
+      <p>
+        Decide, before any specific conflict shows up, which source type
+        wins when two sources disagree about the same fact. The right
+        ranking is request-type-specific, not universal: live tool output
+        typically outranks a static retrieved document for a
+        time-sensitive status (exactly ConfluenceLine's case), but a
+        curated compliance document might reasonably outrank a live system
+        that hasn't been legally reviewed for exact policy wording.
+        Deciding this once, in advance, is what makes Step 4 a fast,
+        deterministic lookup instead of a fresh judgment call every time a
+        conflict appears.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Detect overlapping and contradicting claims before assembly</h3>
+      <p>
+        Explicitly check whether any two sources are asserting something
+        about the same underlying fact, rather than trusting the model to
+        notice a contradiction sitting in the assembled block. This is a
+        real, documented failure category, not a hypothetical one: a 2024
+        survey's own taxonomy names exactly this pattern "inter-context
+        conflict" -- "contradictions within or across multiple provided
+        contexts"<sup><a href="#src-3">[3]</a></sup> -- as one of three
+        distinct ways an LLM's context can conflict with itself,
+        separate from conflicts against the model's own trained-in
+        knowledge.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Resolve or explicitly surface each contradiction</h3>
+      <p>
+        For every conflict Step 3 finds, either resolve it using Step 2's
+        authority ranking (drop or supersede the lower-authority claim) or,
+        if authority doesn't clearly settle it, surface the disagreement
+        explicitly rather than silently including both claims as if they
+        agree. Research on knowledge conflicts names exactly this as the
+        right target behavior: a well-behaved system should "(1) identify
+        knowledge conflicts, (2) pinpoint conflicting information
+        segments, and (3) provide distinct answers or viewpoints in
+        conflicting scenarios"<sup><a href="#src-2">[2]</a></sup> -- and
+        the same research found that LLMs, left to do this unprompted,
+        struggle specifically with the second and third of those, even
+        when they can tell a conflict exists at all. That is why this
+        step is a deterministic pipeline decision, not something left to
+        the model's own judgment at generation time.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Deduplicate restated content across sources</h3>
+      <p>
+        The same fact stated by two sources in different words -- a
+        policy already covered by the system instructions and again by a
+        retrieved document, for instance -- is not a contradiction, but it
+        is still waste: it costs Chapter 2's own budget twice for one
+        fact, and it's exactly the kind of redundancy Anthropic's own
+        context-engineering guidance warns against directly, describing
+        the general discipline as keeping context "informative, yet
+        tight"<sup><a href="#src-1">[1]</a></sup> across every component of
+        context, not only the largest one.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Hand the resolved, deduplicated set to Chapter 6's ordering recipe</h3>
+      <p>
+        This chapter decides <em>what</em> the final assembled set
+        contains; Chapter 6's Context Ordering Recipe, already built,
+        decides <em>where</em> each piece of that resolved set sits. Running
+        Chapter 6's own recipe on a set that still silently contradicts
+        itself only produces a well-positioned contradiction -- the two
+        recipes are sequential and complementary, not substitutes for each
+        other, the same relationship Chapter 6's own lesson named looking
+        forward to this chapter.
+      </p>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it gets wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Naive concatenation (ConfluenceLine's actual pipeline)</td>
+          <td>Joins system instructions, retrieved documents, tool output, and history in whatever order they became available, with no check for overlap or disagreement.</td>
+          <td>Never, once more than one source can plausibly speak to the same fact -- which is most real multi-source systems, not an edge case.</td>
+          <td>ConfluenceLine's exact failure: two individually correct sources, contradicting each other about the same fact, both silently included with no signal about which should govern.</td>
+          </tr>
+        <tr>
+          <td>String-level deduplication only</td>
+          <td>Strips exact or near-exact duplicate text across sources, but has no authority ranking and no contradiction check for claims worded differently.</td>
+          <td>A useful, cheap first pass -- worth doing regardless -- but never sufficient alone.</td>
+          <td>Catches the same sentence appearing twice; catches nothing when two sources make opposite claims in different words, which is exactly what happened between ConfluenceLine's document and its tool output.</td>
+        </tr>
+        <tr>
+          <td>The Source Assembly Recipe (the fix)</td>
+          <td>Inventories every source (Step 1), ranks authority in advance (Step 2), explicitly detects overlap and contradiction (Step 3), resolves or surfaces every conflict found (Step 4), deduplicates restated content (Step 5), and hands the resolved set to Chapter 6's own ordering recipe (Step 6).</td>
+          <td>Any request where more than one source can plausibly speak to the same fact and a wrong or missed resolution has a real cost.</td>
+          <td>Requires deciding an authority ranking in advance for every request type, real design work Chapters 2-6 already required for budget, memory, and compression -- not a new category of cost, but a real one.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: Hadleworth's Contradicting Advisory</h2>
+    <p>
+      Per Chapter 2's own recipe, ConfluenceLine's "Account and Service
+      Status" request type has a 1,200-token Line 2/3 budget for this
+      turn. This particular turn assembled 610 tokens of it: 200 tokens of
+      system instructions, 220 tokens of the retrieved Elmcrest
+      knowledge-base article, 40 tokens of live tool output from the
+      advisory-status endpoint, 90 tokens of conversation history (the
+      customer's own tap-water question), and a 60-token query.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What happens to the two conflicting facts</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Naive concatenation (actual pipeline)</td>
+          <td>All 610 tokens included as-is: the 220-token document's "advisory in effect" claim and the 40-token tool output's "advisory lifted" claim sit side by side with no ranking or flag.</td>
+          <td>The assembled window contains a live, unresolved contradiction about the exact fact the customer is asking about. ConfluenceLine's answer hedged toward the stale claim.</td>
+        </tr>
+        <tr>
+          <td>String-level deduplication only</td>
+          <td>No change -- the two claims share no duplicate substring to strip (different wording, same underlying fact), so both 220 and 40 tokens remain, unresolved.</td>
+          <td>Zero tokens saved, contradiction still fully present. A team that stopped here would believe they'd addressed redundancy while the actual problem remained untouched.</td>
+        </tr>
+        <tr>
+          <td>Source Assembly Recipe (the fix)</td>
+          <td>Step 2's authority ranking places live tool output above a static retrieved document for a time-sensitive status claim. Step 3 detects the two sources both speak to <code>elmcrest_advisory_status</code>. Step 4 supersedes the document's specific stale claim; its remaining 80 tokens of general boil-water safety guidance (unrelated to current status) are kept. The tool output's 40-token current-status claim becomes the window's sole claim on this fact.</td>
+          <td>Assembled total drops to 470 tokens (200 + 80 + 40 + 90 + 60) -- 140 tokens freed versus naive concatenation -- and, more importantly, the window now states one unambiguous claim about the advisory instead of two contradicting ones.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      The fix was never "retrieve less" (Chapter 8's own subject, not
+      this one) or "shrink the budget" (Chapter 2's subject) -- both
+      sources were correctly retrieved and both fit comfortably inside the
+      1,200-token budget the whole time. The fix was deciding, on purpose,
+      which of two individually correct sources should govern the answer
+      when they disagree, and making that decision before assembly, not
+      hoping the model would notice and resolve it unprompted at
+      generation time.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>A Live-Captured Contradiction Example</h2>
+    <p>
+      As in every prior chapter, every exercise and practice solution in
+      this chapter uses deterministic, directly computed authority-rank
+      and contradiction-detection data for its automated self-checks, for
+      the same 20-second-`local_check.sh`-timeout reason documented since
+      Chapter 3. But it's worth showing what a real model actually does
+      when handed exactly ConfluenceLine's own contradiction, unresolved,
+      captured live and unedited this session:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture -- POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>  PROMPT (the hook's own two contradicting sources, handed to the model
+  unresolved, exactly as ConfluenceLine's naive pipeline would assemble
+  them, plus the customer's own question):
+
+  "I will give you two facts about a fictional water utility, Hadleworth
+  Metro Water Authority, from two different sources. Source A (a
+  knowledge-base document written three weeks ago): 'A boil-water
+  advisory is in effect for the Elmcrest service zone due to a water
+  main break.' Source B (a live account-status API call made right
+  now): 'The boil-water advisory for the Elmcrest service zone was
+  lifted yesterday at 4pm; water quality has been confirmed safe.' The
+  customer, in this conversation, says: 'I already switched back to
+  drinking tap water yesterday evening, is that okay?' Question: is it
+  safe for the customer to drink tap water, and which source should you
+  trust?"
+
+  RESPONSE (live, unedited):
+  "Based on the information provided, I would say that it is not safe
+  for the customer to drink tap water from the Elmcrest service zone
+  until the water quality has been confirmed safe by the Hadleworth
+  Metro Water Authority. [...] I would advise the customer to err on
+  the side of caution and wait for an official confirmation [...]
+
+  In general, when it comes to conflicting information, I would
+  recommend trusting the source that was last updated or confirmed,
+  which in this case is Source B (the live account-status API call).
+  This is because APIs are typically updated in real-time and provide
+  more current information compared to static documents like Source A."</code></pre>
+    </div>
+    <p>
+      A genuinely nuanced result, read honestly rather than graded
+      pass/fail. The model's own closing reasoning is exactly right, and
+      worth crediting directly: it correctly identifies that Source B, the
+      live tool output, should be trusted over the static document,
+      because it is more current -- precisely Step 2's own authority
+      ranking, arrived at unprompted. But the model's actual, concrete
+      safety recommendation -- telling the customer it is "not safe" to
+      drink the tap water and to "wait for an official confirmation" --
+      directly contradicts that same conclusion, since Source B <em>was</em>
+      the official, current confirmation, already sitting in the same
+      prompt. The model reasoned its way to the correct authority ranking
+      in the abstract, then didn't apply it to its own concrete answer. This
+      is a precise, concrete illustration of why Step 4's resolution has
+      to be a deterministic step run before the request reaches the model,
+      not a hope that a model reasoning "out loud" about which source to
+      trust will also, reliably, act on its own stated conclusion.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a request type correctly implements
+      every recipe this course has taught through Chapter 6 -- a real
+      budget, correct short-term and long-term memory handling, nothing
+      needing compression, no positional risk in a short window -- and
+      two individually correct, individually well-retrieved sources
+      contradict each other about the same fact, producing a wrong or
+      hedged answer.</p>
+      <p><strong>Assumption being made:</strong> that "every source was
+      retrieved correctly" is the same claim as "the assembled set of
+      sources is coherent." Chapter 6 already showed presence isn't the
+      same as reliable positional use; this chapter shows correct
+      retrieval per source isn't the same as a coherent combination of
+      sources.</p>
+      <p><strong>What actually distinguishes a well-engineered
+      multi-source assembly step:</strong> not whether every source was
+      individually retrieved or produced correctly (every approach in
+      this chapter's own comparison table achieves that) but whether
+      overlapping and contradicting claims across sources were explicitly
+      detected and resolved by a deterministic rule set before the
+      request ever reached the model, and whether that resolved,
+      deduplicated set was then handed to Chapter 6's own ordering
+      discipline, not treated as a substitute for it.</p>
+      <p><strong>Why this matters before Chapter 8:</strong> Chapter 8
+      narrows specifically to the RAG handoff -- turning one retriever's
+      own ranked output into well-formed context, not re-teaching
+      retrieval architecture itself. This chapter deliberately treated
+      "how a source was produced" as out of scope and asked only how
+      several already-produced sources combine; Chapter 8 is where the
+      question of what makes a good *retrieved* source in the first place
+      gets full depth, feeding directly into this chapter's own Step 1
+      inventory as one input among several, not the only one.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      well-assembled multi-source context window explicitly inventories
+      every source going into it, ranks source authority per request type
+      in advance, detects overlapping and contradicting claims before
+      assembly rather than after, resolves or explicitly surfaces every
+      conflict found, deduplicates restated content, and only then hands
+      the resolved set to Chapter 6's own ordering recipe -- never
+      assumed coherent just because every individual source was correctly
+      produced.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>Correct retrieval per source is not the same as a coherent
+        combination of sources -- ConfluenceLine's document and tool
+        output were each individually correct, and still produced a wrong
+        answer together, because nothing decided which should govern when
+        they disagreed.</li>
+        <li>A 2024 survey's own taxonomy names this pattern directly:
+        "inter-context conflict," contradictions across multiple provided
+        context sources, distinct from conflicts against a model's
+        trained-in knowledge.</li>
+        <li>The fix is a deterministic pipeline, not model judgment at
+        generation time: inventory every source, rank authority per
+        request type in advance, detect contradictions explicitly,
+        resolve or surface every one found, deduplicate restated content,
+        and hand the resolved set to Chapter 6's own ordering recipe.</li>
+        <li>This chapter's own live capture showed a model reason its way
+        to the exact correct authority ranking in the abstract ("trust
+        the live source"), then give a concrete recommendation that
+        contradicted its own stated conclusion -- a real reason resolution
+        can't be left to the model's own in-context reasoning alone.</li>
+        <li>String-level deduplication is a useful, cheap first pass but
+        catches nothing when two sources disagree in different words --
+        the harder, more common real case.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model as every prior chapter
+      (<code>llama3.2:latest</code>). <code>POST /api/chat</code> was
+      called twice this session and succeeded on the first attempt both
+      times -- consistent with Chapters 4, 5, and 6's own sessions, not
+      Chapter 3's, but reported honestly as this session's own result, not
+      a claim the earlier intermittent hang is permanently resolved: a
+      first call (the hook's own contradiction prompt, a 200-second
+      timeout, this course's standing generous-patience discipline)
+      returned a real response in about 109 seconds, almost entirely the
+      model's own cold load time (about 104 seconds of the total); a
+      second, unrelated warm call a few minutes later (a 150-second
+      timeout) returned in about 5 seconds. Future sessions should keep
+      budgeting for retries with generous (120s+) timeouts regardless,
+      exactly as `PROJECT_STATE.md` instructs, since Chapter 3's own
+      session already showed a successful warm call can still be followed
+      by a later timeout within the same session. As in every prior
+      chapter, no graded <code>solution.py</code> in this chapter depends
+      on a live call -- every authority-rank, contradiction-detection, and
+      deduplication decision in the automated harnesses is deterministic,
+      hand-computed data, for the same 20-second-timeout reason documented
+      in Chapters 3 through 6. The live capture above is real and
+      unedited, used as illustrative content this chapter's own argument
+      depends on (that source-authority reasoning and actually acting on
+      that reasoning are two different things, even within the same
+      response), not as something any graded script requires to pass.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying:</p>
+    <ol>
+      <li id="src-1">Anthropic, <em>"Effective context engineering for AI
+      agents"</em> —
+      <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a>.
+      Re-fetched live this session and confirmed live; this URL was cited
+      by an earlier chapter's own session, disclosed honestly here as
+      re-fetched for a different passage than before -- specifically its
+      general guidance to keep context "informative, yet tight" across
+      every component of context (system prompts, tools, examples, message
+      history), which this chapter cites directly for Step 5's
+      deduplication rationale rather than any budget-sizing claim an
+      earlier chapter drew from the same source.</li>
+      <li id="src-2">Wang, Feng, Wang, Shi, Balachandran, He, and Tsvetkov,
+      <em>"Resolving Knowledge Conflicts in Large Language Models"</em>
+      (2023) —
+      <a href="https://arxiv.org/abs/2310.00935" target="_blank" rel="noopener">arxiv.org/abs/2310.00935</a>.
+      Fetched live and confirmed live this session. Establishes the three
+      desiderata a system should meet when a knowledge conflict arises --
+      identify the conflict, pinpoint the specific conflicting segments,
+      and provide distinct answers or viewpoints -- and finds that LLMs
+      reliably do the first but struggle with the second and third when
+      left unprompted, direct grounding for this chapter's Step 4 argument
+      that resolution needs to be a deterministic pipeline step, not
+      delegated to the model's own reasoning at generation time.</li>
+      <li id="src-3">Xu, Qi, Guo, Wang, Wang, Zhang, and Xu, <em>"Knowledge
+      Conflicts for LLMs: A Survey"</em> (EMNLP 2024) —
+      <a href="https://aclanthology.org/2024.emnlp-main.486/" target="_blank" rel="noopener">aclanthology.org/2024.emnlp-main.486</a>
+      (also available at
+      <a href="https://arxiv.org/abs/2403.08319" target="_blank" rel="noopener">arxiv.org/abs/2403.08319</a>).
+      Fetched live and confirmed live this session. Provides the taxonomy
+      this chapter's Step 3 cites directly: context-memory conflict,
+      inter-context conflict (contradictions within or across multiple
+      provided contexts -- this chapter's own central subject), and
+      intra-memory conflict, distinguishing the specific failure category
+      a multi-source assembly step has to detect from the model's own
+      internal-knowledge conflicts, which are a different, separate
+      problem this chapter does not address.</li>
+      <li id="src-4">LangChain, <em>`create_stuff_documents_chain`</em>
+      API reference (`langchain-classic`) —
+      <a href="https://reference.langchain.com/python/langchain-classic/chains/combine_documents/stuff/create_stuff_documents_chain" target="_blank" rel="noopener">reference.langchain.com/python/langchain-classic/chains/combine_documents/stuff/create_stuff_documents_chain</a>.
+      Fetched live and confirmed live this session. Documents the "stuff"
+      pattern directly: formats each document with a template, then joins
+      them with a plain string separator into one context block -- a
+      concrete, shipped example of exactly this chapter's "naive
+      concatenation" comparison-table row, with no built-in authority
+      ranking, contradiction detection, or deduplication of its own,
+      confirming this chapter's own recipe is solving a problem the
+      underlying combination mechanism does not solve by itself.</li>
+      <li id="src-5">Microsoft, <em>"RAG and Generative AI"</em> (Azure AI
+      Search documentation, Microsoft Learn) —
+      <a href="https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview" target="_blank" rel="noopener">learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview</a>.
+      Fetched live and confirmed live this session. Names "multi-source
+      data access" as one of five named RAG implementation challenges
+      directly, stating "enterprise content spans SharePoint, databases,
+      blob storage, and other platforms. Creating a unified search corpus
+      without disrupting data operations is essential" -- independent,
+      production-vendor confirmation that combining multiple sources is a
+      named, real engineering problem in this space, not a concern unique
+      to this course's own framing of it.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's Source Assembly Recipe out loud —
+    see
+    <a href="interview-questions.html">Chapter 7 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="what-is">
+    <span class="label">A note on this chapter's project</span>
+    Chapter 7 does not ship its own guided project. Per this course's
+    one-project-per-module convention, Module 4's own project is planned
+    for the end of Chapter 8, once retrieval integration is also in
+    place — see <code>quality-audits/chapter-07-audit.md</code> for the
+    full reasoning.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-06-avoiding-lost-in-the-middle/lesson.html">&larr; Chapter 6</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>
