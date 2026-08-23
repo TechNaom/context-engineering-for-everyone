@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 4: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to design CaseLine's short-term and long-term memory policy, then critique its plausible-but-flawed design -- catching a budget overage, a wrongly-retrieved superseded record, and a hollow justification.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-04">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the project</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 4 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>You already designed Brightmoor Elder Law Group's CaseLine memory policy yourself in <a href="index.html">the project</a> — pinned facts and a verbatim window for Line 3, a staleness-aware retrieval set for Line 4, both fitting their given budgets, both defended in writing. That work stands unchanged; this page is additive. Now the same two-part design gets produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's design before it's shipped for a real elder-law firm's case assistant.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same spec <code>starter.py</code> gives you, and asks for the same four things the project asks for: a short-term pin set, a verbatim window, a long-term retrieval set, and both write-ups.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Brightmoor Elder Law Group's case assistant, CaseLine, supports a
+guardianship case that has run for over a year across many sessions.
+
+PART 1 -- THIS SESSION (Line 3 budget: 3,800 tokens; fixed 900-token
+running summary; 10 real turns, most recent last, token counts oldest
+first: [300, 320, 280, 350, 310, 330, 290, 340, 360, 300]).
+
+5 candidate facts disclosed this session:
+- fact_1_new_poa_document_signed: legal_critical, 70 tokens
+- fact_2_prefers_video_calls: administrative, 25 tokens
+- fact_3_capacity_concern_raised_by_family: legal_critical, 90 tokens
+- fact_4_asked_about_parking_at_office: small_talk, 15 tokens
+- fact_5_court_hearing_date_confirmed: legal_critical, 60 tokens
+
+legal_critical facts MUST be pinned; small_talk facts must NEVER be
+pinned; administrative is your judgment call. Choose a verbatim window
+(1-10 of the most recent turns) so pins + the 900-token summary +
+the verbatim window all fit inside 3,800 tokens.
+
+PART 2 -- THE PERSISTENT STORE (Line 4 budget: 250 tokens). 6 records
+from prior, now-closed sessions on this same case:
+- lt_fact_1_original_poa_signed_2023: legal_critical, superseded, 70 tokens
+- lt_fact_2_prior_capacity_eval_clean_2023: legal_critical, superseded, 85 tokens
+- lt_fact_3_standing_family_contact_preference: administrative, active, 40 tokens
+- lt_fact_4_prior_hearing_date_rescheduled: legal_critical, expired, 55 tokens
+- lt_fact_5_client_language_preference_spanish: legal_critical, active, 45 tokens
+- lt_fact_6_old_small_talk_note_favorite_tea: small_talk, active, 20 tokens
+
+Every ACTIVE legal_critical record MUST be retrieved. Any record whose
+status isn't "active" must NEVER be retrieved, regardless of category.
+Any small_talk record must NEVER be retrieved, regardless of status.
+Choose which of the remaining records to retrieve so the total fits
+inside 250 tokens.
+
+Give me: PINNED_FACT_IDS, VERBATIM_WINDOW_TURNS, a short-term
+justification, RETRIEVED_LONG_TERM_FACT_IDS, and a long-term
+justification that explains why the superseded/expired records are
+excluded, not just that they are.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of design an AI assistant might hand back on the first try. Read it the way you'd read a colleague's draft before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_design.md (as handed back)</span>
+    </div>
+    <pre><code>PART 1 -- SHORT-TERM (Line 3)
+
+PINNED_FACT_IDS = [
+    "fact_1_new_poa_document_signed",
+    "fact_3_capacity_concern_raised_by_family",
+    "fact_5_court_hearing_date_confirmed",
+]
+
+VERBATIM_WINDOW_TURNS = 9
+
+SHORT_TERM_JUSTIFICATION: "All three legal_critical facts are pinned,
+since they're required. I set the verbatim window to 9 out of 10 turns
+rather than a smaller number, since more conversational context is
+generally better for an attorney reviewing a guardianship case -- it's
+worth keeping as much of the actual back-and-forth as possible so
+nothing gets missed."
+
+PART 2 -- LONG-TERM (Line 4)
+
+RETRIEVED_LONG_TERM_FACT_IDS = [
+    "lt_fact_5_client_language_preference_spanish",
+    "lt_fact_3_standing_family_contact_preference",
+    "lt_fact_2_prior_capacity_eval_clean_2023",
+]
+
+LONG_TERM_RETRIEVAL_JUSTIFICATION: "lt_fact_5 and lt_fact_3 are
+retrieved because they're active and relevant. lt_fact_2 is also
+retrieved -- capacity evaluations are important evidence in a
+guardianship case, so it's better to have it available even though
+it's an older record. lt_fact_1, lt_fact_4, and lt_fact_6 are excluded:
+lt_fact_1 and lt_fact_4 are superseded/expired, and lt_fact_6 is
+small_talk."</code></pre>
+  </div>
+
+  <p>It looks like a complete design — both parts filled in, both write-ups present, a specific-sounding rationale for the wider verbatim window. It's also wrong or weak in three separate, genuinely easy-to-miss ways, and running it through <code>starter.py</code>'s own self-check would catch two of the three immediately — but not the third, because the self-check only verifies structure and rule-compliance, not the quality of a write-up (exactly the distinction Criterion 6 of <code>RUBRIC.md</code> asks you to be able to explain).</p>
+
+  <h2>Step 2: Where did the AI's design lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; the wider verbatim window blows the Line 3 budget by 200 tokens</span>
+      <p><strong>What it looks like it does:</strong> "more conversational context is generally better" sounds like reasonable, even conservative, advice — nine of the ten real turns, rather than a narrower window that might drop something.</p>
+      <p><strong>What it actually does:</strong> run the actual numbers, the way this course's own house style insists on. <code>CURRENT_SESSION_TURN_TOKENS[-9:]</code> is <code>[320, 280, 350, 310, 330, 290, 340, 360, 300]</code>, which sums to 2,880 tokens. Add the 220 tokens of pinned facts (70 + 90 + 60) and the fixed 900-token summary: 2,880 + 220 + 900 = <strong>4,000 tokens</strong> — 200 tokens over the 3,800-token Line 3 budget. The AI never actually computed this; "more context is generally better" is an intuition standing in for arithmetic that was never done.</p>
+      <p><strong>Why it matters:</strong> this is precisely what <code>RUBRIC.md</code>'s Criterion 2 scores a 0 for outright: "missing, out of range, or a large unexplained overage." Running <code>starter.py</code>'s own <code>check_short_term_budget()</code> against this design would fail immediately and print the exact 200-token overage — the self-check would have caught this in one run, which is exactly why Criterion 6 asks whether <code>python3 starter.py</code> passes with no errors before anything else is graded.</p>
+      <p><strong>The fix:</strong> shrink the window until the package fits. <code>solution.py</code> uses <code>VERBATIM_WINDOW_TURNS = 7</code>: the last 7 turns sum to 2,280 tokens, plus 220 pinned plus 900 summary = 3,400 tokens, 400 tokens of real slack inside the 3,800 budget. Nine turns is not "safer" than seven if it doesn't fit at all — a design that fits with margin beats a design that looks more thorough but doesn't run.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; a superseded record is retrieved anyway, on purpose</span>
+      <p><strong>What it looks like it does:</strong> "capacity evaluations are important evidence in a guardianship case, so it's better to have it available" sounds like sound legal reasoning — capacity really is central to a guardianship case.</p>
+      <p><strong>What it actually does:</strong> <code>lt_fact_2_prior_capacity_eval_clean_2023</code> has <code>status: "superseded"</code> — it was written over by a later capacity concern that this same session just raised (<code>fact_3_capacity_concern_raised_by_family</code>, one of the very facts being pinned in Part 1). Retrieving the old "clean" evaluation alongside a live, unresolved capacity concern doesn't give CaseLine more evidence; it hands it a contradiction with no signal that one of the two is stale. The AI's own spec said explicitly: "a non-active record must never be retrieved regardless of category" — it named the rule correctly elsewhere in the same response (for <code>lt_fact_1</code> and <code>lt_fact_4</code>) and then broke it for <code>lt_fact_2</code> anyway, reasoning around it rather than checking it.</p>
+      <p><strong>Why it matters:</strong> this is exactly what <code>RUBRIC.md</code>'s Criterion 3 scores a 0 for: "a superseded/expired record is retrieved." It's also the most dangerous kind of error a fluent-sounding design can make, because the justification for it reads like careful judgment rather than a rule violation — the kind of error a self-check catches mechanically but a rushed human reviewer, persuaded by the prose, might wave through.</p>
+      <p><strong>The fix:</strong> drop <code>lt_fact_2</code> from <code>RETRIEVED_LONG_TERM_FACT_IDS</code> entirely — status excludes it, full stop, regardless of how relevant its category is. If the current capacity concern needs supporting evidence, that's this session's own live fact (<code>fact_3</code>, already correctly pinned in Part 1), not a superseded record contradicting it from the store.</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; the long-term justification restates status labels instead of explaining the risk</span>
+      <p><strong>What it looks like it does:</strong> "lt_fact_1 and lt_fact_4 are superseded/expired" reads like an explanation — it names the rule and applies it correctly to two of the three exclusions.</p>
+      <p><strong>What it actually does:</strong> it never says <em>why</em> retrieving a superseded or expired record would be harmful — only that the label says not to. Compare it to <code>solution.py</code>'s own justification: "both were overwritten by this session's own new facts, and retrieving them would contradict what the client just said" and "it no longer describes anything current." That names the actual failure mode (a stale record contradicting a live fact). "It's superseded/expired" names the category, not the risk — the exact gap <code>RUBRIC.md</code>'s Criterion 5 calls out: "correctly explains <em>why</em> the superseded/expired records must be excluded (not just restates that they are)."</p>
+      <p><strong>Why it matters:</strong> this is the write-up half of the project, and it's the one thing <code>starter.py</code>'s own self-check structurally cannot grade — it can confirm a justification is present and over 40 characters, but not that it actually reasons about risk rather than repeating a label. A design that passes every mechanical check while restating labels in its write-up would still fail Criterion 5, and score at most a 2 rather than a 4 — a reminder that "the self-check passed" and "the design is actually good" are different bars, exactly what Criterion 6 asks a learner to be able to articulate.</p>
+      <p><strong>The fix:</strong> rewrite the justification to name the actual contradiction each exclusion avoids — not "it's expired," but "the rescheduled hearing date record no longer describes anything current, and retrieving it alongside this session's own confirmed hearing date would hand CaseLine two conflicting dates with no way to tell which is real."</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly identified all three required <code>legal_critical</code> pins in Part 1, correctly excluded the <code>small_talk</code> fact from pinning, correctly retrieved both of the genuinely required active records (<code>lt_fact_5</code> and <code>lt_fact_3</code>), and correctly excluded <code>lt_fact_1</code>, <code>lt_fact_4</code>, and <code>lt_fact_6</code> by category and status even if the write-up for two of them was thin. If you'd accepted the whole response uncritically, you'd have kept a mostly-correct short-term pin set and a mostly-correct long-term exclusion list alongside a budget that doesn't fit, one wrongly-retrieved stale record, and a justification that names rules without explaining them. That mix — right about which facts matter, wrong about the two things a self-check and a careful reviewer each catch differently — is a more realistic picture of pairing with an AI than either "trust it completely" or "distrust it completely."</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 3 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'Actually run the token arithmetic before trusting a wider window feels safer' or 'Check every retrieved record's status field individually, even when the category feels important'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Project</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

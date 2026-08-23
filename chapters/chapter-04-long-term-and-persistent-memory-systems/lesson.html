@@ -31,7 +31,7 @@
   <div class="page-meta">
     <span class="chapter-badge">Chapter 4</span>
     <span class="badge-difficulty">Intermediate</span>
-    <span class="reading-time">~32 min</span>
+    <span class="reading-time">~40 min</span>
   </div>
 
   <h1>Long-Term and Persistent Memory Systems</h1>
@@ -53,10 +53,12 @@
     <a href="#why-this-chapter">2. Why short-term memory alone can't answer this</a>
     <a href="#the-recipe">3. The Long-Term Memory Policy Recipe</a>
     <a href="#approaches-compared">4. Three approaches, compared</a>
-    <a href="#worked-math">5. Worked math: HearthLine's missing Line 4</a>
-    <a href="#live-capture">6. A live-captured write-extraction example</a>
-    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
-    <a href="#recap">8. Points to remember</a>
+    <a href="#recipe-as-code">5. Turning the recipe into code</a>
+    <a href="#worked-math">6. Worked math: HearthLine's missing Line 4</a>
+    <a href="#live-capture">7. A live-captured write-extraction example</a>
+    <a href="#live-demo">8. Live demo: naive truncation vs. scoped retrieval</a>
+    <a href="#thought-process">9. Context Engineering Builder Thought Process</a>
+    <a href="#recap">10. Points to remember</a>
   </nav>
 
   <div class="hook" id="hook">
@@ -301,6 +303,82 @@
     </div>
   </section>
 
+  <section id="recipe-as-code" class="subtopic">
+    <h2>Turning the Recipe Into Code</h2>
+    <p>
+      The six steps above are a policy, not an implementation — but
+      each one is small enough to sketch directly, and seeing them as
+      real code makes Step 4's staleness rule and Step 5's Line 4 cap
+      concrete instead of abstract. This is illustrative, the same way
+      Chapter 1's ledger-line sketches were: a structured record shape
+      (Step 2), a write-criteria filter (Step 1), and a scoped,
+      staleness-aware retrieval function (Steps 3 and 4) that a real
+      system's persistent-memory layer would sit behind.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">long_term_memory_policy.py (illustrative sketch)</span>
+      </div>
+      <pre><code>from dataclasses import dataclass
+
+# Step 2 -- storage shape: a structured record, not a raw transcript
+# line. Every field here exists to make Steps 1, 3, and 4 answerable
+# later without re-reading a transcript.
+@dataclass
+class MemoryRecord:
+    subject: str          # which resident/case/user this belongs to
+    category: str         # e.g. "safety_critical", "care_plan", "small_talk"
+    value: str            # the fact itself, already summarized
+    tokens: int           # cost of this record if retrieved
+    status: str           # "active", "superseded", or "expired"
+    session_id: int        # which session wrote this record
+
+
+# Step 1 -- write criteria: a bounded set of categories eligible to be
+# persisted at all. Everything else is discarded at write time, not
+# retrieval time -- an unbounded write policy just moves Line 3's
+# original budget problem one layer down into permanent storage.
+WRITE_ELIGIBLE_CATEGORIES = {"safety_critical", "care_plan"}
+
+
+def should_write(candidate_category: str) -> bool:
+    return candidate_category in WRITE_ELIGIBLE_CATEGORIES
+
+
+# Steps 3 + 4 -- retrieval scope and staleness handling, together,
+# because a retrieval policy that ignores status is not actually a
+# retrieval policy: it is the naive append-only log with extra steps.
+def retrieve_for_turn(store: list[MemoryRecord], subject: str,
+                       relevant_categories: set[str],
+                       line4_budget: int) -> list[MemoryRecord]:
+    candidates = [
+        r for r in store
+        if r.subject == subject
+        and r.status == "active"          # Step 4: never surface stale records
+        and r.category in relevant_categories  # Step 3: scoped, not everything stored
+    ]
+    # Step 5 -- bound Line 4's own budget. Sort by category priority in
+    # a real system; here, simplest deterministic order: safety first.
+    candidates.sort(key=lambda r: r.category != "safety_critical")
+    package, spent = [], 0
+    for r in candidates:
+        if spent + r.tokens > line4_budget:
+            continue
+        package.append(r)
+        spent += r.tokens
+    return package</code></pre>
+    </div>
+    <p>
+      Notice what this sketch does <em>not</em> do: it never reads a
+      raw transcript, and it never retrieves a record whose
+      <code>status</code> isn't <code>"active"</code>, no matter how
+      important its category. Those two omissions are the entire
+      difference between this chapter's curated approach and the naive
+      append-only log's failure mode.
+    </p>
+  </section>
+
   <section id="worked-math" class="subtopic">
     <h2>Worked Math: HearthLine's Missing Line 4</h2>
     <p>
@@ -344,6 +422,79 @@
       a real, scoped retrieval policy (2 of those 3 records were
       relevant to this specific turn) — precise on both ends, not
       indiscriminate on either.
+    </p>
+    <p>
+      That table's numbers were checked, not just narrated. Building
+      the full session-by-session breakdown behind them and running it
+      directly is exactly the discipline Chapters 2 and 3 each used to
+      catch a real pre-existing arithmetic bug in their own worked-math
+      tables — so this table got the same treatment rather than being
+      assumed correct:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">verify_math.py -- actually executed this session</span>
+      </div>
+      <pre><code>ALL_DISCLOSED_FACTS = [
+    # session 1 -- 3 non-eligible facts (small talk, lunch-menu chatter)
+    {"tokens": 210, "write_eligible": False},
+    {"tokens": 180, "write_eligible": False},
+    {"tokens": 110, "write_eligible": False},
+    # session 2 -- the fall-risk flag (write-eligible) plus 2 non-eligible
+    {"tokens": 95,  "write_eligible": True,  "status": "active",
+     "note": "fall-risk flag: outdoor walk requires a mobility aid"},
+    {"tokens": 260, "write_eligible": False},
+    {"tokens": 185, "write_eligible": False},
+    # session 3 -- 2 non-eligible facts
+    {"tokens": 240, "write_eligible": False},
+    {"tokens": 540, "write_eligible": False},
+    # session 4 -- the mobility-aid preference (write-eligible) plus 2 non-eligible
+    {"tokens": 80,  "write_eligible": True,  "status": "active",
+     "note": "mobility-aid preference: rollator walker, not cane"},
+    {"tokens": 300, "write_eligible": False},
+    {"tokens": 200, "write_eligible": False},
+    # session 5 -- a dietary-restriction fact (write-eligible, but out of
+    # scope for an outdoor-activity retrieval) plus 2 non-eligible
+    {"tokens": 85,  "write_eligible": True,  "status": "active",
+     "note": "dietary restriction update (out of scope for this turn)"},
+    {"tokens": 275, "write_eligible": False},
+    {"tokens": 200, "write_eligible": False},
+    # session 6 -- 2 non-eligible facts
+    {"tokens": 210, "write_eligible": False},
+    {"tokens": 180, "write_eligible": False},
+]
+RETRIEVED_NOTES = {
+    "fall-risk flag: outdoor walk requires a mobility aid",
+    "mobility-aid preference: rollator walker, not cane",
+}
+
+naive_total = sum(f["tokens"] for f in ALL_DISCLOSED_FACTS)
+written = [f for f in ALL_DISCLOSED_FACTS if f["write_eligible"]]
+written_total = sum(f["tokens"] for f in written)
+retrieved = [f for f in written if f.get("note") in RETRIEVED_NOTES]
+retrieved_total = sum(f["tokens"] for f in retrieved)
+slack = 1_200 - retrieved_total
+
+assert naive_total == 3_350
+assert written_total == 260
+assert retrieved_total == 175
+assert slack == 1_025
+print(f"naive={naive_total} written={written_total} "
+      f"retrieved={retrieved_total} slack={slack}")</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output (actually run)</span>
+      <pre><code>naive=3350 written=260 retrieved=175 slack=1025</code></pre>
+    </div>
+    <p>
+      Unlike Chapters 2 and 3's own math checks, this one turned up no
+      bug — every number in the table above matches a real, itemized
+      session-by-session breakdown, not just an internally-consistent
+      pair of numbers with nothing underneath them. That's reported as
+      honestly as the two chapters that <em>did</em> find a bug: a
+      verification script earns its place in this course's house style
+      by actually running, whether or not it finds something wrong.
     </p>
   </section>
 
@@ -403,6 +554,130 @@
       exclusion instruction on a given day, which this session's own two
       live captures across this course (one that failed, one that
       succeeded) are themselves evidence for, not against.
+    </p>
+  </section>
+
+  <section id="live-demo" class="subtopic">
+    <h2>Live Demo: Naive Truncation vs. Scoped Retrieval, in the Model's Own Answers</h2>
+    <p>
+      The live capture above tests write-time instruction-following.
+      This chapter's actual claim is bigger: a naive, recency-only
+      long-term "memory" that just keeps the raw transcript truncated
+      to whatever recently fits can lose a safety-critical fact from an
+      <em>older</em> session entirely — while a curated, staleness-aware
+      retrieval package keeps surfacing it regardless of how long ago it
+      was written. That's testable directly by simulating HearthLine's
+      own session 7 (the Saturday garden-walk request) against the
+      locally installed model twice: once with only the two most recent
+      sessions' raw chatter in context (recency-truncated, the fall-risk
+      fact from session 2 already dropped to fit), once with the
+      curated Line 4 retrieval package from this chapter's own worked
+      math (the fall-risk flag and mobility-aid preference, regardless
+      of session age).
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live_demo.py -- POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>QUESTION = (
+    "I would like to plan an outdoor garden walk for my father this "
+    "Saturday morning. Any safety considerations I should keep in mind?"
+)
+
+# NAIVE, RECENCY-TRUNCATED: the session-2 fall-risk fact and the
+# session-4 mobility-aid preference are both older than what a
+# recency-only truncation policy kept -- they are simply not present,
+# the same way an over-budget naive append-only log would drop them.
+naive_system = (
+    "You are HearthLine, Nightbourne Senior Living Network's "
+    "family-facing care assistant. Recent conversation history on file "
+    "for this resident (recency-truncated raw transcript -- only the "
+    "most recent 2 sessions still fit, older sessions were dropped to "
+    "stay inside budget): Session 5: Family asked about the lunch menu "
+    "that day. Session 6: Resident mentioned liking the color blue and "
+    "enjoys jazz music on weekends. Answer using only what's in this "
+    "conversation history."
+)
+
+# CURATED RETRIEVAL: exactly the 2 records this chapter's own worked
+# math retrieves for an outdoor-activity turn -- regardless of which
+# session originally wrote them.
+scoped_system = (
+    "You are HearthLine, Nightbourne Senior Living Network's "
+    "family-facing care assistant. Facts on file (retrieved for this "
+    "turn, active and scoped to outdoor-activity relevance only): (1) "
+    "Care team flagged an increased fall risk; any outdoor walk "
+    "requires a mobility aid present. (2) Resident's mobility aid of "
+    "choice is a rollator walker, not a cane. Answer using these facts."
+)</code></pre>
+    </div>
+    <p>
+      This was run three times in this session, each a fresh pair of
+      calls (naive, then scoped). Unlike Chapter 3's own live demo,
+      which found real run-to-run variance in the naive condition, this
+      one reproduced the same failure shape in all three runs — reported
+      as-is, not cherry-picked:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">three real reruns, unedited</span>
+      </div>
+      <pre><code>RUN 1
+  NAIVE (recency-truncated): "That sounds like a lovely idea! ...
+          Weather: check the forecast beforehand... Walking pace:
+          consider a shorter walking route with regular breaks...
+          Sun protection... Comfortable shoes... Water breaks..."
+          -- no mention of a fall-risk or a mobility aid anywhere; the
+          fact was never in context to mention.
+  SCOPED: "Considering your father's increased fall risk and need for
+          a mobility aid... Bring your father's rollator walker on the
+          walk to provide added stability and support. Choose a flat
+          and smooth path... Be mindful of any obstacles..."
+
+RUN 2
+  NAIVE (recency-truncated): "Considering your father enjoys jazz
+          music... Weather: check the forecast... Lighting: consider
+          bringing flashlights... Navigation: make sure your father can
+          easily navigate the garden paths without any obstacles..."
+          -- again, no fall-risk or mobility-aid mention.
+  SCOPED: "...it's crucial that we take necessary precautions to
+          ensure your father's mobility aid is present and secure...
+          Bring your father's rollator walker on the walk..."
+
+RUN 3
+  NAIVE (recency-truncated): "As we don't have any specific
+          information about his physical abilities or limitations at
+          this time, let's focus on general safety considerations...
+          Would you like me to check if there's any information about
+          your father's physical abilities or needs from his
+          healthcare team?"
+          -- explicitly notices the gap this time, but still has no
+          fall-risk or mobility-aid fact to offer, and still doesn't
+          flag it as urgent.
+  SCOPED: "Considering your father's increased fall risk and need for
+          a mobility aid... Ensure the rollator walker is fully
+          assembled, maintained, and in good working condition..."</code></pre>
+    </div>
+    <p>
+      All three naive runs failed the same way, for the same reason:
+      the fact was never truncated <em>badly</em>, it was simply never
+      present, because recency-only retention has no concept of
+      "safety-critical regardless of age." Run 3's naive response even
+      states the gap out loud ("we don't have any specific information
+      about his physical abilities") — noticing the absence is not the
+      same as having the fact, exactly the distinction this chapter's
+      own hook makes about HearthLine. Every scoped run, across all
+      three, named the fall-risk flag and the specific mobility aid
+      (a rollator walker) and tied its safety advice directly to both —
+      because a curated, staleness-aware retrieval package doesn't care
+      that the fact was written five sessions ago. This is the cleanest
+      possible illustration of this chapter's actual claim: the fix was
+      never a bigger context window or a smarter model prompt — a
+      naive, recency-only policy loses old safety-critical facts by
+      construction, and only a real write-plus-retrieval policy keeps
+      them reachable.
     </p>
   </section>
 
@@ -508,6 +783,22 @@
       own argument depends on (that instruction-following varies call to
       call, and a write policy shouldn't be staked on any single one),
       not as something any graded script requires to pass.
+    </p>
+    <p>
+      A second round of live testing, done later to produce this
+      chapter's own live-demo section above: <code>curl
+      http://localhost:11434/api/tags</code> was re-checked and again
+      responded normally. Eight more <code>POST /api/chat</code> calls
+      were made in this round (three naive-condition reruns, three
+      scoped-condition reruns, plus two additional timed calls), and
+      every one of them succeeded on the first attempt with the model
+      already warm — one measured call returned in about 39.8 seconds,
+      well inside a 60-second timeout. No retries were needed this
+      round, which is reported the same way the first round's two
+      successes were: as one more data point about this session, not a
+      claim that the endpoint has become reliably fast in general.
+      Future sessions should still budget for the possibility of a slow
+      cold load and occasional timeouts, per <code>PROJECT_STATE.md</code>.
     </p>
   </section>
 
