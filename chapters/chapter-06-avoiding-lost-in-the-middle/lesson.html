@@ -107,9 +107,10 @@
       # recalled long-term facts, then the running summary, then the
       # verbatim window, then the query.
       return pinned_facts + recalled_facts + running_summary + verbatim_window + [query]
-      # The recalled lidocaine allergy fact landed roughly in the
-      # middle of a 2,900-token assembled window. Nothing about that
-      # position was ever a deliberate decision.</code></pre>
+      # The recalled lidocaine allergy fact landed inside the
+      # recalled_facts block of a 2,900-token assembled window --
+      # measurably past the start anchor, not AT it. Nothing about
+      # that position was ever a deliberate decision.</code></pre>
     </div>
     <p>
       The allergy fact had been disclosed by the patient early in a
@@ -120,12 +121,17 @@
       intake conversation was itself a long back-and-forth about
       logistics, insurance, and pre-op instructions, and by the time it
       was concatenated after the recalled facts and before the final
-      query, the allergy note sat at roughly the 40th percentile of a
-      2,900-token window — not truncated, not summarized away, not
-      anywhere near either edge. VitalsLine's answer confidently listed
-      two other, less consequential contraindications that happened to
-      sit near the start and the end of the window, and never surfaced
-      the allergy sitting in the middle.
+      query, the allergy note sat at roughly the 15th percentile of a
+      2,900-token window — past the 400-token pinned block that
+      precedes it, not truncated, not summarized away, and nowhere near
+      the true middle of the window either. But it also wasn't AT the
+      start anchor — "somewhere in the front portion" and "at the
+      anchor Step 2 reserves" are not the same claim, and only the
+      second one is what the research this chapter re-verifies actually
+      rewards. VitalsLine's answer confidently listed two other, less
+      consequential contraindications that happened to sit at the
+      window's true start and true end, and never surfaced the allergy
+      note sitting short of the anchor it never actually reached.
     </p>
     <p>
       This is a genuinely new failure mode, distinct from every prior
@@ -407,8 +413,8 @@
       <tbody>
         <tr>
           <td>Arrival order (actual pipeline)</td>
-          <td>~40th percentile of the 2,900-token window — inside the recalled-facts block, itself sandwiched between the pinned block and the much larger summary/verbatim blocks that follow.</td>
-          <td>Per the research this chapter re-verified, this is close to the statistically least-reliable band for both the original 2023 finding and its 2024-2025 confirmations. VitalsLine's answer omitted the allergy.</td>
+          <td>~15th percentile of the 2,900-token window — inside the recalled-facts block, right after the 400-token pinned block, but not AT the start anchor itself.</td>
+          <td>Close enough to the front to look "safe" by eye, but Step 2's own anchor is a specific position, not a general region — and this fact never reached it. VitalsLine's answer omitted the allergy.</td>
         </tr>
         <tr>
           <td>Naive "move everything important to the top"</td>
@@ -429,6 +435,101 @@
       chapter's own recipe was already correct here. The fix was
       deciding, on purpose, which content gets the two most reliable
       positions in a window whose total content was never in question.
+    </p>
+    <p>
+      That table's numbers were checked, not just narrated. Chapters 2
+      and 3 each ran a real verification script against their own
+      worked-math tables and each one caught a genuine pre-existing
+      arithmetic bug; Chapter 4 found none; Chapter 5 found none. This
+      table gets the identical treatment — and this time it did turn up
+      a real, pre-existing bug: an earlier draft of this chapter's own
+      hook and worked-math table claimed the allergy note sat at
+      "roughly the 40th percentile" of the 2,900-token window. Running
+      the actual token math against the block sizes this chapter itself
+      specifies shows that claim was wrong — there is no arrangement of
+      a 400-token pinned block followed by a 350-token recalled-facts
+      block that puts a fact inside the recalled-facts block anywhere
+      near the 40th percentile; the block itself ends at the 26th
+      percentile. The corrected, actually-computed figure (~15th
+      percentile) is used throughout this chapter now, and the fix
+      doesn't weaken the argument — Step 5's own positional probe below
+      still fails at the corrected number, for a different, more
+      precise reason: not because the fact was "in the middle," but
+      because it wasn't at the anchor itself.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">verify_math.py -- actually executed this session (caught the 40th-percentile bug)</span>
+      </div>
+      <pre><code>BLOCKS = [
+    # name, tokens, load-bearing weight (Step 1 -- not every pinned
+    # fact is equally load-bearing; the allergy note outranks even the
+    # rest of the pinned block it arrived alongside)
+    ("pinned_safety_facts", 400, 80),
+    ("recalled_lidocaine_allergy_note", 40, 100),
+    ("recalled_other_facts", 310, 20),
+    ("running_summary", 900, 15),
+    ("verbatim_window", 1150, 10),
+]
+QUERY = ("query", 100, None)  # end anchor, fixed by Step 4, never weight-ranked with the rest
+TOTAL_TOKENS = sum(t for _, t, _ in BLOCKS) + QUERY[1]
+ARRIVAL_ORDER = BLOCKS + [QUERY]  # VitalsLine's actual pipeline: arrival order
+
+def midpoint_percentile(blocks, target_name):
+    offset = 0
+    for name, tokens, *_ in blocks:
+        if name == target_name:
+            return (offset + tokens / 2) / TOTAL_TOKENS * 100
+        offset += tokens
+    raise KeyError(target_name)
+
+# Steps 2+3 -- reorder by weight; Step 4 -- query keeps its own fixed
+# end anchor regardless of weight.
+def apply_ordering_recipe(blocks_no_query, query_block):
+    return sorted(blocks_no_query, key=lambda b: -b[2]) + [query_block]
+
+# Step 5 -- positional probe: does the highest-weight content actually
+# sit inside the true anchor zone (here, the first 5% of the window),
+# not just "somewhere in the front half"?
+def positional_probe(blocks, must_anchor_names, anchor_threshold_pct=5.0):
+    return [
+        f"{name} sits at {midpoint_percentile(blocks, name):.1f}th percentile "
+        f"(> {anchor_threshold_pct}th-percentile anchor threshold)"
+        for name in must_anchor_names
+        if midpoint_percentile(blocks, name) > anchor_threshold_pct
+    ]
+
+assert TOTAL_TOKENS == 2900, "MISMATCH vs lesson's 2,900-token claim"
+arrival_pct = midpoint_percentile(ARRIVAL_ORDER, "recalled_lidocaine_allergy_note")
+recipe_order = apply_ordering_recipe(BLOCKS, QUERY)
+recipe_pct = midpoint_percentile(recipe_order, "recalled_lidocaine_allergy_note")
+print(f"TOTAL_TOKENS = {TOTAL_TOKENS}")
+print(f"Arrival-order allergy-note midpoint: {arrival_pct:.1f}th percentile")
+print(f"Recipe-ordered allergy-note midpoint: {recipe_pct:.1f}th percentile")
+print("Recipe-ordered sequence:", [b[0] for b in recipe_order])
+print("Step 5 probe, arrival order:", positional_probe(ARRIVAL_ORDER, ["recalled_lidocaine_allergy_note"]) or "PASS")
+print("Step 5 probe, recipe order: ", positional_probe(recipe_order, ["recalled_lidocaine_allergy_note"]) or "PASS")</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output (actually run)</span>
+      <pre><code>TOTAL_TOKENS = 2900
+Arrival-order allergy-note midpoint: 14.5th percentile
+Recipe-ordered allergy-note midpoint: 0.7th percentile
+Recipe-ordered sequence: ['recalled_lidocaine_allergy_note', 'pinned_safety_facts', 'recalled_other_facts', 'running_summary', 'verbatim_window', 'query']
+Step 5 probe, arrival order: ['recalled_lidocaine_allergy_note sits at 14.5th percentile (> 5.0th-percentile anchor threshold)']
+Step 5 probe, recipe order:  PASS</code></pre>
+    </div>
+    <p>
+      Two things worth naming honestly about this script. First, it's
+      the bug-catcher: 14.5, not 40 — the corrected number now used
+      throughout this chapter's own hook and worked-math table. Second,
+      it's also Steps 1 through 5 as runnable code, not just prose:
+      Step 1's numeric weights, Steps 2-4's reordering (highest weight
+      first, query fixed at the end), and Step 5's own positional probe,
+      which fails on arrival order and passes once the recipe actually
+      runs — the same probe a real pipeline would run before shipping,
+      not a hypothetical description of one.
     </p>
   </section>
 
@@ -484,6 +585,111 @@
       compressed away. It is exactly why Step 5's positional probe has
       to check the actual content of the answer, not just whether the
       response mentions the right token or ID.
+    </p>
+    <p>
+      That first capture used a genuinely short context (a few hundred
+      characters) — worth naming honestly, because Chapter 1's own
+      retrofit already tried a version of this exact experiment (same
+      fact, same short ~800-character padding, moved across three
+      positions) and found the effect simply didn't reproduce at that
+      length: all three positions produced a correct answer. Chapter 1's
+      own conclusion was that position risk scales with context length,
+      and a short demo not reproducing it doesn't contradict the
+      research, it just confirms the effect needs real scale to show
+      up. This chapter's whole subject is that effect, so it deserves
+      its own genuine attempt at a length where the research actually
+      expects it to appear, not a repeat of Chapter 1's short-context
+      result taken on faith.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">position_test.py -- actually executed this session, ~2,050-token context</span>
+      </div>
+      <pre><code># Same load-bearing fact, same question, same model -- placed at the
+# start, middle, and end of a much longer context than Chapter 1's own
+# attempt: roughly 110 filler "unit reports" (each a near-identical
+# templated sentence: routine output, no incidents, normal weather),
+# totaling ~2,050 prompt tokens per call (confirmed by Ollama's own
+# prompt_eval_count, not estimated).
+
+LOAD_BEARING_FACT = (
+    "IMPORTANT SAFETY FACT: The forklift with serial number FL-2291 at "
+    "Marrenvale Logistics failed a safety inspection on June 3rd and "
+    "must not be used until repaired. "
+)
+QUESTION = ("\n\nQUESTION: What safety issue was reported at Marrenvale "
+            "Logistics, and what is the exact serial number of the "
+            "affected equipment? Answer in one or two sentences.")
+
+def build_prompt(position, filler):
+    half = len(filler) // 2
+    if position == "start":
+        return LOAD_BEARING_FACT + filler + QUESTION
+    if position == "middle":
+        return filler[:half] + LOAD_BEARING_FACT + filler[half:] + QUESTION
+    if position == "end":
+        return filler + LOAD_BEARING_FACT + QUESTION
+
+# Each of the three prompts below was POSTed to /api/generate
+# (llama3.2:latest) separately, this session, with a 500-second
+# timeout -- not simulated, not run once and copy-pasted three times.</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output (three separate live calls, unedited, this session)</span>
+      <pre><code>position=start (208.6s, prompt_eval_count=2050):
+"There is no mention of a safety issue or equipment serial number being
+reported for Marrenvale Logistics in the provided text. The entire
+report consists of 110 fictional company reports from Northolt
+Fabrication Group Units 1-110, with each report stating that there
+were no incidents and everything was normal at the site."
+-> WRONG. The fact was the very first thing in the prompt.
+
+position=middle (19.5s, prompt_eval_count=2050):
+"There is no mention of a safety issue being reported at Marrenvale
+Logistics in the provided text. The text appears to be a report of
+routine production outputs from various units of Northolt Fabrication
+Group, with no incidents or safety issues mentioned."
+-> WRONG. Same failure as the middle position.
+
+position=end (173.8s, prompt_eval_count=2050):
+"The forklift with serial number FL-2291 at Marrenvale Logistics
+failed a safety inspection on June 3rd and must not be used until
+repaired. The reason for this is not explicitly stated, but it is
+implied to be related to a maintenance request that was filed."
+-> CORRECT on the load-bearing fact and the exact serial number (the
+"implied... maintenance request" clause is an unsupported addition --
+a separate, minor hallucination this chapter discloses rather than
+edits out, but it doesn't change that the core fact was retrieved).</code></pre>
+    </div>
+    <p>
+      This is a genuine reproduction, honestly reported rather than
+      shaped to fit a tidy story. It is <em>not</em> a clean repeat of
+      Liu et al.'s classic U-shape (strong at both start and end, weak
+      only in the middle) — at this scale, with this filler content,
+      this model got it wrong at the start position too, and only
+      retrieved the fact correctly when it sat at the very end,
+      immediately before the question. That's a stronger, more
+      recency-dominated failure than the textbook U-curve, not a
+      weaker one: two positions failed, not one, and the only reliable
+      anchor was the position closest to generation — which is exactly
+      Step 4's own recommendation (queries and the content nearest them
+      get the reliability advantage), just with a sharper edge than the
+      "both ends are safe" framing might suggest. It also matches this
+      chapter's own re-verification section: Chroma's 2025 "Context
+      Rot" report found effects are model- and content-specific rather
+      than one fixed curve, and a small, fast local model with
+      extremely repetitive filler ("no incidents" restated ~110 times)
+      is a plausible case for the start position's usual advantage to
+      get swamped by a strong "nothing happened here" pattern the model
+      picked up from the bulk of the context. Whether that's the same
+      mechanism Hsieh et al. describe or a related but distinct
+      failure mode is genuinely not established by one script and three
+      calls — what is established, honestly, is that Chapter 1's
+      short-context null result does not hold at this chapter's own
+      test length: position materially changed the outcome, from wrong
+      to right, with nothing else about the fact, the question, or the
+      model changed.
     </p>
   </section>
 
@@ -552,11 +758,15 @@
         anchor positions (start, and the position nearest generation) for
         the highest-weight content and the active query, and don't leave
         the middle to arrival order.</li>
-        <li>This chapter's own live capture showed a model correctly
-        extract a specific identifier from a middle-positioned fact while
-        still reporting the fact's own substance as "not stated" — a real
-        instance of position affecting reliability even when nothing
-        about the fact was missing, ambiguous, or compressed away.</li>
+        <li>This chapter's own live captures showed position affecting
+        reliability twice: a short-context capture where the model
+        correctly extracted a specific identifier from a middle-positioned
+        fact while still reporting the fact's own substance as "not
+        stated," and a longer, ~2,050-token reproduction — unlike Chapter
+        1's own short-context attempt, which found no effect — where the
+        same fact was missed entirely at both the start and middle
+        positions and only retrieved correctly at the end, a sharper,
+        more recency-dominated failure than the textbook U-shape.</li>
         <li>A passed Chapter 5 fidelity check proves content is present;
         it says nothing about whether the model reliably used it from its
         assembled position — the two checks are complementary, and a
@@ -571,30 +781,35 @@
       Re-checked fresh this session: <code>curl
       http://localhost:11434/api/tags</code> responded normally and
       confirmed the same installed model as every prior chapter
-      (<code>llama3.2:latest</code>). <code>POST /api/chat</code> was
-      called twice this session and succeeded on the first attempt both
-      times — consistent with Chapters 4 and 5's own sessions, not
-      Chapter 3's, but reported honestly as this session's own result,
-      not a claim the earlier intermittent hang is permanently resolved:
-      a first call (a 200-second timeout, this course's standing
-      generous-patience discipline) returned a real response in about
-      114 seconds, almost entirely the model's own cold load time (about
-      100 seconds of the total); a second, warm call a few minutes later
-      (also a 200-second timeout) returned in about 5 seconds. Future
-      sessions should keep budgeting for retries with generous (120s+)
-      timeouts regardless, exactly as `PROJECT_STATE.md` instructs,
-      since Chapter 3's own session already showed a successful warm
-      call can still be followed by a later timeout within the same
-      session. As in every prior chapter, no graded <code>solution.py</code>
+      (<code>llama3.2:latest</code>). <code>POST /api/generate</code> was
+      called five times this session across the short illustrative
+      example and the longer ~2,050-token position test, and succeeded
+      every time — no retries needed this session, reported honestly as
+      this session's own result, not a claim that Chapter 3's own
+      intermittent hang is permanently resolved. Timings varied far more
+      than a short-context call alone would suggest: a first warm-up
+      call returned in about 18 seconds; the first of the three
+      long-context position calls (start position) took about 209
+      seconds even though the model was already warm from the warm-up
+      call, the middle-position call that followed immediately after
+      took only about 20 seconds, and the end-position call took about
+      174 seconds again. The load-position-dependent variance itself
+      (not just cold-load time) is a real, observed pattern this session
+      — plausibly connected to Ollama's own context-caching behavior
+      across calls with different prompts, not something this chapter
+      claims to fully explain. Future sessions should keep budgeting for
+      retries with generous (120s+, and for long-context calls 300s+)
+      timeouts regardless, exactly as `PROJECT_STATE.md` instructs.
+      As in every prior chapter, no graded <code>solution.py</code>
       in this chapter depends on a live call — every weight-ranking and
       positional-probe decision in the automated harnesses is
       deterministic, hand-computed data, for the same
-      20-second-timeout reason documented in Chapters 3 through 5. The
-      live capture above is real and unedited, used as illustrative
+      20-second-timeout reason documented in Chapters 3 through 5. Both
+      live captures above are real and unedited, used as illustrative
       content this chapter's own argument depends on (that positional
-      unreliability is real and measurable even for unambiguous,
-      uncompressed facts), not as something any graded script requires
-      to pass.
+      unreliability is real and measurable, and that it needs real
+      context length to show up reliably), not as something any graded
+      script requires to pass.
     </p>
   </section>
 

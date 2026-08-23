@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 3 Project: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to design Brackholt County Court Records Office's ArchiveLine compression + ordering pipeline, then critique its plausible-but-flawed design -- catching a wrong compression strategy, a high-weight block left off-anchor, and a budget arithmetic error.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-06">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the project</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Module 3 Project &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>This is Module 3's single joint project, drawing on <strong>both</strong> chapters this module built: Chapter 5's Compression Fidelity Recipe (Part 1) and Chapter 6's own Context Ordering Recipe (Part 2) — see <a href="README.md">the project README</a> and <a href="RUBRIC.md">RUBRIC.md</a>'s six graded criteria. You already designed Brackholt County Court Records Office's ArchiveLine pipeline yourself in <code>starter.py</code>. Now the same two-part design gets produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's design before it ships to production.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same <code>CANDIDATE_DETAILS</code> and <code>CONTENT_BLOCKS</code> spec <code>starter.py</code> gives you, and asks for a complete Part 1 + Part 2 design plus a budget check.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Brackholt County Court Records Office's docket-review assistant,
+ArchiveLine, needs a compression + ordering design.
+
+PART 1 (compression): a 3,000-token conversation segment must compress
+to a fixed 600-token target. Three load-bearing candidates were already
+flagged and must all survive: missing_evidence_log_entry (a specific
+docket/log reference), hearing_continuance_deadline (a specific date),
+co_defendant_conflict_note (a specific named conflict). For each, tell
+me which compression strategy you'd use -- extractive (verbatim) or
+abstractive (paraphrased) -- and why.
+
+PART 2 (ordering): six already-correctly-included content blocks need a
+position -- start_anchor_region, end_anchor_query_position, or middle.
+Anchors are reserved for the highest-weight content and the query only.
+
+- pinned_flight_risk_safety_note: high weight, 80 tokens
+- part1_compressed_summary: high weight, 600 tokens (this is Part 1's
+  own compressed output, carrying all three candidates)
+- recalled_prior_ruling: low weight, 150 tokens
+- verbatim_window_this_session: low weight, 1,800 tokens
+- routine_administrative_note: low weight, 100 tokens
+- the_query_todays_ask: query, 120 tokens
+
+Give me a position for each block, and confirm whether the total fits
+a 3,200-token window budget.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of answer an AI assistant might hand back on the first try, each choice sounding reasonable on its own. Read it the way you'd read a colleague's design before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_design.md (as handed back)</span>
+    </div>
+    <pre><code>PART 1 -- compression strategy
+
+- missing_evidence_log_entry: extractive. It's a specific log
+  reference, so exact wording matters.
+- hearing_continuance_deadline: extractive. A date has to stay exact.
+- co_defendant_conflict_note: abstractive. This one is more of a
+  narrative detail than a hard identifier, so a concise paraphrase
+  ("a conflict involving a co-defendant was noted") captures the gist
+  without spending as many of the 600 tokens on it, leaving more room
+  for the other two.
+
+PART 2 -- block placement
+
+- pinned_flight_risk_safety_note: start_anchor_region
+- part1_compressed_summary: middle. It's already been through fidelity
+  -checked compression, so it's already "safe" content -- the anchors
+  should be reserved for content that hasn't been processed yet, like
+  the raw pinned note.
+- recalled_prior_ruling: middle
+- verbatim_window_this_session: middle
+- routine_administrative_note: middle
+- the_query_todays_ask: end_anchor_query_position
+
+Budget check: 80 (pinned) + 150 (ruling) + 1,800 (verbatim) + 120
+(query) = 2,150 tokens for the anchor/middle blocks, plus the
+compressed summary and administrative note bring it to roughly 2,450
+tokens total -- comfortably under the 3,200-token budget with about
+750 tokens of headroom to spare.</code></pre>
+  </div>
+
+  <p>It reads fluently, and each choice comes with a specific-sounding justification. It's also wrong in three separate, genuinely easy-to-miss ways — and running the equivalent values through <code>starter.py</code>'s own <code>check_part1_strategy()</code>, <code>check_part2_anchor_assignment()</code>, and <code>check_window_budget()</code> would catch two of the three immediately, while the third (the budget arithmetic) requires actually re-adding the numbers rather than trusting the AI's own running total.</p>
+
+  <h2>Step 2: Where did the AI's design lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; a load-bearing candidate gets the wrong compression strategy</span>
+      <p><strong>What it looks like it does:</strong> "co_defendant_conflict_note ... is more of a narrative detail than a hard identifier, so a concise paraphrase captures the gist" sounds like a reasonable token-saving call, and it correctly identifies the other two candidates as needing extractive treatment.</p>
+      <p><strong>What it actually does:</strong> a co-defendant conflict note is exactly as structured and specific as the other two candidates — it names a particular person and a particular conflict of interest that determines whether a case can proceed with current counsel. Paraphrasing it risks exactly what Chapter 5's own recipe warns about: a vaguer restatement that no longer names the specific conflict, or that a downstream reader can't distinguish from a different, unrelated conflict. This project's own spec states plainly that "all three candidates are specific, structured facts... decide for yourself whether that means extractive or abstractive is correct" — and the correct answer for all three, per <code>solution.py</code>'s own <code>STRATEGY_CHOICES</code>, is extractive, precisely because exact wording matters for all three, not two of three.</p>
+      <p><strong>Why it matters:</strong> <code>check_part1_strategy()</code> checks every candidate in <code>CANDIDATE_DETAILS</code> against <code>extractive</code> and reports an error for any that isn't — this flaw fails RUBRIC.md's criterion 2 outright (0-2 points instead of 4), and it's the kind of error that ships silently: an abstractive paraphrase of a conflict-of-interest note can still "sound complete" while quietly losing the specific name or detail a judge's ruling would depend on.</p>
+      <p><strong>The fix:</strong> when a candidate was flagged specifically because exact wording matters (which is the entire reason Chapter 5's Step 2 flags it in the first place), the compression strategy that follows has to be extractive for that candidate — token-budget pressure is a reason to compress content elsewhere, not a reason to downgrade a flagged candidate's own strategy.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; a high-weight block is left off-anchor because it was already compressed</span>
+      <p><strong>What it looks like it does:</strong> "it's already been through fidelity-checked compression, so it's already 'safe' content -- the anchors should be reserved for content that hasn't been processed yet" sounds like a plausible distinction between raw and processed content.</p>
+      <p><strong>What it actually does:</strong> this conflates Chapter 5's question (does the compressed content still contain what it must?) with this chapter's own question (does the model reliably use content from wherever it sits?) — exactly the distinction this chapter's own lesson draws between VitalsLine's presence check and its position failure. A passed fidelity check says nothing about positional reliability; <code>part1_compressed_summary</code> is tagged <code>"weight": "high"</code> in <code>CONTENT_BLOCKS</code> specifically because it's the block carrying all three load-bearing candidates, and Step 2 of the Context Ordering Recipe reserves the start anchor for exactly this kind of content, regardless of whether it arrived raw or already compressed.</p>
+      <p><strong>Why it matters:</strong> <code>check_part2_anchor_assignment()</code> checks that every block tagged <code>"weight": "high"</code> sits at <code>start_anchor_region</code> and reports an error for any that doesn't — this flaw fails RUBRIC.md's criterion 3 outright (0-2 points instead of 4). It's also the most dangerous flaw of the three, because it reintroduces the exact failure mode this chapter's hook describes: a correctly compressed, fidelity-checked, safety-critical fact sitting in the statistically least-reliable position, with a plausible-sounding reason for why that's supposedly fine.</p>
+      <p><strong>The fix:</strong> anchor placement is decided by content weight, not by processing history — "already compressed" and "already fidelity-checked" answer Chapter 5's question, not this chapter's. A high-weight block earns an anchor because of what it contains, whether it's raw or the result of a compression pipeline.</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; the budget check re-adds the wrong numbers and reports the wrong total</span>
+      <p><strong>What it looks like it does:</strong> "80 (pinned) + 150 (ruling) + 1,800 (verbatim) + 120 (query) = 2,150 ... plus the compressed summary and administrative note bring it to roughly 2,450 tokens total" reads like careful arithmetic, broken into two steps.</p>
+      <p><strong>What it actually does:</strong> the second step silently drops most of the compressed summary's own size. Adding the actual remaining two blocks — <code>part1_compressed_summary</code> at 600 tokens and <code>routine_administrative_note</code> at 100 tokens — to the first subtotal gives 2,150 + 600 + 100 = <strong>2,850</strong> tokens, not "roughly 2,450." The AI's own running total silently treated the 600-token summary as if it added only about 300 tokens to the count, understating the real total by 400 tokens and overstating the remaining headroom (reporting ~750 tokens spare instead of the actual 350).</p>
+      <p><strong>Why it matters:</strong> <code>check_window_budget()</code> sums every value in <code>CONTENT_BLOCKS</code> directly (<code>sum(v["tokens"] for v in CONTENT_BLOCKS.values())</code>) and would report the correct 2,850-token total regardless of what a design's own prose claims — this flaw wouldn't fail the mechanical check by itself (2,850 still fits comfortably under 3,200), but it fails RUBRIC.md's criterion 6 (completeness and boundary understanding), because a design that misreports its own headroom by 400 tokens can't be trusted to catch a future addition that actually would blow the budget. An arithmetic error that happens not to break the current design is still an arithmetic error.</p>
+      <p><strong>The fix:</strong> re-add every block's own token count directly from <code>CONTENT_BLOCKS</code> rather than trusting an intermediate subtotal carried forward in prose — the same "verify, don't narrate" discipline this chapter's own worked-math section applies to its 2,900-token VitalsLine table.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly chose extractive compression for two of the three Part 1 candidates, correctly placed the pinned safety note at the start anchor, correctly placed the query at the end anchor, and correctly kept every genuinely low-weight block (the recalled prior ruling, the verbatim window, the routine administrative note) out of both anchor positions. If you'd accepted the whole design uncritically, you'd have shipped a pipeline that gets four of six Part 2 placements right and two of three Part 1 strategies right, while quietly demoting one flagged candidate's strategy, leaving the single most load-bearing block (the compressed summary carrying all three candidates) off-anchor, and misreporting its own budget math by 400 tokens. That mix — mostly right, with the two highest-stakes decisions wrong — is a more realistic picture of pairing with an AI on this project's own two-part design than either "trust it completely" or "distrust it completely."</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 3 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'A block's processing history (already compressed) doesn't override its own weight when deciding anchor placement' or 'Always re-add token totals directly instead of trusting a running subtotal in prose'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Project</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>
