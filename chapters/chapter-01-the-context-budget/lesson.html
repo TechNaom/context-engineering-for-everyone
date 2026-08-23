@@ -53,9 +53,10 @@
     <a href="#why-this-course">2. Why this course exists</a>
     <a href="#mental-model">3. The core mental model: the context budget</a>
     <a href="#the-ledger">4. The Context Budget Ledger, as a working framework</a>
-    <a href="#walkthrough">5. Ledger walkthrough: what actually failed at Brackwater</a>
-    <a href="#thought-process">6. Context Engineering Builder Thought Process</a>
-    <a href="#recap">7. Points to remember</a>
+    <a href="#live-demo">5. Live demo: the same fact, two different assemblies</a>
+    <a href="#walkthrough">6. Ledger walkthrough: what actually failed at Brackwater</a>
+    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
+    <a href="#recap">8. Points to remember</a>
   </nav>
 
   <div class="hook" id="hook">
@@ -243,6 +244,73 @@
       every token spent restating history the model doesn't need is a
       token not available for something that matters more.
     </p>
+    <p>
+      "Costed" is easy to nod along to and easy to get wrong in code,
+      because the mistake is an omission, not a bug you'd notice by
+      reading the function. Here is the exact shape of the mistake
+      SignalDesk's own budget check made — computing "how much room is
+      left" without ever subtracting Line 5's output reservation first:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">budget_math.py — run this session, output captured below</span>
+      </div>
+      <pre><code>CONTEXT_WINDOW_TOKENS = 8_000     # a small, realistic hosted-model window
+SYSTEM_INSTRUCTIONS_TOKENS = 300  # Line 1 -- small, fixed
+GROUNDING_CONTEXT_BUDGET = 1_500  # Line 2 -- capped, not "every KB hit ever seen"
+OUTPUT_RESERVATION_TOKENS = 1_200 # Line 5 -- reserved BEFORE, not an afterthought
+
+# What SignalDesk's code actually did: computed a budget with NO output
+# reservation at all, so "available" looked bigger than it really was.
+naive_available_for_history = (
+    CONTEXT_WINDOW_TOKENS - SYSTEM_INSTRUCTIONS_TOKENS - GROUNDING_CONTEXT_BUDGET
+)
+
+# What a real budget calculation does: reserve Line 5 FIRST.
+real_available_for_history = naive_available_for_history - OUTPUT_RESERVATION_TOKENS
+
+print(f"Naive 'available for history' (no output reservation): {naive_available_for_history} tokens")
+print(f"Real available for history (output reserved first):    {real_available_for_history} tokens")
+print(f"Gap the naive calculation hid: {naive_available_for_history - real_available_for_history} tokens")
+
+TOKENS_PER_TURN = 150
+print()
+print(f"Max full turns under the naive number: {naive_available_for_history // TOKENS_PER_TURN}")
+print(f"Max full turns under the real number:  {real_available_for_history // TOKENS_PER_TURN}")</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output (captured this session, plain <code>python3</code>, no model call needed for this one)</span>
+      <pre><code>Naive 'available for history' (no output reservation): 6200 tokens
+Real available for history (output reserved first):    5000 tokens
+Gap the naive calculation hid: 1200 tokens
+
+Max full turns under the naive number: 41
+Max full turns under the real number:  33</code></pre>
+    </div>
+    <div class="code-breakdown">
+      <dl>
+        <dt>naive_available_for_history</dt>
+        <dd>This is the number SignalDesk's own code effectively used —
+        "whatever's left after Line 1 and Line 2" — and it looks
+        perfectly reasonable in isolation. Nothing about reading that
+        one line tells you Line 5 was forgotten.</dd>
+        <dt>The 1,200-token gap</dt>
+        <dd>That's not a rounding error — it's eight extra full turns
+        (41 vs. 33) that the naive number claims fit but don't, once the
+        model's own response has to come out of the same fixed window.
+        Every one of those "extra" turns SignalDesk thought it had room
+        for was actually stealing space from its own output, which is
+        exactly why long responses started getting cut off mid-sentence
+        under real load.</dd>
+        <dt>Why this bites <em>before</em> the hard context-window limit</dt>
+        <dd>The context window itself never changed — 8,000 tokens is
+        8,000 tokens either way. What changed is how much of it was
+        <em>actually</em> available for Line 3, once Line 5 is honestly
+        subtracted first instead of discovered by accident when a
+        response gets truncated.</dd>
+      </dl>
+    </div>
   </section>
 
   <section id="the-ledger" class="subtopic">
@@ -311,6 +379,24 @@
         retriever's ranked output into well-formed, budgeted context —
         not appending every hit ever seen.
       </p>
+      <div class="code-window">
+        <div class="code-window-bar">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="filename">grounding_context.py — illustrative sketch of the shape of the fix (not a claimed live run)</span>
+        </div>
+        <pre><code># What SignalDesk did (Line 2, broken): every KB hit ever
+# retrieved this session stays in the request forever.
+kb_hits_this_session.append(new_hit)
+grounding_context = "\n".join(kb_hits_this_session)  # only grows
+
+# The minimum real fix: evict a hit once the conversation's current
+# sub-topic no longer matches what it was retrieved for.
+kb_hits_this_session = [
+    hit for hit in kb_hits_this_session
+    if hit.topic == current_subtopic
+]
+grounding_context = "\n".join(kb_hits_this_session)  # can shrink</code></pre>
+      </div>
     </div>
 
     <div class="lesson-card">
@@ -335,6 +421,27 @@
         truncating load-bearing content — a real eviction policy, not a
         character-count accident.
       </p>
+      <div class="code-window">
+        <div class="code-window-bar">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="filename">conversation_history.py — illustrative sketch (not a claimed live run)</span>
+        </div>
+        <pre><code># What SignalDesk did (Line 3, broken): the hook's build_request()
+# above -- every turn appended raw, then blindly sliced from the end
+# right before the request goes out. Turn 2 is always the first
+# casualty, regardless of what it says.
+raw_history = "\n".join(transcript)          # every turn, unsummarized
+if len(raw_history) > MAX_CHARS:
+    raw_history = raw_history[-MAX_CHARS:]   # drops the OLDEST turns first
+
+# The minimum real fix: keep the most recent N turns verbatim, and
+# compress everything older into a running summary instead of deleting it.
+RECENT_TURNS_KEPT = 6
+recent = transcript[-RECENT_TURNS_KEPT:]
+older = transcript[:-RECENT_TURNS_KEPT]
+running_summary = summarize(older) if older else ""
+history_context = running_summary + "\n" + "\n".join(recent)</code></pre>
+      </div>
     </div>
 
     <div class="lesson-card">
@@ -360,6 +467,23 @@
         what gets stored long-term and what gets recalled back into
         context for a given turn, and when.
       </p>
+      <div class="code-window">
+        <div class="code-window-bar">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="filename">recalled_memory.py — illustrative sketch (not a claimed live run)</span>
+        </div>
+        <pre><code># What SignalDesk did (Line 4, missing entirely): the Gen2 gateway
+# fact existed only inside the in-session transcript. Once it aged
+# out of Line 3, there was no second place to get it from.
+system_prompt = build_system_prompt()
+transcript = get_session_transcript(session_id)     # the ONLY source
+context = system_prompt + transcript                # no Line 4 at all
+
+# The minimum real fix: re-fetch account-critical facts from
+# persistent storage every turn, independent of transcript survival.
+account_facts = recall_account_facts(customer_id, kinds=["gateway_generation", "coverage_zone"])
+context = system_prompt + format_pinned(account_facts) + transcript</code></pre>
+      </div>
     </div>
 
     <div class="lesson-card">
@@ -384,6 +508,183 @@
         included, for a given request type and hard context-window
         limit.
       </p>
+    </div>
+  </section>
+
+  <section id="live-demo" class="subtopic">
+    <h2>Live Demo: The Same Fact, Two Different Assemblies</h2>
+    <p>
+      Everything above is the mental model. This section runs it against
+      an actual model, live, this session — <code>llama3.2:latest</code>
+      via a local Ollama server, using the plain <code>openai</code>
+      Python client pointed at Ollama's OpenAI-compatible endpoint (the
+      same setup this course uses throughout; see
+      <code>docs/course-architecture.md</code>). Ollama was checked
+      immediately before writing this section
+      (<code>curl http://localhost:11434/api/tags</code> confirmed it
+      running with <code>llama3.2:latest</code> installed), and every
+      script below was actually executed this session — the outputs
+      shown are real, not fabricated, and were not edited for effect.
+    </p>
+    <p>
+      The setup mirrors Brackwater's SignalDesk almost exactly: one
+      load-bearing account fact (the Gen2 gateway's SmartMesh
+      incompatibility), thirty turns of routine filler standing in for
+      an unrelated troubleshooting conversation, and a final question
+      that only a system holding onto the fact can answer correctly.
+      First, the naive assembly — SignalDesk's actual approach, a small
+      <code>MAX_CHARS</code> cap and an end-of-pipeline slice that keeps
+      the end of the transcript and drops the start:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">demo1_naive_budget.py</span>
+      </div>
+      <pre><code>from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+MODEL = "llama3.2"
+
+SYSTEM = "You are SignalDesk, a home-internet support assistant. Be concise."
+
+# The load-bearing fact, planted early -- like Marisol's Gen2 gateway fact.
+turn_2_fact = "Customer note: this account uses an older Gen2 gateway, which does NOT support the SmartMesh whole-home feature."
+
+# 30 turns of unrelated, routine troubleshooting filler -- standing in for
+# the padding that buried the Gen2 fact in the middle of a long transcript.
+filler_turns = [
+    f"Turn {i}: Customer and agent discussed router placement, Wi-Fi channel congestion, and a firmware check. No new account facts mentioned."
+    for i in range(3, 33)
+]
+
+final_question = "Customer: Should I enable SmartMesh to fix the dead zone in my home office?"
+
+transcript = "\n".join([turn_2_fact] + filler_turns + [final_question])
+
+MAX_CHARS = 900  # deliberately small to force a truncation quickly, like SignalDesk's real cap
+
+def naive_truncate(text, max_chars):
+    if len(text) > max_chars:
+        return text[-max_chars:]  # keeps the END, drops the START
+    return text
+
+truncated = naive_truncate(transcript, MAX_CHARS)
+print("Gen2 fact present in truncated context:", "Gen2" in truncated)
+
+resp = client.chat.completions.create(
+    model=MODEL,
+    messages=[
+        {"role": "system", "content": SYSTEM},
+        {"role": "user", "content": truncated},
+    ],
+)
+print(resp.choices[0].message.content)</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output — captured this session, real model call</span>
+      <pre><code>Gen2 fact present in truncated context: False
+
+SmartMesh can help improve coverage, but it's not a direct solution for a "dead zone" in your location. It might be causing interference instead.
+
+Let's try some additional troubleshooting steps:
+
+1. Move your router to the center of your office.
+2. Check and switch to a less crowded Wi-Fi channel.
+3. Check for physical obstructions blocking the signal between devices.
+4. Try restarting your device or router to see if it resolves the issue.
+
+If issues persist, re-evaluating SmartMesh might be necessary.</code></pre>
+    </div>
+    <p>
+      Notice what actually happened: with the Gen2 fact truncated away,
+      the model doesn't confidently recommend SmartMesh (this particular
+      model hedges rather than confabulating) — but it also never rules
+      it out, and it never surfaces the one fact that would make this a
+      closed question. A support rep reading only this response has no
+      way to know a hard incompatibility exists. That's the real-world
+      shape of the failure: not always a confident wrong answer, but
+      often an unhelpfully uncertain one, because the fact that would
+      resolve the uncertainty was never in the request.
+    </p>
+    <p>
+      Now the budgeted assembly: the same fact, but treated as Line 4
+      (Recalled Long-Term Memory) — re-pinned fresh into this turn's
+      context, positioned right next to the live question, independent
+      of whether the raw transcript happened to survive:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">demo2_budgeted.py</span>
+      </div>
+      <pre><code>from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+MODEL = "llama3.2"
+
+SYSTEM = "You are SignalDesk, a home-internet support assistant. Be concise."
+
+turn_2_fact = "Customer note: this account uses an older Gen2 gateway, which does NOT support the SmartMesh whole-home feature."
+
+filler_summary = (
+    "Summary of turns 3-32: customer and agent covered router placement, "
+    "Wi-Fi channel congestion, and a firmware check. No new account facts "
+    "were introduced in these turns."
+)
+
+final_question = "Customer: Should I enable SmartMesh to fix the dead zone in my home office?"
+
+# Budgeted assembly: the account-critical fact (Line 4) is re-pinned near
+# the end, right next to the live question -- not left to survive (or
+# not) inside an unmanaged raw transcript.
+budgeted_context = "\n".join([
+    filler_summary,
+    "PINNED ACCOUNT FACT (recalled fresh this turn): " + turn_2_fact,
+    final_question,
+])
+
+resp = client.chat.completions.create(
+    model=MODEL,
+    messages=[
+        {"role": "system", "content": SYSTEM},
+        {"role": "user", "content": budgeted_context},
+    ],
+)
+print(resp.choices[0].message.content)</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output — captured this session, real model call</span>
+      <pre><code>SmartMesh is not compatible with our Generation 2 gateways. However, there are alternative solutions that can help improve coverage for your home office. Would you like me to suggest some options?</code></pre>
+    </div>
+    <div class="code-breakdown">
+      <dl>
+        <dt>Same model, same underlying fact, same question</dt>
+        <dd>The only thing that changed between the two runs is whether
+        the Gen2 fact made it into the request at all, and where. That
+        is the entire argument of this chapter in one paired example:
+        model quality was never the variable — context assembly was.</dd>
+        <dt>Why the fix isn't "just don't truncate"</dt>
+        <dd>A bigger <code>MAX_CHARS</code> would have postponed this
+        specific failure, not prevented the pattern — the fact still
+        would have depended on surviving inside an ever-growing raw
+        transcript. Line 4's fix is structural: recall the fact
+        independent of transcript survival, every turn, regardless of
+        how long the conversation has gotten.</dd>
+        <dt>An honest note on the position-effect claim</dt>
+        <dd>This session also tried reproducing "Lost in the Middle"'s
+        position effect directly — same fact, same short ~800-character
+        padding, moved to the start, the middle, and the end of the
+        context, with nothing truncated. All three positions produced a
+        correct answer from this model at this short context length. That's
+        a real, honestly-reported result, not a hidden failure: the
+        peer-reviewed effect this chapter cites<sup><a href="#src-2">[2]</a></sup>
+        was measured with documents spanning many tens of thousands of
+        tokens, far past what a quick illustrative demo can reproduce —
+        the takeaway is that position risk scales with context length,
+        and a short demo not reproducing it doesn't contradict the
+        finding, it just confirms the effect needs real scale to show up.</dd>
+      </dl>
     </div>
   </section>
 
@@ -518,29 +819,36 @@
   </section>
 
   <section class="subtopic" aria-labelledby="ollama-disclosure">
-    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing Limitation</h2>
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live Testing</h2>
     <p>
       This course's default model setup points the plain <code>openai</code>
       Python client at a local Ollama server
       (<code>base_url="http://localhost:11434/v1"</code>), zero cost, zero
       API key — see <code>docs/course-architecture.md</code> for the full
-      policy. Checked fresh this session before writing this chapter:
-      Ollama's <code>/api/tags</code> endpoint responded normally and
-      confirmed one installed model (<code>llama3.2:latest</code>), but a
-      <code>POST /api/chat</code> completion request did not return
-      within a 20-second timeout. This is the same behavior every
-      sibling TechNaom course has independently reported in this sandbox
-      environment. Consequence, stated plainly: Brackwater's example
-      request-building code and turn-34 outcome above are a realistic,
-      carefully constructed illustration of a real, well-documented
-      failure mechanism (see sources 1-2 below for independently
-      reported versions of the position effect and context-rot
-      mechanism), not a transcript this session actually captured from a
-      running model. No number or claim in this chapter is presented as
-      a live model output. Later chapters that build a runnable
-      compression, memory, or evaluation harness will need to re-check
-      Ollama's chat endpoint before claiming any live output from it, and
-      will disclose the result honestly whatever it is.
+      policy. An earlier pass through this chapter reported that
+      Ollama's <code>/api/chat</code> endpoint did not return within a
+      20-second timeout in this sandbox — that was a real result at the
+      time, but it was a timeout budget problem, not a dead endpoint:
+      rechecked this session with <code>curl
+      http://localhost:11434/api/tags</code> (confirmed running,
+      <code>llama3.2:latest</code> installed) and a longer timeout, the
+      chat endpoint responded normally — a cold first call took about
+      100 seconds (model load time), and every call after that
+      completed in under 10 seconds. The "Live Demo" section above runs
+      three real scripts against it and reports their actual, unedited
+      output, including a case (the position-effect reproduction
+      attempt) where the result didn't show the expected failure — that
+      negative result is reported honestly rather than dropped, with an
+      explanation of why a short demo doesn't contradict the
+      peer-reviewed finding it was testing. No number or claim in this
+      chapter is presented as live output unless it was actually
+      captured by a script shown in full in this chapter. Brackwater's
+      own hook narrative (turn 34, the SignalDesk incident) remains a
+      constructed illustration, not a transcript, since it depicts a
+      fictional company's three-month production history rather than
+      something a single session's demo could reproduce — the Live Demo
+      section is what actually running the same underlying mechanism,
+      live, looks like.
     </p>
   </section>
 

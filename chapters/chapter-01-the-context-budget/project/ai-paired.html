@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 1: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to diagnose CaseNote's ledger gaps, then critique its plausible-but-flawed diagnosis — catching a wrong line mapping, a vague non-fix, and shallow prioritization reasoning.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-01">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the project</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 1 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>You already did the diagnosis yourself in <a href="index.html">the project</a> — worked through all five of CaseNote's facts, mapped each to a ledger line, wrote your own fixes, and ordered them. That work stands unchanged; this page is additive. Now the same diagnosis gets produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a coworker's write-up before it goes to Meridian Legal Aid Network's engineering lead.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same five facts <code>starter.py</code> gives you, and asks for the same three things the project asks for: a ledger-line mapping, a concrete fix, and a prioritized order with justification.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Here are five facts about how our legal-aid intake assistant, CaseNote,
+operates today:
+
+1. Its system prompt has grown into an 1,800-word document combining
+   role instructions, tone guidance, twelve categories of legal-topic
+   routing rules, and formatting notes, all sent on every request
+   regardless of the conversation's actual topic.
+2. It retrieves legal-aid eligibility articles from a knowledge base.
+   Nothing ever removes an earlier-retrieved article once the topic
+   moves on -- a session that starts on eviction defense and later
+   shifts to child custody still carries the original eviction
+   articles in every later request.
+3. Intake conversations run 25-50 turns. CaseNote sends the complete
+   raw transcript every turn with no summarization, and once a request
+   exceeds the context window, the earliest turns are silently cut.
+4. A client's stated immigration status is never stored outside that
+   session's own transcript. A returning client's follow-up session
+   has no way to recall it.
+5. CaseNote's context-budget check only accounts for what it's about
+   to send the model -- it reserves no room for its own response, so
+   longer summaries sometimes get cut off mid-sentence.
+
+Using a five-line context budget framework (System Instructions,
+Grounding Context, Conversation History, Recalled Long-Term Memory,
+Working Space), map each fact to the single line it belongs to, give
+one concrete engineering fix per fact, and give a prioritized order
+(most urgent first) with a justification.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of diagnosis an AI assistant might hand back on the first try. Read it the way you'd read a colleague's draft before it goes to a staff attorney, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_diagnosis.md (as handed back)</span>
+    </div>
+    <pre><code>1. System Instructions -- an 1,800-word prompt sent on every request is
+   wasteful. Fix: trim the system prompt down to reduce its size.
+
+2. Recalled Long-Term Memory -- the assistant keeps remembering old
+   eligibility articles from earlier in the conversation and doesn't
+   let them go. Fix: be more careful about which articles you keep
+   around and don't hang onto ones from earlier topics.
+
+3. Conversation History -- the full transcript is sent every turn with
+   no cap, so old turns get truncated with no policy behind it. Fix:
+   summarize turns older than the most recent N into a running
+   summary, and keep only the most recent N verbatim.
+
+4. Recalled Long-Term Memory -- immigration status isn't available in
+   a later session because nothing persists it outside the transcript.
+   Fix: add a persistent memory store for case-critical facts, re-
+   fetched at the start of every new session for a returning client.
+
+5. Working Space -- the budget check doesn't reserve room for the
+   model's own response. Fix: reserve a fixed output-token allowance
+   before deciding how much input fits.
+
+PRIORITIZED ORDER: System Instructions, Conversation History, Recalled
+Long-Term Memory, Grounding Context, Working Space.
+
+JUSTIFICATION: System Instructions is the most obviously wasteful gap
+-- 1,800 words on every single request is the biggest, easiest-to-spot
+inefficiency, so it should be fixed first. Conversation History and
+Recalled Long-Term Memory come next since they involve real
+conversation data. Grounding Context and Working Space are smaller,
+more cosmetic issues to clean up once the bigger wins are done.</code></pre>
+  </div>
+
+  <p>It looks like a real diagnosis — five facts addressed, a prioritized order, a justification paragraph. It's also wrong or weak in three separate, genuinely easy-to-miss ways, and if you ran this straight through <code>starter.py</code>'s structural self-check unchanged, at least one of these would slip past it, because the self-check only verifies structure, not correctness (exactly the distinction Criterion 5 of <code>RUBRIC.md</code> asks you to be able to explain).</p>
+
+  <h2>Step 2: Where did the AI's diagnosis lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 — fact 2 is mapped to the wrong ledger line entirely</span>
+      <p><strong>What it looks like it does:</strong> the AI calls fact 2 "Recalled Long-Term Memory," and the word "remembering" in its own explanation sounds perfectly reasonable — an article that "stays around" does sound like a memory problem.</p>
+      <p><strong>What it actually does:</strong> fact 2 is about knowledge-base articles retrieved <em>for this specific conversation, this specific turn</em> — that is Line 2, Grounding Context, by definition (per this chapter's ledger: "retrieved documents and tool output relevant to this specific turn"). Line 4, Recalled Long-Term Memory, is about facts persisted <em>across sessions</em> and deliberately re-fetched later — that's fact 4 (immigration status surviving between separate sessions weeks apart), not fact 2 (stale articles inside one ongoing session). The AI collapsed two genuinely different mechanisms — "this turn's retrieval doesn't get evicted" versus "nothing survives to the next session at all" — onto the same line, which is exactly the trap <code>RUBRIC.md</code>'s Criterion 1 calls out: "not just a plausible-sounding guess."</p>
+      <p><strong>Why it matters:</strong> the two lines have completely different real fixes. A Grounding Context problem is fixed by re-ranking or evicting retrieval results as the conversation's topic moves — a same-session, every-turn concern. A Recalled Long-Term Memory problem is fixed by a persistent store with a recall policy that survives the session ending entirely. Mapping fact 2 to the wrong line would point Meridian's engineers at building session-spanning persistent memory to fix a bug that's actually about within-session retrieval hygiene — real engineering effort aimed at the wrong system.</p>
+      <p><strong>The fix:</strong> re-map fact 2 to Grounding Context (L2), and keep fact 4 as the only fact that actually maps to Recalled Long-Term Memory (L4) — exactly what <code>solution.py</code>'s <code>DIAGNOSIS</code> dict does, and exactly why the project's self-check insists all five facts map to five <em>distinct</em> lines: if you'd used two lines for the same one, you'd have caught this yourself by re-reading the ledger's own definitions for L2 versus L4 side by side.</p>
+
+      <span class="qa-section-label flags">Flaw 2 — fact 2's proposed fix is "be more careful," restated with different words</span>
+      <p><strong>What it looks like it does:</strong> "be more careful about which articles you keep around and don't hang onto ones from earlier topics" reads like real advice — it even names the actual problem (stale articles from earlier topics) correctly.</p>
+      <p><strong>What it actually does:</strong> it never names <em>how</em> the system would decide an article is stale, or what mechanism would remove it. "Be more careful" and "don't hang onto" are attitudes, not engineering changes — nothing here tells an engineer what code to write. Compare it to fact 3's fix in the same response ("summarize turns older than the most recent N... keep only the most recent N verbatim") — that one names an actual technique with a concrete parameter. Fact 2's fix has no equivalent mechanism at all.</p>
+      <p><strong>Why it matters:</strong> this is precisely the failure mode <code>RUBRIC.md</code>'s Criterion 3 scores a 0-2 for: "vague or restate the problem rather than proposing a real change." It would pass <code>starter.py</code>'s automated length check (the string is well over 15 characters) while still failing the actual bar the project cares about — a reminder that the self-check verifies "well-formed," not "correct," which is the exact distinction Criterion 5 asks you to be able to explain out loud.</p>
+      <p><strong>The fix:</strong> name the real mechanism — "add a re-ranking/eviction step that drops retrieved articles once the conversation's current sub-topic no longer matches what they were retrieved for," which is what <code>solution.py</code> actually says. Notice it names a concrete step (re-ranking/eviction) and a concrete trigger condition (topic mismatch), not just an intention.</p>
+
+      <span class="qa-section-label flags">Flaw 3 — the prioritization reasons about visibility, not risk or harm</span>
+      <p><strong>What it looks like it does:</strong> "the biggest, easiest-to-spot inefficiency" sounds like a sensible way to decide what to fix first — tackle the biggest number (1,800 words) first.</p>
+      <p><strong>What it actually does:</strong> word count is a fixed, bounded, one-time cost per request — wasteful, but it doesn't get worse as anything happens, and it doesn't put a client at risk. Compare that to fact 4 (a client's immigration status silently lost between sessions — a real, sensitive-information harm to an actual person) or fact 3 (an unbounded transcript that gets more dangerous the longer an intake conversation runs, actively causing case-critical facts to disappear mid-session). "Easiest to spot" and "most urgent to fix" are different axes entirely, and the AI's justification never engages with the one this chapter's own walkthrough used: which gaps <em>compound</em> as a conversation grows, and which cause real harm, versus which are flat, bounded costs.</p>
+      <p><strong>Why it matters:</strong> this is exactly the reasoning <code>RUBRIC.md</code>'s Criterion 4 wants explicitly present — "referencing which gaps compound as a conversation grows or carry real harm... versus which are bounded, fixed costs" — and it's the same "two mechanisms compounded" argument this chapter's Brackwater walkthrough makes about position effects and truncation stacking. A justification that only measures word count would score a 2 at best ("generic... without real reasoning about growth or harm"), even though it's fluently written.</p>
+      <p><strong>The fix:</strong> reorder around compounding risk and harm, not visible waste: Conversation History first (fastest-growing, most immediate risk in a 25-50 turn conversation), Recalled Long-Term Memory second (a real client-harm risk — sensitive information lost between sessions), then Grounding Context, then Working Space, with System Instructions <em>last</em> — a real but fixed, non-compounding cost. That's the order <code>solution.py</code> actually uses, for exactly this reason.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong — worth noticing that too, since a fair critique isn't just a hunt for flaws. Facts 1, 3, 4, and 5 were all mapped to the correct ledger line, and fact 3's and fact 4's proposed fixes were both genuinely concrete (a real summarization technique with a parameter; a real persistent-store-plus-recall-policy design) — exactly the level of specificity Criterion 3 wants. If you'd accepted the whole response uncritically, you'd have kept three good line mappings and two solid fixes alongside one wrong mapping, one hollow fix, and a justification measuring the wrong thing. That mix — mostly right, plausible-sounding everywhere, wrong in specific load-bearing spots — is a more realistic picture of what pairing with an AI actually produces than either "it's always right" or "it's always wrong."</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 3 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'Check every ledger-line mapping against the line's actual definition' or 'Reject any fix that could be reworded as be more careful'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Project</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>
