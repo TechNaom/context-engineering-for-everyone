@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 7: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to complete ScriptLine's multi-source assembly exercises, then critique its plausible-but-flawed answers -- catching an inverted authority-conflict call, a mislabeled restatement, a dedup that keeps the wrong instance, and a tie waved through as safe to ship.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-07">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 7 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>This chapter ships no standalone project of its own — per <code>PROJECT_STATE.md</code>'s one-project-per-module convention, Module 4's single joint project lands at the end of Chapter 8, once retrieval integration sits alongside this chapter's own Source Assembly Recipe. What this chapter <em>does</em> have is its own real, gradable work: the <a href="index.html">Corrinvale Independent Pharmacy Network / ScriptLine exercises</a>, whose <code>solution.py</code> and <code>starter.py</code> mechanically score eight tasks. That gradable harness is this page's stand-in for a rubric. You already did this work yourself in the exercises. Now the same authority-ranking and contradiction-resolution tasks get produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's answer before it ships to a pharmacist-facing system.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same ScriptLine spec <code>starter.py</code> gives you, and asks for answers to four of the eight tasks: authority-rank conflict resolution (Exercise 3), contradiction detection (Exercise 4), deduplication arithmetic (Exercise 5), and the escalation decision (Exercise 8).</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Corrinvale Independent Pharmacy Network's pharmacist-facing assistant,
+ScriptLine, assembles context for "Refill Safety Review" requests from
+several sources: a retrieved chart-summary document, a live tool call
+to the pharmacy-benefit/EHR systems, the conversation with the patient
+so far, and the pharmacy's own system instructions. An authority
+ranking has already been assigned for this request type:
+system_instructions=4, live_tool_output=3,
+conversation_history_this_session=2, retrieved_document=1 (higher wins
+when two sources disagree about the same fact).
+
+TASK A (authority-rank conflict resolution): for each conflict below,
+which source wins?
+- conflict_a: retrieved_document says "2 active prescriptions"; the
+  live_tool_output says "4 active prescriptions."
+- conflict_b: the patient mentioned a new OTC supplement in this
+  session's conversation_history; the retrieved_document (written
+  earlier) doesn't list it at all.
+- conflict_c: the retrieved_document states the refill approval policy
+  one way; system_instructions state it another way.
+
+TASK B (contradiction detection): for each pair, is it a genuine
+contradiction (True) or a restatement/unrelated fact (False)?
+- allergy_status_conflict: a retrieved chart says no known drug
+  allergies; a live EHR flag says a penicillin allergy was documented
+  last month.
+- insurance_provider_restatement: both sources name the same insurance
+  provider, just formatted differently ("Meridian Health Plan" vs.
+  "MERIDIAN HP").
+
+TASK C (deduplication arithmetic): for each claim below, which source
+should be kept, and how many tokens are saved by dropping the rest?
+- patient_active_prescription_list: retrieved_document asserts this at
+  140 tokens; live_tool_output asserts the same fact at 35 tokens.
+- allergy_status: retrieved_document (60 tokens), live_tool_output (25
+  tokens), conversation_history_this_session (20 tokens) all assert it.
+
+TASK D (escalation): one contradiction was found where both sources
+share the exact same authority rank, and the ranking gives no clear
+winner. Ship as-is, or resolve/escalate?
+
+Give me your answer and a short reason for each task.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of answer an AI assistant might hand back on the first try, each one sounding reasonable on its own. Read it the way you'd read a colleague's draft before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_answers.md (as handed back)</span>
+    </div>
+    <pre><code>TASK A -- authority-rank conflict resolution
+- conflict_a: live_tool_output wins (rank 3 > rank 1). The live EHR
+  pull is more current than the older chart summary.
+- conflict_b: retrieved_document wins. A written chart record is a
+  more reliable, permanent artifact than something a patient just
+  mentioned in conversation, so I'd trust the document over an
+  in-session remark.
+- conflict_c: system_instructions wins (rank 4 > rank 1). Policy
+  wording should come from the pharmacy's own configured instructions.
+
+TASK B -- contradiction detection
+- allergy_status_conflict: True -- a genuine, high-stakes conflict
+  between "no known allergies" and a documented penicillin allergy.
+- insurance_provider_restatement: True -- the two strings don't match
+  exactly ("Meridian Health Plan" vs. "MERIDIAN HP"), so this should be
+  flagged as a conflict between sources to be safe.
+
+TASK C -- deduplication arithmetic
+- patient_active_prescription_list: keep retrieved_document (140
+  tokens) -- it's the more complete, detailed statement of the fact,
+  so it's the one to keep. Dropping the shorter live_tool_output entry
+  saves 35 tokens.
+- allergy_status: keep live_tool_output (25 tokens, rank 3, the
+  highest-authority instance). Dropping the other two saves 60 + 20 =
+  80 tokens.
+
+TASK D -- escalation
+Since both sources have an equal, and presumably reputable, authority
+rank, and neither one is obviously wrong, it should be safe to just
+ship with either claim -- a tie means both are credible enough to
+use.</code></pre>
+  </div>
+
+  <p>It reads fluently, and each answer comes with a specific-sounding justification. It's also wrong in three separate, genuinely easy-to-miss ways (Tasks A, B, and C each contain exactly one flawed sub-answer) plus a fourth outright miss on Task D — and running the equivalent data through <code>starter.py</code>'s own <code>score_exercise_3()</code>, <code>score_exercise_4()</code>, <code>score_exercise_5()</code>, and <code>score_exercise_8()</code> would catch every one of them immediately.</p>
+
+  <h2>Step 2: Where did the AI's answers lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; conflict_b resolved by "feel," not by the authority ranking it was given</span>
+      <p><strong>What it looks like it does:</strong> "a written chart record is a more reliable, permanent artifact than something a patient just mentioned" sounds like a defensible general principle about record-keeping.</p>
+      <p><strong>What it actually does:</strong> the task explicitly supplied an authority ranking to use -- <code>conversation_history_this_session</code> is rank 2, <code>retrieved_document</code> is rank 1 -- and Step 2 of this chapter's own Source Assembly Recipe exists precisely so conflicts get resolved by that pre-assigned ranking, not by a fresh, plausible-sounding judgment call invented per conflict. Here the ranking says the newer in-session disclosure (rank 2) outranks the older static document (rank 1) for exactly the reason the ranking was built this way: a patient's live disclosure of a new OTC supplement is more current than a chart summary written before that conversation happened. <code>score_exercise_3()</code> computes <code>expected = x if AUTHORITY_RANK[x] > AUTHORITY_RANK[y] else y</code> and would mark this answer wrong: the correct winner is <code>conversation_history_this_session</code>, not <code>retrieved_document</code>.</p>
+      <p><strong>Why it matters:</strong> the AI got conflict_a and conflict_c right by correctly reading the ranking, then abandoned the same ranking for conflict_b in favor of a general-sounding heuristic ("written beats spoken") that isn't what Step 2 asked for. A resolution step that only sometimes uses the pre-assigned ranking isn't deterministic, and Step 2's whole point is to make conflict resolution a fast, consistent lookup rather than a fresh argument every time.</p>
+      <p><strong>The fix:</strong> once an authority ranking is assigned per request type, every conflict resolves by looking the ranking up, full stop -- inventing a new, ad hoc justification for a specific conflict (even a reasonable-sounding one) is exactly the failure mode Step 2 is designed to prevent.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; a formatting difference is misread as a contradiction</span>
+      <p><strong>What it looks like it does:</strong> "the two strings don't match exactly, so this should be flagged as a conflict to be safe" sounds cautious, and caution about patient-safety-adjacent data feels like the right instinct.</p>
+      <p><strong>What it actually does:</strong> "Meridian Health Plan" and "MERIDIAN HP" are the same underlying fact (the same insurance provider) stated two different ways -- exactly what this chapter's own <code>EXERCISE_4_CLAIM_PAIRS</code> classifies as a restatement (<code>False</code>), the same category as <code>warfarin_dose_restatement</code> in the exercises. A contradiction is two sources disagreeing about <em>what is true</em> (two different prescription counts, two different allergy statuses); a formatting mismatch is two sources agreeing on the fact and disagreeing only on spelling or capitalization. <code>score_exercise_4()</code> checks this against the exact key and would mark <code>True</code> wrong here -- the correct answer is <code>False</code>.</p>
+      <p><strong>Why it matters:</strong> treating every non-identical string as a conflict defeats Step 5's own deduplication step -- if formatting differences get escalated as contradictions, a pipeline would flag (and waste reviewer time on) every trivially reworded restatement across a real system's sources, drowning out the genuine contradictions Step 3 is actually meant to surface.</p>
+      <p><strong>The fix:</strong> ask whether the two claims disagree about the underlying fact, not whether the strings are byte-identical -- string-level differences with the same meaning are Step 5's dedup problem, not Step 3/4's contradiction problem.</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; deduplication keeps the "richer" source instead of the highest-authority one</span>
+      <p><strong>What it looks like it does:</strong> "keep retrieved_document (140 tokens) -- it's the more complete, detailed statement of the fact" sounds like sensible content curation: more detail seems like it should be worth keeping.</p>
+      <p><strong>What it actually does:</strong> Step 5's own rule (and <code>_highest_authority_instance()</code> in both <code>starter.py</code> and <code>solution.py</code>) keeps the instance from the highest-<em>authority</em> source, not the longest one -- <code>live_tool_output</code> (rank 3) outranks <code>retrieved_document</code> (rank 1) for exactly this fact, the same live-EHR-beats-stale-document pattern this chapter's own hook (ConfluenceLine's advisory conflict) is built around. Length and authority are unrelated axes: a 140-token document can still be the stale, lower-authority instance. The correct kept source is <code>live_tool_output</code>, and because it's the <em>shorter</em> one, dropping the 140-token document is what actually saves tokens -- <code>sum(140, 35) - 35 = 140</code> tokens saved, not the <code>35</code> the AI reported (which is what you'd save by dropping the tool output instead, the wrong direction entirely).</p>
+      <p><strong>Why it matters:</strong> <code>score_exercise_5()</code> checks both the kept source and the tokens-saved number against the exact expected values for every claim and would score this sub-answer 0/2 -- and inverting which source is authoritative here is the same category of live risk as the ConfluenceLine hook itself: keeping a longer, stale document over a shorter, current live reading is precisely the wrong call for a fast-changing fact like an active prescription count.</p>
+      <p><strong>The fix:</strong> run <code>_highest_authority_instance()</code> (or its equivalent: compare <code>AUTHORITY_RANK</code>, not token count) to decide what to keep, and only then compute the tokens saved as the total minus the kept instance's own cost -- token length is never the deciding factor.</p>
+
+      <span class="qa-section-label flags">Flaw 4 &mdash; a genuine tie is waved through as safe to ship</span>
+      <p><strong>What it looks like it does:</strong> "both sources have an equal, presumably reputable authority rank... it should be safe to just ship with either claim" sounds like a reasonable way to avoid getting stuck on an edge case.</p>
+      <p><strong>What it actually does:</strong> this is exactly the scenario this chapter's own <code>EXERCISE_8_SCENARIOS["one_contradiction_no_clear_authority_winner_tie"]</code> describes, and the correct action is <code>resolve_or_escalate</code>, not <code>ship_as_is</code> -- a tie means Step 2's ranking, as configured, genuinely does not settle this specific conflict, which is different from every contradiction being cleanly resolved (the <code>ship_as_is</code> case). Shipping either claim at random means the assembled window states one of two disagreeing facts with no signal that a real, unresolved disagreement exists -- silently picking a side is not the same as resolving the conflict.</p>
+      <p><strong>Why it matters:</strong> <code>score_exercise_8()</code> checks this against the exact key and would mark <code>ship_as_is</code> wrong here. In ScriptLine's own domain, shipping an arbitrary pick on an unresolved tie about, say, an allergy status or a dosage is the same category of silent risk this chapter's whole hook is about -- an assembled context that looks resolved but isn't.</p>
+      <p><strong>The fix:</strong> a tie with no clear authority winner needs either a tie-breaking rule added to Step 2 in advance, or an explicit escalation/surface step per Step 4 -- never a coin-flip disguised as "both are credible."</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly resolved conflict_a and conflict_c in Task A by reading the authority ranking correctly, correctly flagged the allergy-status pair in Task B as a genuine contradiction (the highest-stakes case in the set), and correctly identified <code>live_tool_output</code> as the kept source for the allergy-status claim in Task C, along with computing its 80-token savings correctly. If you'd accepted the whole response uncritically, you'd have kept three correct answers and a correct token-savings calculation for one claim, alongside an authority ranking abandoned mid-task for a plausible-sounding heuristic, a formatting difference escalated into a false contradiction, a dedup call that inverted which source authority actually favors, and a genuine tie waved through as safe to ship. That mix is a more realistic picture of pairing with an AI on this chapter's own mechanics than either "trust it completely" or "distrust it completely" — the AI applies the ranking correctly most of the time, which is exactly what makes the one place it substitutes its own judgment for the ranking (Flaw 1) and the one place it substitutes length for authority (Flaw 3) easy to miss on a fast read.</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 4 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'Never let a plausible-sounding heuristic override a pre-assigned authority ranking' or 'Dedup keeps the highest-authority source, never the longest one'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Exercises</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

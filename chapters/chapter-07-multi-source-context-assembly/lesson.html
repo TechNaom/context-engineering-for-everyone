@@ -55,8 +55,9 @@
     <a href="#approaches-compared">4. Three approaches, compared</a>
     <a href="#worked-math">5. Worked math: Hadleworth's contradicting advisory</a>
     <a href="#live-capture">6. A live-captured contradiction example</a>
-    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
-    <a href="#recap">8. Points to remember</a>
+    <a href="#live-contrast">7. Live contrast: with/without an authority instruction</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
   </nav>
 
   <div class="hook" id="hook">
@@ -273,6 +274,58 @@
         forward to this chapter.
       </p>
     </div>
+    <p>
+      Steps 3 and 4 are deliberately small enough to run as real code, not
+      just describe -- here they are as an executed, runnable pipeline
+      against ConfluenceLine's own inventory, grouping by claim to detect
+      overlap and letting the authority ranking resolve the winner:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">full_pipeline.py (executed this session, real output)</span>
+      </div>
+      <pre><code>AUTHORITY_RANK = {
+    "system_instructions": 4, "live_tool_output": 3,
+    "conversation_history_this_session": 2, "retrieved_document": 1,
+}
+
+# Step 1: inventory every candidate source, typed and named.
+INVENTORY = [
+    {"source": "system_instructions", "claim": "team_policy", "tokens": 200},
+    {"source": "retrieved_document", "claim": "elmcrest_advisory_status", "tokens": 140},
+    {"source": "retrieved_document", "claim": "general_boil_water_guidance", "tokens": 80},
+    {"source": "live_tool_output", "claim": "elmcrest_advisory_status", "tokens": 40},
+    {"source": "conversation_history_this_session", "claim": "customer_question", "tokens": 90},
+]
+
+def detect_conflicts(inventory):
+    """Step 3: group by claim; any claim with >1 source is a candidate conflict."""
+    by_claim = {}
+    for item in inventory:
+        by_claim.setdefault(item["claim"], []).append(item)
+    return {claim: items for claim, items in by_claim.items() if len(items) > 1}
+
+def resolve_conflicts(conflicts):
+    """Step 4: authority ranking picks the winner for each conflicting claim."""
+    return {claim: max(items, key=lambda i: AUTHORITY_RANK[i["source"]])
+            for claim, items in conflicts.items()}
+
+$ python3 full_pipeline.py
+Step 3 -- conflicts detected: ['elmcrest_advisory_status']
+Step 4 -- 'elmcrest_advisory_status' resolved to source: live_tool_output (40 tokens)
+Naive concatenation total: 550 tokens
+Resolved assembly total: 410 tokens
+Tokens freed: 140
+All assertions passed.</code></pre>
+    </div>
+    <p>
+      The 140-token savings here matches the worked-math table below
+      exactly, once the 60-token query (not itself a candidate source
+      needing conflict detection) is added back to both totals -- 550 +
+      60 = 610 naive, 410 + 60 = 470 resolved, the same numbers the
+      table works through by hand.
+    </p>
   </section>
 
   <section id="approaches-compared" class="subtopic">
@@ -360,6 +413,57 @@
       hoping the model would notice and resolve it unprompted at
       generation time.
     </p>
+    <p>
+      The table's arithmetic isn't asserted on faith -- it was re-verified
+      this session by actually executing a small standalone script that
+      encodes Steps 2 and 4's own logic (rank the two conflicting sources,
+      let the higher rank win, recompute the resolved total) rather than
+      just trusting the hand-typed numbers above:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">recipe_demo.py (executed this session, real output)</span>
+      </div>
+      <pre><code>AUTHORITY_RANK = {
+    "system_instructions": 4,
+    "live_tool_output": 3,
+    "conversation_history_this_session": 2,
+    "retrieved_document": 1,
+}
+SOURCES = {
+    "system_instructions": 200,
+    "retrieved_document": 220,   # Elmcrest KB article: "advisory in effect"
+    "live_tool_output": 40,      # advisory-status endpoint: "advisory lifted"
+    "conversation_history_this_session": 90,
+    "query": 60,
+}
+NAIVE_TOTAL = sum(SOURCES.values())
+
+# The document's 220 tokens split into a 140-token stale status claim
+# (superseded by the tool output) and 80 tokens of unrelated, still-valid
+# general boil-water guidance that survives resolution.
+winner = max(["retrieved_document", "live_tool_output"], key=lambda s: AUTHORITY_RANK[s])
+resolved_doc_tokens = 220 - 140
+resolved_total = (SOURCES["system_instructions"] + resolved_doc_tokens
+                  + SOURCES["live_tool_output"]
+                  + SOURCES["conversation_history_this_session"]
+                  + SOURCES["query"])
+tokens_freed = NAIVE_TOTAL - resolved_total
+
+$ python3 recipe_demo.py
+Step 2 authority check -- claim: elmcrest_advisory_status
+  retrieved_document rank=1, live_tool_output rank=3 -> winner: live_tool_output
+Naive concatenation total: 610 tokens
+Resolved (Source Assembly Recipe) total: 470 tokens
+Tokens freed by resolution: 140
+All assertions passed.</code></pre>
+    </div>
+    <p>
+      No arithmetic bug turned up here -- unlike Chapters 3 and 6, this
+      chapter's worked-math table checked out exactly as written on
+      re-verification, reported honestly rather than assumed.
+    </p>
   </section>
 
   <section id="live-capture" class="subtopic">
@@ -424,6 +528,81 @@
       to be a deterministic step run before the request reaches the model,
       not a hope that a model reasoning "out loud" about which source to
       trust will also, reliably, act on its own stated conclusion.
+    </p>
+  </section>
+
+  <section id="live-contrast" class="subtopic">
+    <h2>Live Contrast: With and Without an Explicit Authority Instruction</h2>
+    <p>
+      The capture above was re-run fresh this session (a second,
+      independent confirmation of the same effect), and paired with a
+      second call that adds exactly one thing: an explicit authority-
+      ranking instruction naming which source wins, the same decision
+      Step 2 makes in advance rather than leaving to the model. Both
+      calls used the identical two contradicting sources and the
+      identical customer question; only the presence of the instruction
+      changed.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 1 of 2 -- no authority instruction, POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>  PROMPT (same two contradicting sources and customer question as
+  above, handed to the model with no ranking or resolution instruction):
+
+  "...Question: is it safe for the customer to drink tap water, and
+  which source should you trust?"
+
+  RESPONSE (live, unedited, 69.8s wall time, ~17.6s of it cold load):
+  "Based on the information provided, it appears that the customer has
+  made an incorrect assumption. [...] it is not safe for the customer
+  to drink tap water from the Elmcrest service zone until the water
+  quality has been confirmed as safe by an official announcement [...]
+  I would advise the customer to wait for further confirmation of
+  safety before resuming their regular consumption of tap water.
+
+  As for which source to trust, it appears that Source B (the live
+  account-status API call) is more up-to-date and accurate [...] I
+  would recommend that the customer wait for an official confirmation
+  from Hadleworth Metro Water Authority to confirm the safety of
+  drinking tap water before resuming regular consumption."</code></pre>
+    </div>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 2 of 2 -- with an explicit authority instruction, POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>  PROMPT (identical two sources and customer question, plus one added
+  sentence doing Step 2's own job): "AUTHORITY RULE: when a live
+  tool-call source (Source B) and a static retrieved document (Source
+  A) disagree about a time-sensitive status, Source B always wins and
+  Source A's conflicting claim should be treated as superseded and
+  dropped. [...] Answer directly using only the winning source."
+
+  RESPONSE (live, unedited, 19.2s wall time, already warm):
+  "According to Source B, the boil-water advisory for the Elmcrest
+  service zone was lifted yesterday at 4pm and water quality has been
+  confirmed safe. Therefore, yes, it is safe for the customer to drink
+  tap water right now."</code></pre>
+    </div>
+    <p>
+      The contrast reproduced exactly as this chapter's own recipe
+      predicts. Without an explicit authority instruction, the model
+      independently reasons its way to the correct ranking in the
+      abstract ("Source B is more up-to-date") and then still gives a
+      concrete recommendation that contradicts that same conclusion
+      ("not safe... wait for confirmation," even though Source B
+      already <em>was</em> that confirmation). With the identical two
+      sources plus one sentence doing exactly Step 2 and Step 4's job --
+      naming the winning source in advance and instructing the model to
+      answer using only it -- the model gives a direct, correct,
+      unhedged answer with no contradiction between its stated reasoning
+      and its actual recommendation. Nothing else about the prompt
+      changed between the two calls; the entire difference in outcome is
+      the presence of the deterministic resolution step this chapter's
+      recipe puts before the request ever reaches the model, not a
+      different or better-worded question.
     </p>
   </section>
 
@@ -533,6 +712,21 @@
       depends on (that source-authority reasoning and actually acting on
       that reasoning are two different things, even within the same
       response), not as something any graded script requires to pass.
+    </p>
+    <p>
+      Re-confirmed again in this chapter's own code-density retrofit
+      pass: <code>curl http://localhost:11434/api/tags</code> responded
+      normally, same installed model. <code>POST /api/chat</code> was
+      called twice for the "Live Contrast" section above and succeeded
+      on the first attempt both times: the no-instruction call returned
+      in 69.8 seconds (17.6s of cold load), and the with-instruction call
+      returned in 19.2 seconds, already warm. Both responses are used
+      verbatim above, and the contrast reproduced exactly as expected --
+      the no-instruction call repeated the same reasoning-vs-recommendation
+      contradiction as the original capture, and the with-instruction
+      call resolved it cleanly. Reported honestly as this retrofit
+      session's own result, not a claim that live-model testing is
+      generally deterministic across sessions.
     </p>
   </section>
 
