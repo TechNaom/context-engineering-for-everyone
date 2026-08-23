@@ -31,11 +31,13 @@ before it's written into a lesson.
 ## Current state (as of 2026-08-23)
 
 **Read `PROJECT_STATE.md` for the authoritative, up-to-date status.**
-Short version: this is the course's **second session**. Session 1
-built Discovery, the curriculum map, the full repository scaffold, and
+Short version: this is the course's **third session**. Session 1 built
+Discovery, the curriculum map, the full repository scaffold, and
 Chapter 1 ("The Context Budget"). Session 2 built Chapter 2
 ("Designing Context Window Budgets"), completing Module 1 in full.
-Chapters 3-13 exist only as `.gitkeep`'d directories, not yet built.
+Session 3 built Chapter 3 ("Short-Term Conversational Memory"), opening
+Module 2. Chapters 4-13 exist only as `.gitkeep`'d directories, not yet
+built.
 
 - Directory skeleton (`.gitkeep` in every not-yet-built chapter
   directory from the start — the bootstrap bug found in prior sibling
@@ -65,6 +67,19 @@ Chapters 3-13 exist only as `.gitkeep`'d directories, not yet built.
   lens; its own job is proactive, per-request-type budget allocation
   before a request is sent, contrasted with Chapter 1's after-the-fact
   diagnosis.
+- **Chapter 3 ("Short-Term Conversational Memory") is built and
+  live**, opening Module 2. See `quality-audits/chapter-03-audit.md`.
+  Uses Chapter 2's allocation recipe as a lens: Line 3's already-
+  allocated budget is a given constraint, and this chapter's own job is
+  the real eviction/compression policy (verbatim window + running
+  summary + bounded, explicit pinning) that keeps a long-running
+  conversation inside that budget without silently dropping something
+  load-bearing. This is also the first session in this course's history
+  to capture real, live Ollama output (after several timeouts) —
+  disclosed in full, including an honest, unedited transcript where the
+  model didn't fully follow its own prompt instructions, used directly
+  as the lesson's own argument for why pinning is a deterministic
+  mechanism, not something delegated to a summarization call.
 
 ## Naming conventions
 
@@ -80,16 +95,19 @@ Chapters 3-13 exist only as `.gitkeep`'d directories, not yet built.
   deliberately.
 - Don't assume a specific model's behavior without testing it against
   the real, installed model first — same test-before-write discipline
-  as every sibling course. Ollama's `/api/chat` endpoint has now hung
-  across two independent sessions (Session 1: 20-second timeout;
-  Session 2: a considerably more patient 75-second timeout, still no
-  response); `/api/tags` responded normally both times with
-  `llama3.2:latest` installed. Re-check and disclose honestly every
-  session, with an even more patient timeout than the last session
-  used — don't assume the hang will repeat or resolve without testing.
-  `ai-engineering-for-everyone`'s own history shows this same hang
-  eventually resolved after several sessions with a sufficiently
-  patient retry.
+  as every sibling course. Ollama's `/api/chat` endpoint hung across
+  Sessions 1-2 (20s, then 75s timeouts), but Session 3 finally got real
+  responses — twice — with enough patience (180s and 240s timeouts).
+  The important finding for future sessions: it did NOT stay resolved
+  within Session 3 itself — two later calls timed out again (60s, 150s)
+  even after an earlier call in the same session had already succeeded
+  warm, before a third attempt succeeded in under 9 seconds. Treat this
+  endpoint as *intermittently* slow/hanging, not "cold once, fast
+  forever after." `/api/tags` has responded normally in all three
+  sessions with `llama3.2:latest` installed. Re-check and disclose
+  honestly every session, budgeting for retries throughout the session
+  (not just at the start), with generous timeouts (120s+) even after an
+  earlier call has already succeeded.
 - Every code example — every budget calculator, memory store,
   compression pipeline, context assembler, evaluator — must be run for
   real before being written into a lesson. A claimed number that wasn't
@@ -109,11 +127,12 @@ Chapters 3-13 exist only as `.gitkeep`'d directories, not yet built.
   time, validated before scaling, is this course's own standing
   discipline, inherited from every sibling TechNaom course. Session 1
   built Discovery, the scaffold, and Chapter 1 only; Session 2 built
-  Chapter 2 only, completing Module 1 — matching exactly how
-  `ai-engineering-for-everyone` itself progressed.
+  Chapter 2 only, completing Module 1; Session 3 built Chapter 3 only,
+  opening Module 2 — matching exactly how `ai-engineering-for-everyone`
+  itself progressed.
 - **Check every fictional org against the running exclusion list before
-  naming a new one** — see `quality-audits/chapter-02-audit.md` for the
-  full, current list (22 orgs across Chapters 1-2 so far, checked
+  naming a new one** — see `quality-audits/chapter-03-audit.md` for the
+  full, current list (33 orgs across Chapters 1-3 so far, checked
   against `ai-engineering-for-everyone`'s own full compiled list with
   zero collision found) and extend it (don't restart it) for every new
   chapter. Each new chapter's audit should reproduce the full list plus
@@ -127,30 +146,40 @@ Chapters 3-13 exist only as `.gitkeep`'d directories, not yet built.
   Chapter 1 modeled it directly in its "Why This Course Exists"
   section.
 
-## Current task: Chapter 3 — "Short-Term Conversational Memory"
+## Current task: Chapter 4 — "Long-Term and Persistent Memory Systems"
 
-Starts Module 2 (Memory Systems). See `PROJECT_STATE.md`'s "Next
+Completes Module 2 (Memory Systems). See `PROJECT_STATE.md`'s "Next
 Recommended Task" section for the full handoff detail: what not to
-re-derive from Chapters 1-2, the new-org exclusion list to check first
-(22 orgs across both chapters so far), citation/Ollama re-verification
-discipline (Ollama has now hung across two independent sessions —
-retry with an even more patient timeout than Chapter 2's 75 seconds),
-and the four registration-staleness locations to update in the same
+re-derive from Chapters 1-3 (including Chapter 3's own short-term
+eviction/compression mechanics — Chapter 4 starts from the boundary
+between short-term and persistent memory, it doesn't re-teach pinning
+or running summaries), the explicit boundary to state against
+`rag-for-everyone` (Chapter 4 decides what's stored and what real
+policy pulls it back into Line 4 for a given turn; it does not design
+retrieval architecture itself), the new-org exclusion list to check
+first (33 orgs across Chapters 1-3 so far), citation/Ollama
+re-verification discipline (the hang is intermittent, not "cold once,
+fast forever after" — budget for retries throughout the session), the
+still-open L1/L2 project-ladder judgment call that must finally be
+resolved this session (see `PROJECT_STATE.md`'s "Open Decisions"), and
+the four registration-staleness locations to update in the same
 session once `lesson.html` exists (`assets/chapters-data.js`, root
-`index.html`'s hero-stats and intro paragraph,
+`index.html`'s hero-stats and intro paragraph — note it should read "4
+of 13 chapters live" / "2 of 6 modules complete" once Chapter 4 ships,
 `docs/curriculum/index.html`'s chapter-card status and lede paragraph).
 
 ## Next task after that
 
-Chapter 4 ("Long-Term and Persistent Memory Systems"), completing
-Module 2 — not yet planned in detail beyond the curriculum map's own
-module outcomes; a future session should read Chapter 3's own quality
-audit before starting, not assume its scope from the curriculum map
-alone. Also re-confirm the open L1/L2 project-ladder judgment call
-logged in Chapter 2's audit and `PROJECT_STATE.md`'s "Open Decisions"
-before assuming whether Module 2's "L2 Assisted" project ships once at
-the end of Chapter 4, or per-chapter like Module 1's two L1 projects
-did.
+Chapter 5 ("Context Compression and Summarization"), opening Module 3
+— not yet planned in detail beyond the curriculum map's own module
+outcomes; a future session should read Chapter 4's own quality audit
+before starting, not assume its scope from the curriculum map alone.
+Chapter 5 is where this course's own compression/summarization mechanics
+finally get full depth (Chapter 3 deliberately built only the minimum
+needed to keep short-term memory in budget, and said so directly in its
+own lesson text) — re-read Chapter 3's "Why This Chapter" section before
+scoping Chapter 5, so it doesn't either re-teach what Chapter 3 already
+covered or leave a gap between the two.
 
 ## Important architectural decisions (see PROJECT_STATE.md for full detail)
 

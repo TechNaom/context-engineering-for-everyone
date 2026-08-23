@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Short-Term Conversational Memory — Context Engineering for Everyone</title>
+<meta name="description" content="Chapter 2 taught you to allocate a real token budget for Conversation History (Line 3). This chapter builds the actual eviction and compression policy that keeps a long-running conversation inside that budget without silently dropping something load-bearing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-03">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 3</span>
+    <span class="badge-difficulty">Intermediate</span>
+    <span class="reading-time">~30 min</span>
+  </div>
+
+  <h1>Short-Term Conversational Memory</h1>
+  <p class="lede">
+    Chapter 2 taught you to <em>allocate</em> a real token budget for
+    Line 3, Conversation History — a specific number, derived on
+    purpose, for a specific request type. This chapter starts Module 2
+    and asks the question Chapter 2 deliberately left open: once a
+    long-running conversation actually reaches that budget, <em>what
+    happens next?</em> A correctly sized budget with no real policy
+    behind it fails exactly as badly as no budget at all — just later,
+    and more quietly.
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. The budget that was right and the policy that wasn't</a>
+    <a href="#why-this-chapter">2. Why a budget alone doesn't finish the job</a>
+    <a href="#the-recipe">3. The Short-Term Memory Policy Recipe</a>
+    <a href="#policies-compared">4. Three policies, compared</a>
+    <a href="#worked-math">5. Worked math: RouteLine's naive policy vs. the hybrid fix</a>
+    <a href="#live-capture">6. A live-captured compression example</a>
+    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
+    <a href="#recap">8. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Emberlynn Transit Cooperative is a fictional regional transit
+      agency. Its rider-support chat assistant, RouteLine, handles a
+      request type called "Multi-Leg Trip Planning" — a rider working
+      out a route across several transfers, often over many turns as
+      schedules, fares, and preferences come up. The team behind
+      RouteLine had already read this course's first two chapters: for
+      this request type, on a 24,000-token context window, they ran
+      Chapter 2's own five-step recipe and correctly derived Line 3's
+      budget at <strong>8,680 tokens</strong> — reserved output fixed
+      first, system instructions fixed second, and the remainder split
+      by the long-recurring-conversation archetype's own profile. The
+      allocation passed every check Chapter 2 teaches. Nobody skipped a
+      step.
+    </p>
+    <p>
+      What the team didn't build was a real policy for what happens once
+      a conversation's raw transcript actually exceeds that 8,680-token
+      line. Their context-assembly code did the simplest thing available:
+      a sliding window that keeps whichever most-recent whole turns fit
+      under the budget, dropping the oldest whole turns first the moment
+      the running total goes over. Nothing about this is careless in the
+      way Brackwater's unmanaged SignalDesk was in Chapter 1 — it's a
+      real, working eviction mechanism. It just isn't a <em>policy</em>,
+      in the sense this chapter means the word: it decides what survives
+      purely by recency, never by importance.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">routeline_history.py (a real budget, a naive eviction mechanism)</span>
+      </div>
+      <pre><code>  LINE3_BUDGET_TOKENS = 8_680  # correctly derived via Chapter 2's recipe
+
+  def build_history(turns):
+      # turns: oldest first, each an int token count for that turn.
+      # Keep only the most recent whole turns whose sum fits budget --
+      # drop whole turns from the FRONT as soon as the total goes over.
+      kept = []
+      running_total = 0
+      for tokens in reversed(turns):
+          if running_total + tokens > LINE3_BUDGET_TOKENS:
+              break
+          kept.append(tokens)
+          running_total += tokens
+      kept.reverse()
+      return kept  # nothing here asks WHICH turn matters -- only WHEN it happened</code></pre>
+    </div>
+    <p>
+      A rider named Priya opens a Multi-Leg Trip Planning conversation.
+      Turn 1 is a greeting and a destination. <strong>Turn 2</strong> is
+      where Priya mentions she uses a wheelchair and needs level-boarding
+      platforms at every transfer — a single, 90-token fact. The
+      conversation runs long: fare questions, a request to avoid a
+      delay-prone line, several rounds of schedule back-and-forth,
+      sixteen turns in total. By the time RouteLine recommends a
+      specific transfer point at turn 16, the sliding window has already
+      dropped turns 1 through 3 entirely — including turn 2 — because
+      the running total of the 13 most recent turns alone already fills
+      the 8,680-token budget. RouteLine recommends a transfer platform
+      with a level change and no elevator. Nothing malfunctioned. The
+      eviction mechanism did exactly what it was built to do: keep the
+      most recent whole turns, drop the rest. It simply never knew that
+      turn 2's 90 tokens mattered more than turn 1's 150 or turn 3's
+      520, because nothing in the mechanism was designed to know that.
+    </p>
+    <p>
+      This is a genuinely different failure from both of this course's
+      first two chapters. Brackwater's SignalDesk (Chapter 1) had no
+      budget at all. Vantry's TriageLine (Chapter 2) had a budget sized
+      for the wrong request-type shape. Emberlynn's RouteLine has a
+      <strong>correctly sized budget and a working eviction mechanism</strong>
+      — the missing piece is a policy that decides <em>what</em> gets
+      evicted based on anything other than <em>when</em> it happened.
+      That policy is this chapter's actual subject.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>Why a Budget Alone Doesn't Finish the Job</h2>
+    <p>
+      This chapter uses Chapter 1's five-line ledger and Chapter 2's
+      allocation recipe as a lens, not fresh material — if a real,
+      derived number for Line 3 isn't already a familiar idea, Chapter 2
+      is where that skill lives, not here. Chapter 3 starts from that
+      number as a given constraint and asks a narrower, later question:
+      <em>given a real Line 3 budget, and a conversation that will
+      eventually exceed it, what governs which turns survive?</em>
+    </p>
+    <p>
+      Priya's incident shows why "raise the budget" is not, by itself,
+      an answer this chapter accepts. A bigger Line 3 budget delays the
+      moment eviction starts — it doesn't change what the eviction
+      mechanism does once that moment arrives. A sufficiently long
+      conversation eventually exceeds any fixed budget; the only real
+      question is whether the policy governing eviction at that point
+      protects what actually matters, or protects whatever happens to be
+      recent. This chapter's own positioning against the course's
+      neighbors is already established in Chapter 1's "Why This Course
+      Exists" section and isn't re-argued here — one addition worth
+      naming directly: this chapter is not `rag-for-everyone`'s subject
+      either. A retriever decides what candidate documents exist to pull
+      into Line 2; this chapter decides what happens to Line 3's own
+      turn-by-turn conversation history, a completely different line on
+      the ledger, governed by a completely different policy.
+    </p>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Short-Term Memory Policy Recipe</h2>
+    <p>
+      A production model provider's own context-management guidance
+      names exactly this two-part shape: automatically "clear[ing]
+      stale tool calls and results from within the context window when
+      approaching token limits," while giving developers a way to
+      "save critical information" so it survives regardless of
+      position.<sup><a href="#src-1">[1]</a></sup> Six steps, run in
+      order, for every request type whose conversations can realistically
+      grow long enough to matter:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Start from Line 3's already-allocated budget</h3>
+      <p>
+        Do not re-derive this number. If it doesn't already exist,
+        Chapter 2's recipe is where it gets built; this chapter assumes
+        it as a fixed, real constraint the way Priya's 8,680 tokens were
+        real and correct.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Decide the verbatim window</h3>
+      <p>
+        How many of the most recent turns stay raw and uncompressed.
+        Recent turns carry the most conversational coherence — a model
+        reasoning about "what did the user just say" benefits from exact
+        wording, not a paraphrase, so a real verbatim window is the
+        right default for the newest content, not a shortcut to avoid.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Decide the compression trigger</h3>
+      <p>
+        A real system's own default configuration draws a useful
+        distinction here: a configurable <code>trigger</code> threshold
+        that fires compression before the hard limit is actually
+        reached, and a <code>keep</code> count of how many recent
+        interactions survive once it does.<sup><a href="#src-2">[2]</a></sup>
+        Triggering early, not exactly at the hard budget, leaves room to
+        compress calmly instead of truncating under pressure.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Compress, don't truncate, what falls out of the window</h3>
+      <p>
+        Anything older than the verbatim window still gets represented —
+        as a compact running summary, not silently discarded. This
+        chapter builds only the minimum compression discipline needed to
+        keep short-term memory in budget; the deep mechanics of
+        summarization quality and information loss are Chapter 5's full
+        subject, not re-derived here.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Pin load-bearing facts explicitly</h3>
+      <p>
+        Some facts must survive regardless of how early they occurred —
+        safety disclosures, eligibility-changing facts, medication or
+        dosage changes. A pin is not "recency-immune by luck," it's a
+        deliberate, position-independent reservation carved out of the
+        same fixed Line 3 budget, sized and bounded on purpose (an
+        unbounded pin list just re-creates the original budget problem
+        under a new name).
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Validate against the worst realistic long conversation</h3>
+      <p>
+        Replay the longest real conversation shape this request type
+        plausibly produces and confirm pinned facts + the running summary
+        + the verbatim window's actual token sum together fit inside
+        Line 3's real budget — the same worst-case discipline Chapter 2
+        already established for allocation itself, applied here to the
+        policy that governs what happens once that allocation is
+        actually exceeded.
+      </p>
+    </div>
+  </section>
+
+  <section id="policies-compared" class="subtopic">
+    <h2>Three Policies, Compared</h2>
+    <p>
+      Not every request type needs the full six-step recipe. Three real
+      policies cover almost every production case:
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Policy</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it silently loses</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No policy needed</td>
+          <td>Every conversation this request type produces stays well under Line 3's budget, or history is intentionally discarded each session.</td>
+          <td>Short, bounded request types (Chapter 2's "short lookup" archetype); explicitly stateless-by-design sessions.</td>
+          <td>Nothing — there's genuinely nothing to manage yet.</td>
+        </tr>
+        <tr>
+          <td>Naive FIFO sliding window</td>
+          <td>Keep the most recent whole turns that fit; drop the oldest whole turns first once the budget is exceeded.</td>
+          <td>Genuinely never — real production systems need at minimum a pinning layer on top of this, per this chapter's own hook.</td>
+          <td>Any fact that happened to occur early, regardless of how important it is — exactly what dropped Priya's accessibility requirement.</td>
+        </tr>
+        <tr>
+          <td>Hybrid: pinned facts + running summary + verbatim window</td>
+          <td>Reserve a bounded slice for explicitly pinned facts; compress everything older than the verbatim window into a running summary instead of discarding it; keep the most recent turns raw.</td>
+          <td>Any request type where conversations can realistically grow long enough to exceed Line 3's budget and where any single early fact could plausibly matter later.</td>
+          <td>Fine-grained detail from summarized turns (an accepted, bounded loss — Chapter 5's subject in depth) — never a pinned fact, and never the most recent conversational context.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: RouteLine's Naive Policy vs. the Hybrid Fix</h2>
+    <p>
+      Run the actual numbers from the hook, the way a real short-term
+      memory review would.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Turn</th>
+          <th>Tokens</th>
+          <th>Naive FIFO (16 turns, 8,680-token budget)</th>
+          <th>Hybrid policy</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1 (greeting)</td><td>150</td><td>Dropped</td><td>Summarized</td></tr>
+        <tr><td>2 (accessibility disclosure)</td><td>90</td><td><strong>Dropped</strong></td><td><strong>Pinned</strong></td></tr>
+        <tr><td>3</td><td>520</td><td>Dropped</td><td>Summarized</td></tr>
+        <tr><td>4</td><td>580</td><td>Kept (verbatim)</td><td>Summarized</td></tr>
+        <tr><td>5</td><td>610</td><td>Kept (verbatim)</td><td>Summarized</td></tr>
+        <tr><td>6-16 (11 turns)</td><td>7,320 total</td><td>Kept (verbatim)</td><td>Kept (verbatim)</td></tr>
+        <tr>
+          <td colspan="2"><strong>Package totals</strong></td>
+          <td>8,570 tokens, 13 verbatim turns, <strong>turn 2 lost</strong></td>
+          <td>90 pinned + 900 summary + 7,320 verbatim = <strong>8,310 tokens</strong>, 370 slack, turn 2 retained</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Two things are visible in this table at once. First, naive FIFO
+      isn't even <em>token-efficient</em> — it evicts whole turns 1-3
+      (760 tokens) to make room, when turn 2's actual load-bearing
+      content was only 90 of those tokens; a policy that can't
+      distinguish importance from recency also can't be precise about
+      what it throws away. Second, the hybrid policy fits comfortably
+      inside the same 8,680-token budget (8,310 tokens, 370 tokens of
+      real slack) while explicitly protecting the one fact that mattered
+      — proof that the fix here was never "a bigger budget," it was a
+      real policy layered on top of the budget Chapter 2 had already
+      gotten right.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>A Live-Captured Compression Example</h2>
+    <p>
+      Every exercise, practice, and project solution in this chapter
+      uses a deterministic, directly computed summary placeholder for
+      its automated self-checks — the same discipline Chapters 1-2 used,
+      necessary because this repository's own local validation runs
+      every <code>solution.py</code> with a 20-second timeout, and a cold
+      local model load in this session's own sandbox took well over two
+      minutes (see the Ollama disclosure below). But this chapter is the
+      first in this course to actually get a real response from the
+      locally installed model this session, with enough patience, so
+      here is what a real compression call actually produced, captured
+      live and unedited:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture -- POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>  PROMPT (compressing turns 1, 3, 4, and 5 of a RouteLine-style
+  conversation into a running-memory note, deliberately excluding the
+  pinned accessibility fact, which is tracked separately):
+
+  "Compress the following four conversational turns into one compact
+  running-memory note under 40 words. Do not include the accessibility
+  requirement (it is tracked separately). Turns: (1) Rider greets the
+  assistant and says they need to get from Millrose Station to Dockside
+  Terminal sometime tomorrow morning. (2) Rider mentions they use a
+  wheelchair and need level-boarding platforms at every transfer. (3)
+  Rider says they would prefer to avoid the Cedar Line if possible
+  because it is often delayed. (4) Rider asks whether an off-peak fare
+  applies before 9am."
+
+  RESPONSE (live, unedited):
+  "Rider needs assistance getting from Millrose Station to Dockside
+  Terminal tomorrow morning; uses a wheelchair, requires level-boarding
+  platforms at transfers; prefers avoiding Cedar Line due to delays;
+  inquires about off-peak fares for travel before 9am."</code></pre>
+    </div>
+    <p>
+      Read that response closely, because it makes this chapter's actual
+      argument better than a clean example would have: the prompt
+      explicitly asked the model to exclude the accessibility
+      requirement ("it is tracked separately"), and the model included
+      it anyway, unedited, exactly as captured. This is not cherry-picked
+      to prove a point — it is the real, first live output this course
+      has captured, and it happens to demonstrate the central risk of
+      relying on a summarizer's own judgment for what to keep: even a
+      direct, explicit instruction to omit a specific fact was not
+      reliably followed. That is precisely why this chapter's hybrid
+      policy does not ask a summarization step to decide whether the
+      accessibility requirement survives — it pins that fact through a
+      separate, deterministic mechanism (Step 5) that never depends on
+      an LLM call's instruction-following at all. A summary is still
+      useful for everything else in this compression, but it is the
+      wrong tool to trust with the one fact that actually has to
+      survive.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a request type has a correctly derived
+      Line 3 budget, a working eviction mechanism, and still drops a
+      safety-relevant fact from a long conversation.</p>
+      <p><strong>Assumption being made:</strong> that having <em>any</em>
+      working eviction mechanism is the same as having a real memory
+      <em>policy</em>. It isn't — a mechanism decides how eviction
+      happens once triggered; a policy decides what survives, and a
+      mechanism with no policy behind it defaults to the simplest
+      possible rule (recency), which has no way to know a 90-token fact
+      matters more than an 800-token stretch of small talk.</p>
+      <p><strong>What actually distinguishes a well-managed short-term
+      memory system:</strong> not the presence of an eviction mechanism,
+      but whether the mechanism is governed by an explicit policy that
+      separates three concerns — what stays verbatim because it's
+      recent, what gets compressed instead of discarded because it's
+      aged out, and what gets pinned because it's load-bearing regardless
+      of when it happened.</p>
+      <p><strong>Why this matters before Chapter 4:</strong> Chapter 4
+      asks a related but distinct question — what should a system
+      remember <em>across</em> sessions, not just within one. A system
+      that can't reliably keep a fact alive for the rest of a single
+      conversation has no sound foundation for deciding what's worth
+      persisting to long-term memory in the first place.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      short-term memory policy is a per-request-type artifact, derived
+      from an already-allocated Line 3 budget, that fixes a verbatim
+      window sized to preserve recent coherence, a compression trigger
+      that fires before the hard limit is reached, a running summary
+      that represents (never silently drops) anything older, and a
+      bounded, explicit set of pinned facts that survive regardless of
+      position — validated against the worst realistic long conversation
+      before it ships.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>A correctly allocated Line 3 budget (Chapter 2) is a
+        precondition for this chapter, not a substitute for it — a
+        right-sized budget with a naive eviction mechanism fails exactly
+        as Priya's did: later than an unbudgeted system, but just as
+        silently.</li>
+        <li>Naive FIFO eviction decides what survives by <em>when</em>
+        something happened, never by <em>whether it matters</em> — it is
+        never, by itself, a sufficient production policy.</li>
+        <li>The hybrid policy separates three concerns on purpose: a
+        verbatim window for recent coherence, a running summary for
+        aged-out content (compressed, not discarded), and a bounded,
+        explicit pin list for load-bearing facts that must survive
+        regardless of position.</li>
+        <li>An unbounded pinned-facts list just re-creates the original
+        budget problem under a new name — pinning has to be selective
+        and bounded, or nothing is actually prioritized.</li>
+        <li>Adding a compression policy doesn't remove the need to
+        validate against the worst realistic case — the same discipline
+        Chapter 2 established for allocation applies here to the policy
+        governing what happens once that allocation is exceeded.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session, per this course's own standing
+      discipline, and with real news this time: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model (<code>llama3.2:latest</code>).
+      The <code>POST /api/chat</code> endpoint's actual behavior this
+      session was more mixed than a single clean "it works now" result,
+      and it's disclosed honestly rather than rounded up: a first
+      attempt with a 120-second timeout (more patient than Chapter 2's
+      75 seconds) did not return; a second attempt with a 180-second
+      timeout succeeded, returning a real response after roughly 153
+      seconds total, almost all of it (about 138 seconds) the model's
+      own cold load time in this sandbox; an immediate follow-up call
+      with the model already warm returned in about 11.5 seconds; but a
+      later call (an early attempt at the compression example below)
+      then timed out twice more, at 60 and 150 seconds, before finally
+      succeeding on a third attempt at 240 seconds in 8.7 seconds flat.
+      In other words, this session did not observe a simple "cold once,
+      fast forever after" pattern — the endpoint hung intermittently
+      even after a successful warm call, consistent with the sandbox
+      having some other periodic cause of latency or contention, not
+      just first-load cost. This is nonetheless the first session in
+      this course to actually capture live model output, not just
+      direct, verified arithmetic — consistent with
+      `ai-engineering-for-everyone`'s own prior finding that this exact
+      hang eventually resolves with a sufficiently patient retry, now
+      independently reproduced here, with the added honest caveat that
+      "resolves" did not mean "stays resolved" within this same session.
+      Every exercise, practice, and project self-check in this chapter
+      still uses deterministic, directly computed data rather than a
+      live call, because this repository's own
+      <code>local_check.sh</code> runs every <code>solution.py</code>
+      under a 20-second timeout — far shorter than several of this
+      session's own observed wait times — so wiring a live call into the
+      graded harness would make the automated checks themselves
+      unreliable. The live capture above is real and unedited (including
+      the model not fully following its own instruction, discussed
+      above), disclosed as illustrative, not as something any graded
+      script in this chapter depends on. A future chapter with more room
+      to warm the model before a graded run, or a documented
+      hosted-provider swap, could reconsider this tradeoff.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set:</p>
+    <ol>
+      <li id="src-1">Claude (Anthropic), <em>"Context management on the Claude Developer Platform"</em> —
+      <a href="https://claude.com/blog/context-management" target="_blank" rel="noopener">claude.com/blog/context-management</a>
+      (this session's fetch of the historical
+      <code>anthropic.com/news/context-management</code> URL
+      308-redirected here, confirmed live). States that context editing
+      "automatically clears stale tool calls and results from within the
+      context window when approaching token limits," and that a
+      separate memory tool lets a system "save critical information to
+      memory ... and bring that learning across successive agentic
+      sessions" — the direct source for this chapter's two-part
+      framing: automatic clearing plus deliberate, explicit
+      preservation.</li>
+      <li id="src-2">Claude Docs, <em>"Context editing"</em> —
+      <a href="https://platform.claude.com/docs/en/build-with-claude/context-editing" target="_blank" rel="noopener">platform.claude.com/docs/en/build-with-claude/context-editing</a>.
+      Documents a real, shipped configuration with a <code>trigger</code>
+      threshold ("defines when the context editing strategy activates
+      ... once the prompt exceeds this threshold, clearing begins"), a
+      <code>keep</code> count of how many recent interactions survive,
+      and an <code>exclude_tools</code> list "whose tool uses and
+      results should never be cleared" — direct evidence that a real,
+      production system already implements this chapter's own
+      trigger/verbatim-window/pin distinctions under different names.</li>
+      <li id="src-3">Packer et al., <em>"MemGPT: Towards LLMs as Operating
+      Systems"</em> (arXiv) —
+      <a href="https://arxiv.org/abs/2310.08560" target="_blank" rel="noopener">arxiv.org/abs/2310.08560</a>.
+      Introduces "virtual context management, a technique drawing
+      inspiration from hierarchical memory systems in traditional
+      operating systems that provide the appearance of large memory
+      resources through data movement between fast and slow memory" —
+      the research grounding for this chapter's own distinction between
+      what stays in the fast, bounded Line 3 budget and what a system
+      moves elsewhere, the exact boundary Chapter 4 picks up in depth.</li>
+      <li id="src-4">OpenAI, <em>"Conversation state"</em> guide —
+      <a href="https://developers.openai.com/api/docs/guides/conversation-state" target="_blank" rel="noopener">developers.openai.com/api/docs/guides/conversation-state</a>
+      (this session's fetch of the historical
+      <code>platform.openai.com/docs/guides/conversation-state</code>
+      URL 301-redirected here, confirmed live). States that as
+      conversations extend, "your inputs become more complex, or you
+      include more turns in a conversation," requiring attention to both
+      output-token and context-window limits, and that tokens generated
+      "in excess of the context window limit may be truncated" — direct
+      evidence that unmanaged conversation growth is a real, documented
+      failure mode across providers, not unique to any one model.</li>
+      <li id="src-5">Google, <em>Gemini API, "Text generation"</em> —
+      <a href="https://ai.google.dev/gemini-api/docs/text-generation" target="_blank" rel="noopener">ai.google.dev/gemini-api/docs/text-generation</a>.
+      Documents that a chat session can run in "stateless mode by
+      managing the conversation history yourself on the client side,"
+      where the caller must "maintain the conversation history as an
+      array of ... steps" — direct evidence that in a real, common
+      configuration, an application team owns conversation-history
+      management outright, with no provider-side safety net, which is
+      exactly the responsibility this chapter's recipe exists to
+      discharge well.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's short-term memory policy out loud
+    — see
+    <a href="interview-questions.html">Chapter 3 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-02-designing-context-window-budgets/lesson.html">&larr; Chapter 2</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Short-Term Conversational Memory Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Short-Term Conversational Memory.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-03">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 3 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Short-Term Conversational Memory</h1>
+  <p>
+    These exercises use a second scenario, deliberately different from
+    the lesson's Emberlynn Transit Cooperative/RouteLine hook:
+    <strong>Quarrowstead Legal Aid Partners</strong>, a fictional legal
+    aid organization. Its internal caseworker assistant,
+    <strong>DocketLine</strong>, holds long case conversations on a
+    model with a correctly allocated 6,000-token Line 3 budget. Building
+    the real eviction/compression policy that keeps that budget honest
+    is the point; the budget number itself is already given.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — running-total
+    arithmetic, verbatim window sizing, pin/no-pin classification,
+    compression trigger checks, package validation, and a naive-vs-hybrid
+    regression gate, not just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match scenarios to short-term memory policies</h3>
+    <p>Decide which of three DocketLine scenarios need a real eviction/compression policy at all, and which genuinely don't.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the Short-Term Memory Policy Recipe</h3>
+    <p>Put the lesson's six policy steps in the correct sequence, from starting at the allocated budget to worst-case validation.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Running totals, first turn over budget</h3>
+    <p>Compute cumulative token totals across a growing conversation and find the first turn that exceeds the 6,000-token budget.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Verbatim window sizing</h3>
+    <p>Compute how many recent turns can stay raw once pinned-fact and summary reserves are subtracted from the budget.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Pin/no-pin classification</h3>
+    <p>Decide which facts from a real DocketLine case conversation are load-bearing enough to pin.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Compression trigger check</h3>
+    <p>Find the turn where compression should start, deliberately ahead of the hard budget limit.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Build and validate the final memory package</h3>
+    <p>Verify a package of pinned facts, summary, and verbatim turns actually fits inside the Line 3 budget.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Naive-vs-hybrid regression gate</h3>
+    <p>Confirm a pinned fact that a naive FIFO policy would drop survives under the hybrid policy — the exact gap the lesson's hook fell into.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

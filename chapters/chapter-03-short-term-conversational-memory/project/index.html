@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Short-Term Conversational Memory Project — Context Engineering for Everyone</title>
+<meta name="description" content="L1 Guided project: design a real short-term memory policy -- pinned facts, running summary, verbatim window -- for a fictional counseling provider's recurring check-in conversations.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-03">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../interview-questions.html">&larr; Back to interview questions</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 3 Project &middot; L1 Guided</span>
+    <span class="reading-time">~45 min</span>
+  </div>
+  <h1>Project: Design Wrayland's Recurring Counseling Check-In Memory Policy</h1>
+  <p>
+    Wrayland Behavioral Health Group's fictional patient-messaging
+    assistant, SupportLine, already has a correctly allocated
+    7,500-token Line 3 budget for its "Recurring Counseling Check-In"
+    request type. You're given the real spec — 16 real turns with token
+    counts, a fixed running-summary size, and 6 candidate facts tagged
+    by category. Your task: choose which facts to pin, size a verbatim
+    window that fits the budget, and defend both choices.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Why this project, not another allocation task</span>
+    Chapter 1's project tested diagnosis; Chapter 2's project tested
+    allocation. This chapter's own skill is different again: given a
+    budget that's already correctly sized, can you design the real
+    eviction/compression policy that keeps a long conversation inside
+    it — the exact policy layer this chapter's own hook, Emberlynn
+    Transit Cooperative's RouteLine, never built.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run it</span>
+    Download <code>starter.py</code>, fill in your pin choices, verbatim
+    window, and both write-ups, then run
+    <code>python3 starter.py</code>. Most of this project's self-check
+    is fully mechanical — it verifies your required/forbidden pin
+    choices and that your full package fits the given budget. Compare
+    against <code>solution.py</code>, then self-grade against
+    <code>RUBRIC.md</code>.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+    <a href="RUBRIC.md">RUBRIC.md</a>
+    <a href="README.md">README.md</a>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you're given</h3>
+    <p>A 7,500-token Line 3 budget, a fixed 1,200-token running-summary size, 16 real turns with token counts, and 6 candidate facts each tagged safety_critical, clinical_change, small_talk, or administrative.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you produce</h3>
+    <p>A valid set of pinned facts (every safety_critical/clinical_change fact pinned, no small_talk fact pinned), a verbatim window sized to fit the budget alongside your pins and the fixed summary, a defended policy justification, and a follow-up plan naming what covers any turn outside your window.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Passing bar</h2>
+    <p>16/20 (80%) or higher on <code>RUBRIC.md</code>'s five criteria, with no single criterion scoring 0. <code>solution.py</code> is one complete, valid reference policy scoring a full 20/20 — not the only correct design, since the two administrative facts' pin status is intentionally open.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../interview-questions.html">&larr; Interview Questions</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

@@ -1,9 +1,9 @@
 # PROJECT_STATE.md — Context Engineering for Everyone
 
-Last updated: 2026-08-23 (Session 2 — Chapter 2, "Designing Context
-Window Budgets," complete. Module 1 is now fully built. Session 1
-built Discovery, the curriculum map, the full repository scaffold, and
-Chapter 1.)
+Last updated: 2026-08-23 (Session 3 — Chapter 3, "Short-Term
+Conversational Memory," complete, opening Module 2. Session 2 built
+Chapter 2, completing Module 1. Session 1 built Discovery, the
+curriculum map, the full repository scaffold, and Chapter 1.)
 
 ## Course Objective
 
@@ -185,20 +185,116 @@ only).
       at the end of this session; passed clean (folder structure,
       placeholder-text scan, Python syntax, every `solution.py` executed
       for real, JS syntax and chapter-path validation, secret scan).
-- [x] **Registration updated in the same session**:
+- [x] **Registration updated in the same session (Chapter 2)**:
       `assets/chapters-data.js` (Chapter 2's `path` added), root
       `index.html` (hero-stats now "2 of 13 chapters live" / "1 of 6
       modules complete," and the "All Chapters" intro paragraph
       rewritten to describe both live chapters), and
       `docs/curriculum/index.html` (Chapter 2's chapter-card now
       "Live" with a working link, and its own lede paragraph updated).
+- [x] **Ollama re-checked fresh in Session 3, with genuinely mixed
+      results, disclosed honestly rather than rounded to a clean
+      answer**: `/api/tags` responded normally (`llama3.2:latest`
+      still installed). `/api/chat` was retried across four separate
+      attempts this session: a 120-second attempt did not return; a
+      180-second attempt succeeded (~153 seconds total, ~138 of which
+      was model load time); an immediate warm follow-up call returned
+      in ~11.5 seconds; a later call then timed out twice more (60s,
+      150s) before succeeding on a third attempt at a 240-second
+      timeout in 8.7 seconds flat. This session did not observe a
+      simple "cold once, fast forever after" pattern — the endpoint
+      hung intermittently even after a prior successful warm call.
+      This is the first session in this course's history to capture
+      real, live model output. The live, unedited transcript is used
+      in Chapter 3's `lesson.html` as an illustrative "Live-Captured
+      Compression Example," including honest disclosure that the model
+      did not fully follow an explicit instruction in the prompt (asked
+      to omit one fact, it included it anyway) — used directly as the
+      lesson's own argument for why load-bearing facts are pinned via a
+      separate, deterministic mechanism rather than trusted to a
+      summarization call's instruction-following. No graded
+      `solution.py` in Chapter 3 depends on a live call: this
+      repository's own `scripts/local_check.sh` runs every
+      `solution.py` under a 20-second timeout, far shorter than several
+      of this session's own measured Ollama wait times, so wiring a
+      live call into the graded harness would make the automated
+      checks themselves unreliable. Disclosed in full in
+      `lesson.html`'s own "A Note on This Chapter's Live-Testing"
+      section and in `quality-audits/chapter-03-audit.md`.
+- [x] **Chapter 3 built and live — "Short-Term Conversational Memory,"
+      opening Module 2**. Uses Chapter 1's ledger and Chapter 2's
+      allocation recipe as a lens, not fresh material: Line 3's
+      already-allocated token budget is a given constraint, not
+      re-derived. Hook: Emberlynn Transit Cooperative's RouteLine, a
+      transit rider-support assistant that did Chapter 2's own recipe
+      correctly for its "Multi-Leg Trip Planning" request type (a real,
+      derived 8,680-token Line 3 budget on a 24,000-token window) but
+      paired it with a naive FIFO sliding-window eviction mechanism
+      that decides what survives purely by recency. A rider's 90-token
+      accessibility disclosure (turn 2 of 16) gets evicted well before
+      the model recommends a specific transfer point at turn 16,
+      because the mechanism has no concept of importance, only recency
+      — a genuinely distinct failure from Chapter 1's missing budget and
+      Chapter 2's wrong-shaped budget. Builds a six-step Short-Term
+      Memory Policy Recipe (start from the allocated budget; size a
+      verbatim window; set a compression trigger ahead of the hard
+      limit; compress, don't truncate, anything older; pin load-bearing
+      facts explicitly, bounded; validate against the worst realistic
+      long conversation) and a three-policy comparison table (no policy
+      needed; naive FIFO — never sufficient alone; the hybrid policy:
+      pinned facts + running summary + verbatim window). Full worked
+      token arithmetic for the hook's 16-turn conversation under both
+      the naive and hybrid policies. Grounded in 5 real, live-verified
+      sources this session (Claude's "Context management on the Claude
+      Developer Platform" blog post, Claude Docs "Context editing," the
+      MemGPT arXiv paper, OpenAI's "Conversation state" guide, and
+      Google Gemini's "Text generation" docs — 2 of 5 required following
+      a live redirect, and 2 originally planned URLs were dropped for
+      dead/off-topic redirects and replaced with working, on-topic
+      sources found live this session, all disclosed honestly in both
+      `lesson.html` and the quality audit). 8 exercises (6
+      production-gear: running-total arithmetic, verbatim window sizing,
+      pin/no-pin classification, compression trigger checks, package
+      validation, a naive-vs-hybrid regression gate), 8 practice
+      scenarios (4 explicit judgment calls, 4 production-gear) across 8
+      fresh fictional orgs, 8 interview questions across all 4 levels,
+      and a real, gradeable **L1 Guided project** (Wrayland Behavioral
+      Health Group/SupportLine) designing a short-term memory policy
+      for a "Recurring Counseling Check-In" request type — its
+      self-check mechanically verifies required/forbidden pin
+      categories and full-package budget fit against the learner's own
+      numbers, leaving only the two administrative facts' pin status
+      and both write-ups judgment-graded.
+- [x] **Quality audit** (`quality-audits/chapter-03-audit.md`) — honest
+      self-critique (including the deliberate choice not to wire a live
+      Ollama call into any graded `solution.py`, and a re-flagged note
+      that Chapter 4 should re-confirm the one-project-per-chapter
+      judgment call before assuming its own project ships solo as
+      Module 2's single L2 Assisted project), a fictional-org exclusion
+      check extending Chapters 1-2's list with 11 new orgs (33 total in
+      this repo), checked against `ai-engineering-for-everyone`'s full
+      compiled list with zero collision found, and documentation of the
+      two live redirects and two dropped/replaced source URLs
+      encountered during citation verification.
+- [x] **Step 5: Validation (Chapter 3)** — `scripts/local_check.sh` run
+      at the end of this session; passed clean (folder structure,
+      placeholder-text scan, Python syntax, every `solution.py` executed
+      for real, JS syntax and chapter-path validation, secret scan).
+- [x] **Registration updated in the same session (Chapter 3)**:
+      `assets/chapters-data.js` (Chapter 3's `path` added), root
+      `index.html` (hero-stats now "3 of 13 chapters live," and the
+      "All Chapters" intro paragraph rewritten to describe all three
+      live chapters and the Module 1 -> Module 2 transition), and
+      `docs/curriculum/index.html` (Chapter 3's chapter-card now "Live"
+      with a working link, and its own lede paragraph updated).
 
 ## Pending / Not Started
 
-- Chapters 3-13 (all remaining modules) — scaffolded with `.gitkeep`
-  only, no content. Per this ecosystem's standing discipline, they are
-  built one chapter at a time in future sessions, each validated before
-  the next begins — do not mass-build multiple chapters in one pass.
+- Chapters 4-13 (the remainder of Module 2 onward) — scaffolded with
+  `.gitkeep` only, no content. Per this ecosystem's standing
+  discipline, they are built one chapter at a time in future sessions,
+  each validated before the next begins — do not mass-build multiple
+  chapters in one pass.
 - No module written exams, module-assessments, or architecture
   challenges exist yet — `assessments/` is fully scaffolded but empty
   (`.gitkeep` in every subdirectory) until the modules they cover are
@@ -209,17 +305,21 @@ only).
 
 ## Known Issues
 
-- Ollama's `/api/chat` endpoint has now timed out across two
-  independent sessions (Session 1: 20-second timeout; Session 2: a
-  considerably more patient 75-second timeout, still no response) —
-  consistent with every sibling course's reported sandbox behavior. A
-  future session that needs a real captured transcript should retry
-  with an even more generous timeout (120s+) and consider whether the
-  model needs to be pulled or warmed differently in this sandbox,
-  before concluding it's permanently unreachable — per
-  `ai-engineering-for-everyone`'s own later-session finding that a
-  sufficiently patient retry eventually succeeded after several
-  sessions of hangs.
+- Ollama's `/api/chat` endpoint timed out across Sessions 1-2 (20s,
+  then 75s), but Session 3 finally got real responses — twice — after
+  enough patience (a 180-second timeout on the first success, a
+  240-second timeout on a later success), confirming
+  `ai-engineering-for-everyone`'s own prior finding that this hang
+  eventually resolves with a sufficiently patient retry. The important
+  new finding for future sessions: it did NOT stay resolved within the
+  same session — two later calls in Session 3 timed out again (60s,
+  150s) even after a prior successful warm call, before a third,
+  more patient attempt succeeded in under 9 seconds. Treat this
+  endpoint as *intermittently* slow/hanging, not simply "cold once,
+  fast forever after" — a future session needing a live call should
+  budget for retries throughout the session, not just at the start,
+  and should keep timeouts generous (120s+) even after an earlier call
+  in the same session has already succeeded.
 - The "Lost in the Middle" citation (Liu et al., 2023) is the original
   finding, not a more recent replication — flagged in the quality audit
   as something Chapter 6 (which owns this topic in depth) should
@@ -251,12 +351,17 @@ only).
   ladder (one "L1 Guided" project "ships after Ch. 2") and the fact
   that Chapter 1 already shipped a complete, real L1 project in
   Session 1, by shipping a *second* L1-tier project for Chapter 2 (tied
-  to Module 1's own two stated labs, one project per chapter). This is
-  a judgment call, not a confirmed ecosystem convention — a future
-  session should re-confirm before assuming Chapters 3 and 4 (Module
-  2, which ships the "L2 Assisted" project after Chapter 4) follow the
-  same one-project-per-chapter pattern, or whether Module 2's single L2
-  project should instead ship once, at the end of Chapter 4 only.
+  to Module 1's own two stated labs, one project per chapter). Chapter
+  3 continued this same one-project-per-chapter pattern into Module 2
+  (a third L1 Guided project, not the curriculum map's "L2 Assisted"
+  tier, which it ties specifically to Chapter 4). This is still a
+  judgment call, not a confirmed ecosystem convention — Chapter 4's own
+  session must finally resolve it: either ship Chapter 4's project as a
+  fourth L1-tier project matching this pattern, or ship the curriculum
+  map's literal "L2 Assisted" project once, solo, at the end of Chapter
+  4, closing out Module 2. Whichever way Chapter 4 resolves this, it
+  should update this note so Module 3 doesn't inherit the same open
+  question a third time.
 
 ## Design Standards
 
@@ -271,73 +376,107 @@ extended (not restarted) in each chapter's own quality audit.
 
 ## Next Recommended Task
 
-**Chapter 3 — "Short-Term Conversational Memory," starting Module 2.**
+**Chapter 4 — "Long-Term and Persistent Memory Systems," completing Module 2.**
 
 Per `docs/curriculum/CURRICULUM_MAP.md`: Module 2 (Memory Systems),
 Chapters 3-4. Module 2's outcomes: "design short-term memory that
 stays in budget; design a long-term memory system with a real
-retrieval-into-context policy." Chapter 3 specifically owns Line 3 of
-the ledger (Conversation History) — managing turn-by-turn history
-inside a bounded window (now a real, derived budget, thanks to Chapter
-2) without silently truncating something load-bearing. Its lab, per
-the module outcomes: "manage a long-running conversation's history
-under a hard token limit." Chapter 4 (long-term/persistent memory, Line
-4) is the next chapter after that — do not build both in one session,
-per this ecosystem's one-chapter-at-a-time discipline.
+retrieval-into-context policy." Chapter 3 already delivered the first
+outcome (short-term memory inside Line 3's budget). Chapter 4 owns Line
+4 of the ledger (Recalled Long-Term Memory) and the second outcome
+directly: what a system stores persistently across sessions (not just
+within one conversation), and — the part that actually touches context
+engineering rather than generic database design — the real *policy*
+for what gets retrieved back into Line 4 for a given turn, and what
+stays dormant. Its lab, per the module outcomes: "design a persistent
+memory store and retrieval policy." Chapter 5 (Context Compression and
+Summarization, opening Module 3) is the next chapter after that — do
+not build both in one session, per this ecosystem's one-chapter-at-a-
+time discipline.
 
 What NOT to re-derive:
-- The five-line Context Budget Ledger (Chapter 1) and the five-step
-  Budget Allocation Recipe (Chapter 2) are already-built material —
-  Chapter 3 should use Line 3's *allocated budget* (a real number, now
-  that Chapter 2 exists) as its starting constraint, and build the
-  actual eviction/compression policy that keeps conversation history
-  inside it, rather than re-deriving what the budget should be from
-  scratch. Chapter 1's hook (Brackwater/SignalDesk) already showed what
-  a *missing* history policy costs; Chapter 3's job is to actually build
-  one.
+- The five-line Context Budget Ledger (Chapter 1), the five-step
+  Budget Allocation Recipe (Chapter 2), and the six-step Short-Term
+  Memory Policy Recipe (Chapter 3) are already-built material. Chapter
+  4 should use Line 4's *allocated budget* (a real number, once
+  Chapter 2's recipe has been run for whatever request type Chapter 4's
+  hook uses) as a given constraint, the same way Chapter 3 treated
+  Line 3's budget as given rather than re-derived. Chapter 4's own job
+  is the boundary Chapter 3's own MemGPT citation already named: what
+  crosses from "fast," in-conversation memory (Line 3, bounded by a
+  single conversation) into genuinely persistent storage that outlives
+  any one conversation, and what real policy governs pulling it back
+  into Line 4 later. Do not re-explain short-term eviction/compression
+  mechanics (pinning, verbatim windows, running summaries) — Chapter 4
+  can reference them briefly as the *boundary* it starts from, not
+  re-teach them.
 - The course's positioning relative to `rag-for-everyone`,
   `mcp-for-everyone`, and `ai-engineering-for-everyone` Chapter 3 is
   already established in `docs/discovery-notes.md` and Chapter 1's own
-  "Why This Course Exists" section — Chapter 3 can reference it briefly
-  but should not re-argue it from scratch.
-- Read Chapter 2's own quality audit
-  (`quality-audits/chapter-02-audit.md`) before starting, not just the
+  "Why This Course Exists" section — Chapter 4 can reference it briefly
+  but should not re-argue it from scratch. Chapter 4 sits closest to
+  `rag-for-everyone` of any chapter so far (persistent storage +
+  retrieval sounds retrieval-adjacent) — state explicitly, the way
+  Chapter 3 stated its own boundary with that course, what Chapter 4 is
+  NOT doing: it does not design a retrieval *architecture* (ranking,
+  embeddings, vector-store mechanics are that course's subject); it
+  decides what a context-engineering system stores in the first place
+  and what real policy pulls a stored memory back into Line 4 for a
+  specific turn, assuming retrieval mechanics already exist by
+  whatever means. This distinction needs to be as explicit in Chapter
+  4's own lesson text as Chapter 1's "Why This Course Exists" section
+  was for the whole course.
+- Read Chapter 3's own quality audit
+  (`quality-audits/chapter-03-audit.md`) before starting, not just the
   curriculum map — per `AI_HANDOFF.md`'s own standing instruction, it
-  may surface scope notes this file doesn't fully capture (e.g. the
-  open L1/L2 project-ladder judgment call logged above, which could
-  affect whether Chapter 4's project ships solo or per-chapter).
+  may surface scope notes this file doesn't fully capture. In
+  particular: the open L1/L2 project-ladder judgment call (see "Open
+  Decisions" above) must finally be resolved this session, one way or
+  the other, and the resolution documented in Chapter 4's own audit and
+  in this file — don't leave it open a third time.
 
-New-org exclusion list: read `quality-audits/chapter-02-audit.md`'s
-full running list (Chapter 1's 11 orgs plus Chapter 2's 11 new orgs —
-Vantry Health Network, Corravine Freight, Marrenkirk Insurance Group,
-Duvane Utilities Cooperative, Graytide Hospitality Group, Oakspire Home
-Care Network, Corundale Media Group, Pallisade Manufacturing, Redcliff
-Credit Union, Thackery Regional Exchange, Halveston Regional Health
-System — 22 total in this repo) plus `ai-engineering-for-everyone`'s
-own full compiled list (see that repo's
-`quality-audits/chapter-13-audit.md`) before naming any new fictional
-org for Chapter 3, and extend — don't restart — the list in
-`quality-audits/chapter-03-audit.md`.
+New-org exclusion list: read `quality-audits/chapter-03-audit.md`'s
+full running list (Chapters 1-2's combined 22 orgs plus Chapter 3's 11
+new orgs — Emberlynn Transit Cooperative, Quarrowstead Legal Aid
+Partners, Larkmoth Outdoor Retail, Feldspar Municipal Water Utility,
+Pemberglen Veterinary Partners, Sootmarsh Freight Cooperative, Glennoak
+Wealth Advisors, Tarnwick Community College, Hushfield Telehealth
+Network, Vallowmere Grocery Cooperative, Wrayland Behavioral Health
+Group — 33 total in this repo) plus `ai-engineering-for-everyone`'s own
+full compiled list (see that repo's `quality-audits/chapter-13-audit.md`)
+before naming any new fictional org for Chapter 4, and extend — don't
+restart — the list in `quality-audits/chapter-04-audit.md`.
 
-Citation/Ollama re-verification discipline: do not assume Chapter 2's
+Citation/Ollama re-verification discipline: do not assume Chapter 3's
 five citations are still live — re-fetch and re-read anything reused,
-and treat all-new sources as the default. Re-check Ollama's `/api/tags`
-and `/api/chat` fresh at the start of the session, with an even more
-patient timeout than Chapter 2's 75 seconds (see Known Issues above);
-do not assume the hang will repeat or resolve without testing. Chapter
-3 is the first chapter in this course likely to want a real runnable
-compression/summarization example — if it builds one, this is also the
-first chapter where a live Ollama response would be genuinely
-load-bearing rather than illustrative, so the retry is worth extra
-patience this time.
+and treat all-new sources as the default (two of Chapter 3's five
+already needed a live-redirect follow, and two originally planned URLs
+were dead/off-topic and had to be replaced entirely — expect the same
+kind of churn again, not stability by default). Re-check Ollama's
+`/api/tags` and `/api/chat` fresh at the start of the session. Chapter
+3's own session found the hang is *intermittent*, not a simple "cold
+once, fast forever after" pattern — two later calls timed out again
+even after an earlier call in the same session had already succeeded
+warm. Budget for retries throughout the session, not just at the
+start, keep timeouts generous (120s+) throughout, and disclose the
+full honest sequence of attempts (not just the best result) the way
+Chapter 3's own lesson and this file both did. Chapter 4 is a strong
+candidate for another genuinely load-bearing live capture (e.g. a
+retrieval-relevance judgment call, "should this stored memory be
+recalled for this turn") if the session has room for it — but keep any
+such example illustrative-only in the lesson text, not wired into a
+graded `solution.py`, given `scripts/local_check.sh`'s 20-second
+per-solution timeout and this sandbox's demonstrated latency variance.
 
-Registration-staleness check reminders: once Chapter 3's `lesson.html`
+Registration-staleness check reminders: once Chapter 4's `lesson.html`
 exists, update `assets/chapters-data.js` (add its `path`), the root
 `index.html` (`hero-stats` counts and the "All Chapters" intro
-paragraph), and `docs/curriculum/index.html` (its own chapter-card
-status and lede paragraph) in the same session — these four locations
-drifted stale in multiple sibling courses' own build histories when a
-chapter shipped without updating all four at once.
+paragraph — note it should read "4 of 13 chapters live" and "2 of 6
+modules complete" once Chapter 4 ships, since it completes Module 2),
+and `docs/curriculum/index.html` (its own chapter-card status and lede
+paragraph) in the same session — these four locations drifted stale in
+multiple sibling courses' own build histories when a chapter shipped
+without updating all four at once.
 
 Local validation, done at the end of every session:
 
@@ -345,7 +484,7 @@ Local validation, done at the end of every session:
 $ bash scripts/local_check.sh
 ```
 
-Passed clean at the end of this session (Chapter 2) — folder
+Passed clean at the end of this session (Chapter 3) — folder
 structure, placeholder-text scan, Python syntax, every `solution.py`
 executed for real, JS syntax and chapter-path validation, secret scan.
 See this session's own commit message / `AI_HANDOFF.md` for the exact
