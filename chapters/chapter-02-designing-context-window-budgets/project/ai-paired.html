@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 2: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to allocate Halveston's Post-Discharge Follow-Up budget, then critique its plausible-but-flawed allocation -- catching a remaining-budget subtraction error, a generic profile justification, and a boundary-case validation mistake.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-02">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the project</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 2 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>You already did this yourself in <a href="index.html">the project</a> — allocated <code>ALLOCATION</code> across L2, L3, and L4 for Halveston's Post-Discharge Follow-Up request type, defended it in <code>PROFILE_JUSTIFICATION</code>, validated it against the given worst-case numbers, and planned a follow-up for anything in deficit. That work stands unchanged; this page is additive. Now the same allocation gets produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a coworker's budget spreadsheet before it goes to Halveston's engineering lead.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same spec <code>starter.py</code> gives you, and asks for the same four things the project asks for: an allocation, a profile justification, a validation, and a follow-up plan.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Halveston Regional Health System's patient-messaging assistant, IntakeLine,
+is shipping a new request type: "Post-Discharge Follow-Up" -- a recurring,
+multi-session conversation reviewing a discharged patient's medications,
+comorbidities, and recovery progress over several weeks, spanning 12-25
+turns per session, with a moderate amount of retrieved grounding content
+(discharge instructions, medication-interaction lookups) and a genuinely
+heavy recalled-memory need (full medication list, comorbidities, and notes
+from prior follow-up sessions).
+
+The spec:
+  Context window:            48,000 tokens
+  Reserved output (Line 5):   2,500 tokens (fixed)
+  System instructions (Line 1): 1,200 tokens (fixed)
+
+A worst-case content audit of real Post-Discharge Follow-Up sessions found:
+  Grounding Context (L2) worst case:        9,000 tokens
+  Conversation History (L3) worst case:    16,000 tokens
+  Recalled Long-Term Memory (L4) worst case: 12,000 tokens
+
+Using a five-step Budget Allocation Recipe (fix the hard limit; reserve
+Working Space first; fix System Instructions; split what's left across
+Grounding Context, Conversation History, and Recalled Long-Term Memory by
+this request type's real profile; validate against the worst realistic
+case), give me: (1) a token allocation across L2, L3, and L4, (2) a
+justification for that split tied to this request type's actual shape,
+(3) a surplus/deficit validation for each line against the worst-case
+numbers above, and (4) a follow-up plan naming a real technique for
+anything in deficit.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of allocation an AI assistant might hand back on the first try. Read it the way you'd read a colleague's budget spreadsheet before it goes to Halveston's engineering lead, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_allocation.py (as handed back)</span>
+    </div>
+    <pre><code># Post-Discharge Follow-Up is a recurring, moderately long conversation
+# with a heavy memory need, so History gets the largest single share and
+# Memory gets real weight too, ahead of Grounding.
+ALLOCATION = {
+    "L2": round(48_000 * 0.30),  # 14,400
+    "L3": round(48_000 * 0.45),  # 21,600
+    "L4": round(48_000 * 0.25),  # 12,000
+}
+# 14,400 + 21,600 + 12,000 = 48,000
+
+PROFILE_JUSTIFICATION = (
+    "We chose 30% grounding, 45% history, and 25% memory because that "
+    "split balances all three lines reasonably for a recurring "
+    "conversation type. This gives history the most room since it's the "
+    "largest share, with grounding and memory splitting the rest."
+)
+
+# Compare each line's allocation against the worst-case numbers.
+VALIDATION = {
+    "L2": "surplus",  # 14,400 > 9,000
+    "L3": "surplus",  # 21,600 > 16,000
+    "L4": "surplus",  # 12,000 covers the 12,000 worst case exactly
+}
+
+FOLLOW_UP_PLAN = (
+    "All three lines have adequate headroom against the worst-case audit, "
+    "so no further action is needed before this request type ships."
+)</code></pre>
+  </div>
+
+  <p>It looks like a real allocation — three lines filled in, a sum that lands on a round number, a justification paragraph, a validation table, a follow-up plan. It's also wrong or weak in three separate, genuinely easy-to-miss ways, and if you dropped these values into <code>starter.py</code> unchanged, its self-check would catch at least one of them immediately — but not all three, because the self-check only verifies internal consistency against <em>your own</em> numbers, not whether your reasoning is any good (exactly the distinction Criterion 5 of <code>RUBRIC.md</code> asks you to be able to explain).</p>
+
+  <h2>Step 2: Where did the AI's allocation lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 — the percentages were applied to the full context window, not the remaining budget</span>
+      <p><strong>What it looks like it does:</strong> <code>round(48_000 * 0.30)</code> reads like a completely ordinary percentage-split calculation, and the three numbers do add up cleanly to a round 48,000 — nothing about the arithmetic looks broken at a glance.</p>
+      <p><strong>What it actually does:</strong> 48,000 is <code>CONTEXT_WINDOW_TOKENS</code>, the raw window size — not the number these percentages were supposed to split. Per this chapter's own recipe, Steps 2 and 3 reserve Line 5 (2,500 tokens) and Line 1 (1,200 tokens) <em>first</em>, leaving a real remaining budget of 48,000 &minus; 2,500 &minus; 1,200 = 44,300 tokens for L2, L3, and L4 to split. The AI's allocation sums to 48,000, which is exactly 3,700 tokens over the real remaining budget — and 3,700 is not a random overshoot, it's precisely <code>RESERVED_OUTPUT_TOKENS + SYSTEM_INSTRUCTIONS_TOKENS</code>, the two lines the AI's split silently never subtracted.</p>
+      <p><strong>Why it matters:</strong> this is the exact shape of mistake Chapter 1's own hook (SignalDesk) made and this chapter's Step 2 exists specifically to prevent — computing "how much room is left" without reserving output and system instructions first, so the number you split looks bigger than it really is. Ship this allocation unchanged and the request-assembly code either silently overruns the real window by 3,700 tokens, or some later, unplanned truncation has to claw those tokens back from somewhere with no policy behind which line loses them.</p>
+      <p><strong>The fix:</strong> compute <code>remaining = CONTEXT_WINDOW_TOKENS - RESERVED_OUTPUT_TOKENS - SYSTEM_INSTRUCTIONS_TOKENS</code> first (44,300), then split percentages against that number — exactly what <code>starter.py</code>'s own <code>remaining_budget()</code> helper does, and exactly why its self-check would reject this allocation the instant you ran it: "ALLOCATION values must sum to exactly 44,300 ... got 48,000."</p>
+
+      <span class="qa-section-label flags">Flaw 2 — the justification restates the percentages instead of defending them</span>
+      <p><strong>What it looks like it does:</strong> it's a real paragraph, in real sentences, that mentions the request type ("a recurring conversation type") and explains the split — it reads like a justification.</p>
+      <p><strong>What it actually does:</strong> re-read it closely: "history gets the most room since it's the largest share" is circular — it justifies giving history the largest share by pointing out that history has the largest share. Nothing in the paragraph engages with Post-Discharge Follow-Up's actual, specific content shape given in the spec: a full medication list, comorbidities, and notes from <em>prior</em> follow-up sessions — a recalled-memory need this chapter's own hook (Vantry's Chronic Care Check-In) already showed can be the dominant, safety-critical line in exactly this kind of recurring healthcare conversation. The AI's split even under-weights L4 (25%) relative to L3 (45%) without ever addressing why memory, not history, isn't the dominant line here.</p>
+      <p><strong>Why it matters:</strong> this is precisely the failure mode <code>RUBRIC.md</code>'s Criterion 2 scores a 2 for: "a justification is present but generic ... without tying the reasoning to this request type's specific content shape." It would pass a naive "is there text in this field" check while still failing the actual bar the project cares about — the same "structural, not correctness" gap Criterion 5 asks you to name out loud.</p>
+      <p><strong>The fix:</strong> tie the split to the request type's real content, the way <code>solution.py</code> does — naming the specific reason memory (or history, if you genuinely believe history dominates) deserves its share: "the recalled record (full medication list, comorbidities, notes from prior sessions) is what keeps a multi-week follow-up safe, so Line 4 gets real weight above the lesson's own long_recurring archetype's 25%" is a defensible, specific claim; "history gets the most room since it's the largest share" is not a claim at all.</p>
+
+      <span class="qa-section-label flags">Flaw 3 — Line 4's validation call is wrong at exactly the boundary case, and it hides a real deficit</span>
+      <p><strong>What it looks like it does:</strong> "12,000 covers the 12,000 worst case exactly" sounds like a clean, comfortable match — the allocation hits the worst-case number right on the nose, no waste, no shortfall.</p>
+      <p><strong>What it actually does:</strong> "covers exactly" is not the same as "surplus." The project's own rule (spelled out in <code>starter.py</code>'s <code>check_validation()</code>) is <code>"surplus" if allocated &gt; actual else "deficit"</code> — strictly greater than, not greater-or-equal. An allocation that lands exactly on the worst-case number leaves zero headroom for anything the audit didn't happen to measure (a slightly longer medication list next month, one more comorbidity note) — that's a deficit by definition, not a surplus, and the AI's plain-language reasoning ("covers it exactly") papered over the strict inequality the actual rule depends on.</p>
+      <p><strong>Why it matters:</strong> this is exactly what <code>RUBRIC.md</code>'s Criterion 3 means by "one of three lines is misclassified" (a 2, not a 4) — and it's not a cosmetic slip, because the AI's <code>FOLLOW_UP_PLAN</code> then compounds it: believing all three lines are in surplus, it concludes "no further action is needed," when a correct validation would have flagged L4 as a real deficit needing a real plan — exactly the kind of silent, boundary-case gap that broke Talia's medication check in this chapter's own hook, where a line sized to the exact wrong number, not a generously wrong one, is what let a critical fact get truncated.</p>
+      <p><strong>The fix:</strong> classify L4 as "deficit" (allocated equals, but does not exceed, the worst case), and give it a real follow-up plan instead of "no further action" — name a concrete technique (e.g. summarizing older follow-up sessions' notes into a compact running record, freeing real headroom above the exact worst-case number) and point to Chapter 3, the chapter that owns short-term and long-term memory compression, exactly as <code>solution.py</code>'s own <code>FOLLOW_UP_PLAN</code> does for its (different, but analogously boundary-tight) Line 3 deficit.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong — worth noticing that too, since a fair critique isn't just a hunt for flaws. The AI's arithmetic (once you correct which total it should have split) was mechanically clean — three positive integers, correctly rounded, summing to a consistent total — and giving History real weight in a 12-25-turn recurring conversation type is a genuinely defensible call, not a wrong one (it's simply a different, legitimately arguable split from <code>solution.py</code>'s memory-dominant one, since the profile choice is intentionally open-ended per <code>RUBRIC.md</code>). L2 and L3's surplus calls were also both correct. If you'd accepted the whole response uncritically, you'd have kept a mechanically sound split concept and two correct validation calls alongside a wrong subtraction base, a hollow justification, and one dangerously wrong boundary classification that erased a real deficit. That mix — mostly plausible, wrong in specific load-bearing spots — is a more realistic picture of what pairing with an AI actually produces than either "it's always right" or "it's always wrong."</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 3 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'Always confirm which total a percentage split is against' or 'Treat exact-match validations as deficits, not surpluses'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Project</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

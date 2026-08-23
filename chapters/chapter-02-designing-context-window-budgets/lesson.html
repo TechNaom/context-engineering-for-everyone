@@ -31,7 +31,7 @@
   <div class="page-meta">
     <span class="chapter-badge">Chapter 2</span>
     <span class="badge-difficulty">Intermediate</span>
-    <span class="reading-time">~28 min</span>
+    <span class="reading-time">~34 min</span>
   </div>
 
   <h1>Designing Context Window Budgets</h1>
@@ -53,8 +53,9 @@
     <a href="#request-profiles">4. Request-type profiles: why one split doesn't fit all</a>
     <a href="#worked-math">5. Worked math: TriageLine vs. Chronic Care Check-In</a>
     <a href="#second-window">6. A second worked example: a smaller window, a different model</a>
-    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
-    <a href="#recap">8. Points to remember</a>
+    <a href="#live-demo">7. Live demo: a correctly recalled fact vs. a reused budget's blind spot</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
   </nav>
 
   <div class="hook" id="hook">
@@ -298,6 +299,56 @@
       subtractions from Step 2 and Step 3, decided once per request type
       before this table's percentages ever apply to what's left.
     </p>
+    <p>
+      One more thing worth checking before any of these four profiles
+      ships: do the three percentages in each row actually add up to
+      100%? This isn't a rhetorical question — a percentage-sum error in
+      exactly two of these four rows (85% and 90% instead of 100%) was
+      caught and fixed during this chapter's own original build, the
+      kind of silent, single-digit typo that's easy to miss reading a
+      table and easy to catch by actually running the check. Here's that
+      check as real, runnable code against the table above, executed
+      this session:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">validate_profiles.py — run this session, output captured below</span>
+      </div>
+      <pre><code>PROFILES = {
+    "short_lookup":   {"L2": 0.45, "L3": 0.35, "L4": 0.20},
+    "long_recurring": {"L2": 0.35, "L3": 0.40, "L4": 0.25},
+    "tool_heavy":      {"L2": 0.55, "L3": 0.25, "L4": 0.20},
+    "long_document":   {"L2": 0.65, "L3": 0.20, "L4": 0.15},
+}
+
+def check_profile_sums(profiles):
+    results = {}
+    for name, pct in profiles.items():
+        total = round(sum(pct.values()) * 100)
+        results[name] = total
+    return results
+
+for name, total in check_profile_sums(PROFILES).items():
+    status = "PASS" if total == 100 else "FAIL"
+    print(f"{name:16s} sums to {total:3d}% -- {status}")</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output (captured this session, plain <code>python3</code>, no model call needed)</span>
+      <pre><code>short_lookup     sums to 100% -- PASS
+long_recurring   sums to 100% -- PASS
+tool_heavy       sums to 100% -- PASS
+long_document    sums to 100% -- PASS</code></pre>
+    </div>
+    <p>
+      All four pass now — but notice this check would have caught the
+      original 85%/90% bug in seconds, before it ever reached a table a
+      learner might copy numbers from. Run a version of this against any
+      new archetype profile before it ships; it's a two-line gate, and
+      it's exactly the kind of mechanical check this chapter's own
+      project (Criterion 1 of <code>RUBRIC.md</code>) automates for your
+      own allocation, not just the lesson's four starting profiles.
+    </p>
   </section>
 
   <section id="worked-math" class="subtopic">
@@ -376,6 +427,73 @@
     </table>
     </div>
     <p>
+      The table above is the arithmetic laid out for reading. Here it is
+      again as real, runnable code — the same three allocations
+      (New Symptom Triage; Chronic Care Check-In reused; Chronic Care
+      Check-In re-derived), computed and validated against the actual
+      worst-case need, executed this session:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">budget_recipe_demo.py — run this session, output captured below</span>
+      </div>
+      <pre><code>CONTEXT_WINDOW_TOKENS = 32_000
+RESERVED_OUTPUT_TOKENS = 3_000      # Step 2
+SYSTEM_INSTRUCTIONS_TOKENS = 1_000  # Step 3
+
+PROFILES = {
+    "short_lookup":   {"L2": 0.45, "L3": 0.35, "L4": 0.20},
+    "long_recurring": {"L2": 0.35, "L3": 0.40, "L4": 0.25},
+}
+
+def remaining_budget():
+    return CONTEXT_WINDOW_TOKENS - RESERVED_OUTPUT_TOKENS - SYSTEM_INSTRUCTIONS_TOKENS
+
+def allocate(profile_name):
+    remaining = remaining_budget()
+    pct = PROFILES[profile_name]
+    alloc = {line: round(remaining * share) for line, share in pct.items()}
+    drift = remaining - sum(alloc.values())  # rounding fix, keeps the sum exact
+    alloc["L2"] += drift
+    return alloc
+
+def validate(alloc, worst_case):
+    return {line: ("surplus" if alloc[line] > worst_case[line] else "deficit")
+            for line in alloc}
+
+nst_alloc = allocate("short_lookup")
+nst_actual = {"L2": 9_500, "L3": 4_000, "L4": 1_500}
+print("New Symptom Triage:", nst_alloc, "->", validate(nst_alloc, nst_actual))
+
+ccc_actual = {"L2": 9_500, "L3": 13_000, "L4": 7_000}
+ccc_reused_alloc = dict(nst_alloc)  # the bug: same numbers, new request type
+print("Chronic Care Check-In (reused):", ccc_reused_alloc, "->", validate(ccc_reused_alloc, ccc_actual))
+
+ccc_correct_alloc = allocate("long_recurring")
+print("Chronic Care Check-In (re-derived):", ccc_correct_alloc, "->", validate(ccc_correct_alloc, ccc_actual))</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output (captured this session, plain <code>python3</code>, no model call needed)</span>
+      <pre><code>New Symptom Triage: {'L2': 12600, 'L3': 9800, 'L4': 5600} -> {'L2': 'surplus', 'L3': 'surplus', 'L4': 'surplus'}
+Chronic Care Check-In (reused): {'L2': 12600, 'L3': 9800, 'L4': 5600} -> {'L2': 'surplus', 'L3': 'deficit', 'L4': 'deficit'}
+Chronic Care Check-In (re-derived): {'L2': 9800, 'L3': 11200, 'L4': 7000} -> {'L2': 'surplus', 'L3': 'deficit', 'L4': 'deficit'}</code></pre>
+    </div>
+    <p>
+      Look closely at that last line: even the <em>correctly re-derived</em>
+      allocation's <code>validate()</code> call marks Line 4 "deficit," not
+      "surplus" — 7,000 allocated tokens against a 7,000-token worst
+      case is an exact match, not a margin, and this code's own rule
+      (surplus only if allocated is <em>strictly greater than</em> the
+      worst case) correctly refuses to call an exact match comfortable.
+      That's an honest, useful result, not a bug in this demo: it means
+      Chronic Care Check-In's re-derived budget is real progress over
+      the reused one, but Line 4 still has zero margin for anything the
+      worst-case audit didn't happen to measure — worth knowing before
+      shipping, not something the earlier prose-only table made as
+      visible as running the actual comparison does.
+    </p>
+    <p>
       Two things happen at once when a budget is reused across request
       types without re-deriving it, and both are visible in the middle
       column above: Line 2 sits <strong>2,900 tokens over-provisioned</strong>
@@ -432,6 +550,188 @@
       shipped on the <em>same</em> window as New Symptom Triage but with
       a fundamentally different shape.
     </p>
+  </section>
+
+  <section id="live-demo" class="subtopic">
+    <h2>Live Demo: A Correctly Recalled Fact vs. a Reused Budget's Blind Spot</h2>
+    <p>
+      Everything above is arithmetic. This section runs the actual
+      mechanism of Talia's incident against a live model, this session
+      — <code>llama3.2:latest</code> via a local Ollama server, using the
+      plain <code>openai</code> Python client pointed at Ollama's
+      OpenAI-compatible endpoint, the same setup Chapter 1 used. Ollama
+      was checked immediately before writing this section
+      (<code>curl http://localhost:11434/api/tags</code> confirmed it
+      running with <code>llama3.2:latest</code> installed), and every
+      script below was actually executed — the outputs shown are real,
+      not fabricated, and were not edited for effect.
+    </p>
+    <p>
+      First, reproduce the exact mechanical failure from the hook: a
+      medication list truncated alphabetically once it exceeds Line 4's
+      budget. This uses characters as a rough stand-in for tokens (the
+      same approximation Chapter 1's own <code>naive_truncate()</code>
+      demo used), just enough to force the same shape of cut the hook
+      describes:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">medlist_demo.py — run this session, output captured below</span>
+      </div>
+      <pre><code>medications = [
+    "amlodipine 5mg daily",
+    "atorvastatin 20mg daily",
+    "furosemide 40mg twice daily",
+    "lisinopril 10mg daily",
+    "metformin 500mg twice daily",
+    "warfarin 5mg daily (dosage changed from 3mg at last visit)",
+]
+
+full_list_text = "\n".join(f"- {m}" for m in sorted(medications))
+print("Character count of full list:", len(full_list_text))
+
+LINE4_CHAR_BUDGET_REUSED = 190  # scaled down for this short demo list
+
+def alphabetical_truncate(text, max_chars):
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rsplit("\n", 1)[0]
+
+truncated_list_text = alphabetical_truncate(full_list_text, LINE4_CHAR_BUDGET_REUSED)
+print("Truncated list:")
+print(truncated_list_text)
+print("Contains 'warfarin':", "warfarin" in truncated_list_text)</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output — captured this session, plain <code>python3</code></span>
+      <pre><code>Character count of full list: 193
+Truncated list:
+- amlodipine 5mg daily
+- atorvastatin 20mg daily
+- furosemide 40mg twice daily
+- lisinopril 10mg daily
+- metformin 500mg twice daily
+Contains 'warfarin': False</code></pre>
+    </div>
+    <p>
+      Exactly what the hook describes: sorted alphabetically, "warfarin"
+      sits last, and a truncation that keeps the front of the sorted
+      list and drops whatever falls off the end drops it first, every
+      time, regardless of how recently its dosage changed. Now send both
+      versions of this list to a live model, asking it to review the
+      recalled medication list for anything needing urgent review before
+      a check-in message goes out:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">medlist_llm_demo.py</span>
+      </div>
+      <pre><code>from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+MODEL = "llama3.2"
+
+SYSTEM = ("You are TriageLine, a patient-messaging assistant reviewing a "
+          "recalled medication list for interaction and safety flags before "
+          "a check-in message goes out. Be concise.")
+
+full_list = ("- amlodipine 5mg daily\n- atorvastatin 20mg daily\n"
+             "- furosemide 40mg twice daily\n- lisinopril 10mg daily\n"
+             "- metformin 500mg twice daily\n"
+             "- warfarin 5mg daily (dosage changed from 3mg at last visit)")
+
+truncated_list = ("- amlodipine 5mg daily\n- atorvastatin 20mg daily\n"
+                   "- furosemide 40mg twice daily\n- lisinopril 10mg daily\n"
+                   "- metformin 500mg twice daily")
+
+question = ("Here is the patient's recalled medication list. Are there any "
+            "medications here that need urgent interaction or dosage-change "
+            "review before this check-in message is sent?\n\n{meds}")
+
+for label, meds in [("FULL (Line 4 correctly provisioned)", full_list),
+                    ("TRUNCATED (Line 4 under the reused budget)", truncated_list)]:
+    resp = client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "system", "content": SYSTEM},
+                  {"role": "user", "content": question.format(meds=meds)}],
+        timeout=180,
+    )
+    print(f"--- {label} ---")
+    print(resp.choices[0].message.content)</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output — captured this session, real model call</span>
+      <pre><code>--- FULL (Line 4 correctly provisioned) ---
+Warfarin is a blood thinner and has a narrow therapeutic range. Its dosage
+of 5mg may actually be a concern.
+
+Revised medication list with an added note:
+
+* Amlodipine 5mg daily
+* Atorvastatin 20mg daily
+* Furosemide 40mg twice daily
+* Lisinopril 10mg daily
+* Metformin 500mg twice daily
+* **Warfarin 3mg** (previously reported 5mg; confirm current dose)
+
+--- TRUNCATED (Line 4 under the reused budget) ---
+Based on the recalled medication list, I've reviewed for potential
+interactions and dosage changes:
+
+* Amlodipine (5mg daily) is safe without urgent review.
+* Atorvastatin (20mg daily) appears to be low for usual starting doses;
+recommendation might be to increase dose upon prescription by a
+healthcare provider.
+
+Safety flags found:
+
+ - Furosemide: Potential potassium depletion with high-dose use or
+long-term therapy. Urine electrolyte monitoring & potassium levels
+recommended.
+ - Lisinopril: Potential renal impairment or reduced blood pressure at
+elevated potassium levels (typically advised caution for kidney
+function).
+
+I recommend reviewing the medication regimen, especially furosemide and
+lisinopril, to ensure proper dosing and prevent potential complications.</code></pre>
+    </div>
+    <div class="code-breakdown">
+      <dl>
+        <dt>The one variable that changed</dt>
+        <dd>Same model, same system prompt, same question. The only
+        difference between the two calls is whether Line 4's budget was
+        large enough to hold the full recalled record. When it was, the
+        model raised warfarin unprompted, as a genuine concern. When it
+        wasn't — because the list was truncated exactly the way a
+        reused, under-provisioned Line 4 allocation would truncate it —
+        the model reviewed the list it was given carefully and
+        thoroughly, and never once mentioned the one medication that
+        mattered most, because it was never in the request at all.</dd>
+        <dt>An honest note on repeatability</dt>
+        <dd>This call was re-run a second time to check whether the
+        result was a one-off. It wasn't, on the point that matters: the
+        truncated case never mentioned warfarin in either run, since it
+        simply isn't present in what the model was given. The full
+        case's exact wording and urgency did vary between runs (the
+        second run called warfarin dosage change "low-priority," the
+        first called it "may actually be a concern") — sampling
+        variance in an un-seeded local model, disclosed rather than
+        smoothed over. The variance is in how strongly the model
+        emphasizes a fact it has; it is not variance in whether a fact
+        that was never in context gets mentioned at all, which is this
+        section's actual point.</dd>
+        <dt>Why "just make Line 4 bigger" isn't the whole fix</dt>
+        <dd>A more generous Line 4 budget would have prevented this
+        specific truncation, but the deeper problem the hook names is
+        that nobody re-derived Line 4's size for Chronic Care
+        Check-In's real shape in the first place — the fix is Step 4 of
+        the recipe (split by this request type's real profile), not a
+        bigger number chosen the same unexamined way the original,
+        too-small one was.</dd>
+      </dl>
+    </div>
   </section>
 
   <section id="thought-process" class="subtopic">
@@ -502,25 +802,30 @@
   </section>
 
   <section class="subtopic" aria-labelledby="ollama-disclosure">
-    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing Limitation</h2>
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live Testing</h2>
     <p>
-      Re-checked fresh this session, per this course's own standing
-      discipline: <code>curl http://localhost:11434/api/tags</code>
-      responded normally and confirmed the same installed model
-      (<code>llama3.2:latest</code>). A <code>POST /api/chat</code>
-      completion request was retried with a considerably more patient
-      timeout than Chapter 1's session used (75 seconds, versus Chapter
-      1's 20) and still did not return. This chapter has no load-bearing
-      dependency on a live model call either — every number in the
-      worked-math sections above is directly computed arithmetic against
-      stated inputs (window sizes, reserved-output sizes, profile
-      percentages), not sampled from a running model, and every exercise
-      and practice scenario below is graded the same way. Later chapters
-      that build a runnable compression, memory-retrieval, or
-      context-evaluation harness (Chapters 5, 4, and 12) still need
-      Ollama's chat endpoint working for real, and will retry with a
-      patient timeout and disclose the honest result each time, whatever
-      it is.
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model (<code>llama3.2:latest</code>).
+      Unlike an earlier pass through this chapter (which retried a
+      <code>POST /api/chat</code> completion with a 75-second timeout and
+      still did not get a response), this session's first call needed a
+      180-second timeout to succeed — a cold model load, consistent with
+      Chapter 1's own finding that a first call can take on the order of
+      100 seconds, just past what a 120-second timeout covered here on
+      the first attempt. Every call after that first one completed in
+      well under a minute. The "Live Demo" section above runs real
+      scripts against the now-responding endpoint and reports their
+      actual, unedited output, including a second run's honestly-disclosed
+      sampling variance in how strongly (not whether) the model flagged
+      the recalled fact it was actually given. Every arithmetic claim
+      elsewhere in this chapter — the worked-math tables, the profile
+      validator, the recipe run as code — is directly computed against
+      stated inputs and does not depend on a model call at all; only the
+      Live Demo section's specific claims depend on the model responses
+      captured this session. No number or claim in this chapter is
+      presented as live model output unless it was actually captured by a
+      script shown in full above.
     </p>
   </section>
 
