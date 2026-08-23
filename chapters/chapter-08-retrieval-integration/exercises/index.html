@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieval Integration Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Retrieval Integration: From Ranked Results to Context.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-08">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 8 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Retrieval Integration</h1>
+  <p>
+    These exercises use a fresh scenario, deliberately different from
+    the lesson's Mossgate Regional Law Library Consortium/CiteLine hook:
+    <strong>Cobalt Ridge Claims Adjustment Bureau</strong>, a fictional
+    insurance claims adjustment firm. Its claims-review assistant,
+    <strong>DossierLine</strong>, retrieves ranked, scored excerpts from
+    a large policy-document and prior-claim corpus for "Coverage
+    Determination Review" requests. Chapters 1-7's own recipes have
+    already run for this request type — a correct budget, correct memory
+    handling, nothing over budget needing compression, no positional
+    risk, and no multi-source contradiction left unresolved. Retrieval
+    architecture itself is correct and out of scope — your job is this
+    chapter's own new skill: turning the retriever's raw ranked output
+    into one well-formed source before it ever reaches Chapter 7's own
+    inventory step.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — relevance-floor
+    filtering, boundary-safe budget fit, provenance completeness,
+    adjacent-chunk stitching, a naive-vs-recipe regression gate, and an
+    empty/low-confidence result decision, not just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match scenarios to integration approaches</h3>
+    <p>Decide which of three DossierLine scenarios show unconditional top-k stuffing, relevance-floor-only filtering, or the full Retrieval Integration Recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the Retrieval Integration Recipe</h3>
+    <p>Put the lesson's six recipe steps in the correct sequence, from the relevance floor to the handoff to Chapter 7's own Source Assembly Recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Relevance-floor filtering</h3>
+    <p>Given five scored chunks and a relevance floor, compute which chunks survive.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Boundary-safe budget fit</h3>
+    <p>Select surviving chunks in score order until budget is spent, without truncating any chunk mid-sentence.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Provenance completeness check</h3>
+    <p>Decide which of four chunks carry complete source, section, and score metadata.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Adjacent-chunk stitching</h3>
+    <p>Decide which of four chunk pairs are consecutive passages of the same document and should be merged.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Naive-vs-recipe regression gate</h3>
+    <p>Confirm a load-bearing clause a naive character-count cutoff would drop is correctly preserved by the recipe, within budget.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Empty/low-confidence result decision</h3>
+    <p>For three retrieval outcomes, decide whether to proceed with the bundle or surface "no relevant result found."</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

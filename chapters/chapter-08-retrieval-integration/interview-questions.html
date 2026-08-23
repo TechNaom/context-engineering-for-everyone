@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieval Integration Interview Questions — Context Engineering for Everyone</title>
+<meta name="description" content="Interview questions for Retrieval Integration: From Ranked Results to Context.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-08">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="practice/index.html">&larr; Back to practice bank</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 8 Interview Questions</span>
+    <span class="reading-time">~18 min</span>
+  </div>
+  <h1>Interview Questions: Retrieval Integration</h1>
+  <p>Grouped by level — beginner, intermediate, senior, architect. Each includes a strong answer, a red flag, a follow-up, and what the question actually proves.</p>
+
+  <div class="lesson-card">
+    <h2>1. (Beginner) CiteLine's retriever ranked the right qualifying clause second out of five chunks. Why did the assistant still miss it?</h2>
+    <p><strong>Strong answer:</strong> The retriever did its job correctly — relevance ranking and scoring is not this chapter's problem. The failure was downstream: the pipeline always took a fixed top-k of chunks and then truncated the assembled text by raw character count wherever the budget happened to run out, with no awareness that it was cutting through the middle of the one chunk that actually decided the answer. Correct ranking within a retriever's own output is not the same as a well-formed context block built from that output.</p>
+    <p><strong>Red flag:</strong> Blames the retriever, the embedding model, or the ranking algorithm, rather than the integration step that mishandled correctly-ranked output.</p>
+    <p><strong>Follow-up:</strong> "If the team had retrained the retriever to rank the clause first instead of second, would that have fixed the actual problem?"</p>
+    <p><strong>What this proves:</strong> Understands that correct retrieval ranking is not the same as a well-formed context source.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>2. (Beginner) What does "retrieval integration" mean, in one sentence a non-technical stakeholder would understand?</h2>
+    <p><strong>Strong answer:</strong> A retriever hands back a ranked list of scored text fragments, not a finished answer — someone has to decide which fragments are actually relevant enough to keep, make sure none of them get cut off mid-sentence to fit a budget, keep track of where each piece came from, and stitch back together fragments that were really one continuous passage before any of it reaches the model.</p>
+    <p><strong>Red flag:</strong> Describes it as simply "formatting the search results," with no mention of relevance filtering, boundaries, or provenance.</p>
+    <p><strong>Follow-up:</strong> "Is this the same thing as building the search index or choosing the embedding model?"</p>
+    <p><strong>What this proves:</strong> Can distinguish the integration handoff (this chapter) from retrieval architecture itself (<code>rag-for-everyone</code>'s own subject).</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>3. (Intermediate) A teammate says: "we already filter out chunks below a relevance score, so our retrieval pipeline is solid." How do you respond?</h2>
+    <p><strong>Strong answer:</strong> A relevance floor is a real, worthwhile improvement over unconditional top-k stuffing, and worth keeping — but it doesn't address budget-fit truncation or chunk stitching. CiteLine's own second live capture showed exactly this gap: even with the three genuinely irrelevant chunks correctly excluded, nothing about a relevance floor prevents a tight budget from truncating a surviving, relevant chunk mid-clause, or leaves two adjacent passages of the same document correctly separate when they should be merged into one.</p>
+    <p><strong>Red flag:</strong> Treats relevance filtering as sufficient on its own, or conflates "irrelevant chunks excluded" with "well-formed context."</p>
+    <p><strong>Follow-up:</strong> "What happens in your pipeline right now if two surviving, relevant chunks are the same paragraph split by the chunker?"</p>
+    <p><strong>What this proves:</strong> Understands the real gap between relevance filtering and the rest of the integration recipe.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>4. (Intermediate) How is this chapter's subject different from what Chapter 7 (Multi-Source Context Assembly) already taught?</h2>
+    <p><strong>Strong answer:</strong> Chapter 7 assumed every candidate source — including a retrieved document — was already well-formed by the time it reached its own inventory step, and asked how several such sources combine without contradicting each other. This chapter answers an earlier question specific to one of those sources: given a retriever's raw ranked, scored chunk list, how does it become the single well-formed source Chapter 7's Step 1 is entitled to assume it already has? A pipeline could nail this chapter's integration perfectly on a single-source request and never even reach Chapter 7's multi-source problem, or vice versa on a request with only one, already-clean source.</p>
+    <p><strong>Red flag:</strong> Conflates "shaping one retriever's own output" with "combining several sources," or can't say which chapter's recipe runs first on a retrieved document specifically.</p>
+    <p><strong>Follow-up:</strong> "If two well-formed retrieved sources from two different retrievers still disagree with each other, which chapter's recipe handles that?"</p>
+    <p><strong>What this proves:</strong> Can hold the sequential, complementary boundary between this chapter and Chapter 7 explicitly.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>5. (Senior) You're reviewing a new RAG pipeline before it ships. What do you check beyond "the retriever returns the right documents, ranked correctly"?</h2>
+    <p><strong>Strong answer:</strong> Correct ranking is necessary but not sufficient. Check that a relevance floor is applied on purpose, not just "whatever top-k happens to be configured." Check that the budget fit stops at chunk boundaries, never truncating a surviving chunk mid-sentence. Check that provenance (source document, section, score) survives into the final context block, not just raw text. Check that consecutive chunks from the same document get recognized and stitched rather than left as disconnected fragments. And check that an empty or low-confidence result is surfaced honestly as its own outcome, not silently backfilled with the best available but still-irrelevant chunk.</p>
+    <p><strong>Red flag:</strong> Signs off purely because retrieval precision/recall metrics look good, with no scrutiny of what happens between retrieval and the model actually receiving the text.</p>
+    <p><strong>Follow-up:</strong> "Walk me through what your pipeline does today when every retrieved chunk for a query scores below your relevance floor."</p>
+    <p><strong>What this proves:</strong> Understands that retrieval quality is a floor, and integration needs its own explicit, testable rules downstream of it.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>6. (Senior) How do you decide how much engineering investment a given request type's retrieval integration deserves?</h2>
+    <p><strong>Strong answer:</strong> Look at how tight the token budget typically is relative to chunk sizes (tighter budgets mean truncation risk is real, not theoretical), how often the corpus contains adjacent, split passages for this request type's typical documents, and what's at stake if a load-bearing clause gets silently dropped — a legal qualifying limit, a medical contraindication, a safety exclusion, versus a low-stakes FAQ lookup where a single short, self-contained chunk is the normal case. High-stakes, budget-constrained request types justify the full Retrieval Integration Recipe; a single-chunk, low-stakes lookup may reasonably need only the relevance floor.</p>
+    <p><strong>Red flag:</strong> Proposes full boundary-safe fitting and stitching for every request "to be safe" with no engagement with actual truncation risk, or the reverse — skips it for a request type where a real, observed truncation already happened.</p>
+    <p><strong>Follow-up:</strong> "Your highest-traffic request type has generous budget headroom relative to typical chunk sizes. Does it still need the full recipe?"</p>
+    <p><strong>What this proves:</strong> Applies proportionate judgment consistently, rather than treating this chapter's recipe as free or universally required.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>7. (Architect) Design a lightweight governance process so every RAG pipeline in a production system actually gets integration review, not just a retrieval-quality review.</h2>
+    <p><strong>Strong answer:</strong> Require a standard artifact per request type that uses retrieval: the configured relevance floor and the reasoning behind it, evidence that budget fitting is boundary-safe (a test that verifies no chunk is ever partially included), a provenance-completeness check (every surviving chunk carries a source, section, and score), and a documented behavior for the empty/low-confidence case. Pair it with a regression suite built from known load-bearing multi-chunk passages (like CiteLine's own qualifying-clause pair) that must survive integration intact before a pipeline change ships, and track truncation-detected and empty-result rates as first-class production metrics.</p>
+    <p><strong>Red flag:</strong> A process that only tracks retrieval precision/recall, with no requirement that integration behavior — truncation, stitching, provenance, empty-result handling — was ever tested directly.</p>
+    <p><strong>Follow-up:</strong> "A new document type gets added to the corpus next quarter, with a different typical passage length. How does your process catch that the existing relevance floor and budget assumptions might no longer fit it?"</p>
+    <p><strong>What this proves:</strong> Architect-level judgment — treats retrieval integration as something that needs continuous verification as the corpus and request types evolve, not a one-time pipeline setting.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>8. (Architect) Leadership says: "our new retriever has a much larger context window and better reranking — do we still need explicit relevance floors, boundary-safe fitting, and stitching?"</h2>
+    <p><strong>Strong answer:</strong> A better retriever and a larger window change the calculus but don't eliminate the need. A larger window reduces how often budget-fit truncation actually triggers, but doesn't eliminate the question of what happens when a request type's retrieved content still exceeds it, and better reranking improves which chunks are top-ranked but says nothing about whether two of them are still mechanically split fragments of the same underlying passage. This chapter's own hook and live captures show the risk is not "retrieval is bad," it's that correctly-produced, correctly-ranked chunks can still combine into a poorly-formed context block — a claim about a bigger window or a better reranker needs its own regression evidence against known multi-chunk, load-bearing passages for the new system, not an assumption that a generically better retriever solves an integration-layer problem it was never designed to solve.</p>
+    <p><strong>Red flag:</strong> Treats retriever/window upgrades as a sufficient replacement for explicit integration steps, with no engagement with the specific failure mode (correctly retrieved, incorrectly integrated) this chapter's own hook and live captures demonstrated.</p>
+    <p><strong>Follow-up:</strong> "What's the smallest, cheapest test you'd run against the new retriever before removing your boundary-safe budget fit for a high-stakes request type?"</p>
+    <p><strong>What this proves:</strong> Can reason about retrieval capability improvements as a reason to keep testing the integration layer specifically, not a reason to remove it.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Strategy Tips</h2>
+    <ul>
+      <li>Ground every answer in CiteLine's actual failure (a correctly ranked, correctly scored retriever output, still mishandled between retrieval and the model by a boundary-blind cutoff) rather than a generic "retrieval quality matters" answer.</li>
+      <li>For senior/architect questions, always name the specific integration mechanism at risk — relevance floor, boundary-safe fit, provenance, stitching, or empty-result handling — rather than treating "better retrieval" as a universal fix for problems that happen after retrieval.</li>
+      <li>If you're new to engineering interviews: reason out loud by naming which of this chapter's own failure-prone moments (deciding what's relevant enough to keep, cutting safely within budget, or recognizing that two chunks are really one passage) a given scenario is testing, before proposing a fix.</li>
+    </ul>
+  </div>
+
+  <div class="what-is">
+    <span class="label">A note on this chapter's project</span>
+    This chapter ships Module 4's single L3 Independent project, drawing
+    on both Chapter 7's Source Assembly Recipe and this chapter's own
+    Retrieval Integration Recipe together, closing Module 4 — see
+    <a href="project/index.html">the Module 4 project</a>.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="practice/index.html">&larr; Practice Bank</a>
+    <a href="project/index.html">Module 4 Project &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieval Integration: From Ranked Results to Context — Context Engineering for Everyone</title>
+<meta name="description" content="Chapter 7 assumed every candidate source was already well-formed and asked how several combine. This chapter, closing Module 4, owns the handoff Chapter 7 deliberately left open: turning one retriever's own ranked, scored output into a single well-formed source before it ever reaches Chapter 7's own inventory step.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-08">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 8</span>
+    <span class="badge-difficulty">Advanced</span>
+    <span class="reading-time">~35 min</span>
+  </div>
+
+  <h1>Retrieval Integration: From Ranked Results to Context</h1>
+  <p class="lede">
+    Chapter 7 opened Module 4 by asking how several already-produced
+    sources combine into one window without contradicting or crowding
+    each other out. It deliberately treated every candidate source —
+    including a retrieved document — as already well-formed by the time
+    it reached the inventory step. This chapter, closing Module 4, owns
+    the handoff Chapter 7 left open on purpose: a retriever doesn't hand
+    back a well-formed source. It hands back a ranked list of scored
+    chunks, and something has to decide which of them actually earn a
+    place in the window, how they're stitched back together, and what
+    they carry with them — before Chapter 7's own recipe ever gets to
+    treat "the retrieved document" as one clean, single entry in its
+    inventory.
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. Five ranked chunks, one fabricated legal standard</a>
+    <a href="#why-this-chapter">2. Why Chapter 7 left this open on purpose</a>
+    <a href="#the-recipe">3. The Retrieval Integration Recipe</a>
+    <a href="#approaches-compared">4. Three approaches, compared</a>
+    <a href="#worked-math">5. Worked math: Mossgate's dropped qualifying clause</a>
+    <a href="#live-capture">6. Two live-captured retrieval outcomes</a>
+    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
+    <a href="#recap">8. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Mossgate Regional Law Library Consortium is a fictional multi-branch
+      legal research library. Its research assistant, CiteLine, helps
+      attorneys and clerks answer case-law questions by retrieving the
+      most relevant excerpts from a large opinion corpus and handing them,
+      ranked by relevance score, to a model. By the time this chapter's
+      story starts, the retriever itself — the embedding model, the
+      similarity search, the ranking — was working exactly as designed.
+      That is deliberately not this chapter's problem: `rag-for-everyone`
+      already owns retrieval architecture, chunking, embeddings, and
+      ranking quality, and this chapter assumes all of it as a correct,
+      given input, exactly as it names later in this lesson.
+    </p>
+    <p>
+      A clerk asked CiteLine whether the excited-utterance hearsay
+      exception applied to a witness statement made twenty-five minutes
+      after a car crash, with no evidence the witness was still under
+      acute stress when they spoke. The retriever did its job well: its
+      top-ranked chunk, scored 0.91, was the exact controlling paragraph
+      from <em>Mossgate v. Harrow County</em> (2019) stating the general
+      rule. Its second-ranked chunk, scored 0.88, was the very next
+      paragraph of the same opinion — the one stating the rule's own
+      ten-minute qualifying limit, the fact that actually decides this
+      exact question. Three lower-ranked chunks, scored 0.42, 0.39, and
+      0.35, were excerpts from two unrelated opinions about business
+      records and expert-witness qualification.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">citeline_retrieve.py (retrieval hand-off, before this chapter)</span>
+      </div>
+      <pre><code>  def build_retrieved_context(query, budget_tokens=500):
+      ranked_chunks = retriever.search(query, top_k=5)  # correct, well-tested
+      # ranked_chunks == [(0.91, chunk_a, "doc_mossgate_v_harrow"),
+      #                    (0.88, chunk_b, "doc_mossgate_v_harrow"),
+      #                    (0.42, chunk_c, "doc_talbot_v_state"),
+      #                    (0.39, chunk_d, "doc_renwick_v_ostgate"),
+      #                    (0.35, chunk_e, "doc_unrelated_5")]
+      text = ""
+      for score, chunk, doc_id in ranked_chunks:
+          # Always take top_k=5, no matter how the scores actually look.
+          # No relevance floor. No budget-aware selection -- just append
+          # until the raw character count runs out mid-sentence. No record
+          # of which doc a chunk came from once it's in the string. No
+          # check for whether chunk_a and chunk_b are the very next
+          # paragraph of the same opinion and belong stitched together.
+          text += chunk + "\n\n"
+      return text[:budget_tokens * 4]  # crude char-based cutoff, mid-chunk</code></pre>
+    </div>
+    <p>
+      Under the 500-token budget this request type actually had, that
+      crude cutoff kept the full 0.91 chunk, most of the 0.88 chunk, and
+      then ran out of room — truncating the ten-minute qualifying clause
+      right where it mattered most, mid-sentence, with no signal to
+      anything downstream that the cut had happened or that a second,
+      directly-connected paragraph had even existed. CiteLine's answer
+      confidently stated the exception applied, citing only the general
+      rule, and never mentioned the ten-minute limit at all — not because
+      the retriever failed to find it (it found it, and ranked it second
+      out of five), but because nothing between the retriever and the
+      model decided that a fragment cut off mid-clause is worse than no
+      fragment at all, or that the two top chunks were the same
+      contiguous paragraph and belonged together.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>Why Chapter 7 Left This Open on Purpose</h2>
+    <p>
+      This chapter uses Chapters 1 through 7 as a lens, not fresh
+      material — if the budget ledger, memory policies, the Compression
+      Fidelity Recipe, the Context Ordering Recipe, or the Source
+      Assembly Recipe aren't already familiar, Chapters 2 through 7 are
+      where those skills live, and none of them are re-taught here.
+      Chapter 7's own Source Assembly Recipe starts at Step 1 by
+      inventorying "every candidate source" — but it never asked what
+      makes a retrieved document a well-formed candidate source in the
+      first place. It assumed CiteLine's retrieved chunks arrived already
+      thresholded, already budget-fit, already carrying their own
+      provenance, already stitched into coherent blocks. That assumption
+      is exactly what this chapter builds, closing Module 4.
+    </p>
+    <p>
+      Two boundaries worth naming as directly as Chapter 7's own lesson
+      named its boundary against Chapter 6: this chapter does not teach
+      retrieval architecture, chunking strategy, embedding choice, or
+      ranking-model quality — how the five scored chunks in the hook
+      above got produced, and whether a different retriever would have
+      scored them differently, is `rag-for-everyone`'s own subject, out
+      of scope here entirely. And this chapter does not decide how a
+      well-formed retrieved source stacks up against other source
+      types — a live tool call, the conversation, system
+      instructions — when they disagree; that is Chapter 7's own Source
+      Assembly Recipe, already built, and this chapter's own output is
+      designed to be handed straight to it as one inventoried source,
+      not a replacement for it. This chapter's own job sits in between:
+      given a retriever's already-correct ranked, scored output, how does
+      it become the one well-formed candidate source Chapter 7's Step 1
+      is entitled to assume it already has?
+    </p>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Retrieval Integration Recipe</h2>
+    <p>
+      Six steps, run on a retriever's raw ranked output before it is
+      handed to Chapter 7's own Source Assembly Recipe as a single
+      inventoried source:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Apply a relevance floor before selecting anything</h3>
+      <p>
+        Don't select "the top <code>k</code>" by definition — select
+        chunks that clear a minimum relevance score for this request
+        type. CiteLine's actual pipeline took <code>top_k=5</code>
+        unconditionally, so the three unrelated chunks (0.42, 0.39, 0.35)
+        were never actually excluded on relevance; they were just
+        low-ranked. A relevance floor is a decision about what counts as
+        "relevant enough to include," made once per request type, not an
+        artifact of whatever <code>k</code> happened to be configured.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Fit the surviving chunks to budget by score, not by truncating mid-chunk</h3>
+      <p>
+        Once Step 1 has dropped what doesn't clear the floor, select
+        among what remains by score until the retrieval budget (Chapter
+        2's own recipe, a given input here) is spent, and stop at a
+        chunk boundary — never truncate a surviving chunk mid-sentence to
+        make it "just fit." CiteLine's actual failure was exactly a
+        mid-clause cut of its second-highest-scored, most load-bearing
+        chunk, which a boundary-aware fit would never have produced.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Preserve each surviving chunk's provenance</h3>
+      <p>
+        Carry the source document, section, and score alongside each
+        chunk's text, not just the raw string. Anthropic's own
+        context-engineering guidance frames the general principle
+        directly: context should be the "smallest possible set of
+        high-signal tokens that maximize the likelihood of the desired
+        outcome"<sup><a href="#src-1">[1]</a></sup> — and an unattributed
+        chunk of text is lower-signal than the same chunk with its source
+        attached, because nothing downstream (a citation, an authority
+        ranking, a human reviewer) can verify or rank it without knowing
+        where it came from. This is also what makes Chapter 7's own Step
+        2 authority ranking possible to apply to a retrieved chunk at
+        all.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Stitch adjacent chunks from the same document back together</h3>
+      <p>
+        When two or more surviving chunks are consecutive passages of the
+        same source document, merge them into a single contiguous block
+        rather than leaving them as separate fragments. CiteLine's
+        0.91 and 0.88 chunks were literally the same paragraph and the
+        one immediately following it in the same opinion — chunking
+        during retrieval defaults to a mechanical, fixed-size character
+        split by design (LangChain's own text-splitter documentation
+        states directly that "for most use cases, start with the
+        <code>RecursiveCharacterTextSplitter</code>"<sup><a href="#src-2">[2]</a></sup>,
+        i.e. mechanical character boundaries as the default starting
+        point, not semantic ones), so nothing about the chunk
+        boundary itself reflects where one legal point ends and the
+        qualifying limit on it begins. Re-stitching is this chapter's own
+        job precisely because the retriever's own boundaries were never
+        meant to be semantic boundaries.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Handle a low-confidence or empty result set explicitly</h3>
+      <p>
+        When nothing clears Step 1's relevance floor, that is itself a
+        real, distinct outcome — surface it as "no sufficiently relevant
+        result found" rather than silently falling back to the
+        highest-ranked chunk anyway because a well-formed context block
+        is expected downstream. Google Cloud's own Agent Search
+        documentation confirms this exact failure has a name and a fix in
+        production retrieval systems: a configurable relevance threshold
+        (<code>HIGH</code>/<code>MEDIUM</code>/<code>LOW</code>/<code>LOWEST</code>)
+        below which a retrieved result is excluded rather than passed
+        through<sup><a href="#src-3">[3]</a></sup> — the underlying
+        problem (a low-relevance chunk arriving as if it were a genuine
+        answer) is common enough that major vendors ship a dedicated
+        knob for it.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Hand the resolved, provenance-tagged bundle to Chapter 7's own Source Assembly Recipe</h3>
+      <p>
+        This chapter decides what a well-formed retrieved source looks
+        like; Chapter 7's Source Assembly Recipe, already built, decides
+        how that one source (now correctly typed
+        <code>retrieved_document</code>, complete with provenance) stacks
+        up against every other candidate source, and Chapter 6's own
+        recipe after that decides where the result sits. Skipping
+        straight from a raw ranked chunk list to Chapter 7's inventory
+        step, the way CiteLine's actual pipeline did, hands Chapter 7 a
+        source it was never designed to receive.
+      </p>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it gets wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Unconditional top-<code>k</code> stuffing (CiteLine's actual pipeline)</td>
+          <td>Always takes exactly <code>k</code> ranked chunks, appends them in score order, then truncates by raw character count wherever the budget runs out.</td>
+          <td>Never, once a request type can plausibly return chunks whose relevance drops off sharply within the top <code>k</code> — which is most real retrieval, not an edge case.</td>
+          <td>CiteLine's exact failure: three genuinely irrelevant chunks always included by definition of "top 5," and its single most load-bearing chunk truncated mid-clause because the cutoff never respected a chunk boundary.</td>
+        </tr>
+        <tr>
+          <td>Relevance-floor filtering only</td>
+          <td>Drops chunks below a minimum score before selection, but has no budget-aware boundary-safe fit, no provenance tracking, and no adjacent-chunk stitching.</td>
+          <td>A real, worthwhile improvement over unconditional top-<code>k</code> — worth doing regardless — but not sufficient alone.</td>
+          <td>Correctly drops CiteLine's three unrelated chunks, but does nothing about the mid-clause truncation of the surviving 0.88 chunk, and nothing about the fact that the two surviving chunks are one continuous paragraph split in two.</td>
+        </tr>
+        <tr>
+          <td>The Retrieval Integration Recipe (the fix)</td>
+          <td>Applies a relevance floor (Step 1), fits surviving chunks to budget at a chunk boundary (Step 2), attaches provenance to each (Step 3), stitches adjacent same-document chunks together (Step 4), handles an empty/low-confidence result explicitly (Step 5), and hands the resolved bundle to Chapter 7's own recipe (Step 6).</td>
+          <td>Any request type where a retriever's raw ranked output can plausibly contain irrelevant chunks, a mid-clause truncation risk, or split contiguous passages — true of nearly every real RAG pipeline operating under a real token budget.</td>
+          <td>Requires deciding a relevance floor and a stitching rule in advance for every request type — real design work, the same category Chapters 2 and 7 already required for budget sizing and authority ranking, not a new class of cost.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: Mossgate's Dropped Qualifying Clause</h2>
+    <p>
+      Per Chapter 2's own recipe, CiteLine's "Case Law Lookup" request
+      type has a 500-token retrieval budget for this turn. The retriever
+      returned five ranked chunks:
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Chunk</th>
+          <th>Score</th>
+          <th>Tokens</th>
+          <th>Document</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>A</td><td>0.91</td><td>180</td><td><em>Mossgate v. Harrow County</em>, Sec. 4.2 (general rule)</td></tr>
+        <tr><td>B</td><td>0.88</td><td>160</td><td><em>Mossgate v. Harrow County</em>, Sec. 4.3 (ten-minute limit — the paragraph immediately following A)</td></tr>
+        <tr><td>C</td><td>0.42</td><td>200</td><td><em>Talbot v. State</em> (unrelated, business records)</td></tr>
+        <tr><td>D</td><td>0.39</td><td>150</td><td><em>Renwick v. Ostgate</em> (unrelated, expert witness)</td></tr>
+        <tr><td>E</td><td>0.35</td><td>190</td><td>Unrelated fifth opinion</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What survives, and how</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Unconditional top-5 (actual pipeline)</td>
+          <td>All 880 raw tokens (180+160+200+150+190) get appended in order, then crudely cut at 500 tokens by character count: chunk A survives whole (180), chunk B is cut at 320 tokens in, keeping only 140 of its 160 tokens — losing the ten-minute qualifying clause, which sits in B's final sentences.</td>
+          <td>The assembled 500-token block contains the general rule in full, an amputated fragment of the one paragraph that actually answers the clerk's question, and zero of the (correctly excluded in spirit, but never actually excluded) unrelated content C/D/E ever got the chance to matter — the real damage was entirely from the crude, boundary-blind cutoff.</td>
+        </tr>
+        <tr>
+          <td>Relevance-floor filtering only (floor = 0.5)</td>
+          <td>Chunks C, D, E (0.42, 0.39, 0.35) are correctly dropped before selection: 340 tokens (180+160) remain, comfortably inside the 500-token budget, so no truncation is even needed this time.</td>
+          <td>Both A and B survive in full, so the ten-minute clause is present — but the two chunks are represented as two separate, un-stitched blocks with no marker that B is the direct continuation of A, and neither carries a citation a reader could actually verify against the opinion.</td>
+        </tr>
+        <tr>
+          <td>Retrieval Integration Recipe (the fix)</td>
+          <td>Step 1 drops C/D/E at the 0.5 floor. Step 2 confirms A+B's 340 tokens fit the 500-token budget with no truncation needed. Step 3 tags the merged block with its provenance: <em>Mossgate v. Harrow County</em> (2019), Sec. 4.2-4.3. Step 4 stitches A and B into one 340-token contiguous excerpt, since they are consecutive paragraphs of the same opinion. Step 5 doesn't apply (a real, non-empty result survived Step 1).</td>
+          <td>A single, complete, citable 340-token excerpt containing both the general rule and its qualifying limit as one continuous passage — 160 tokens under budget, versus the naive pipeline's exact-budget block that still managed to lose the one clause that decided the answer.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      The fix was never "retrieve fewer candidates" or "raise
+      <code>top_k</code>" (both are retrieval-architecture tuning,
+      `rag-for-everyone`'s subject, not this one) or "raise the budget"
+      (Chapter 2's subject, and the budget was already generous enough at
+      340 of 500 tokens once the irrelevant chunks were correctly
+      excluded). The fix was deciding, on purpose, what counts as
+      relevant enough to keep, where it is and isn't safe to cut when a
+      budget is tight, and that two chunks from the same document,
+      sitting right next to each other in the source text, are one
+      passage — not three separate integration decisions the retriever
+      itself was ever responsible for making.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>Two Live-Captured Retrieval Outcomes</h2>
+    <p>
+      As in every prior chapter, every exercise and practice solution in
+      this chapter uses deterministic, directly computed score, budget,
+      and stitching data for its automated self-checks, for the same
+      20-second-`local_check.sh`-timeout reason documented since Chapter
+      3. But it's worth showing what a real model actually does on both
+      sides of Mossgate's own boundary failure, captured live and
+      unedited this session:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 1 -- POST /api/chat, llama3.2:latest, this session (stitched, correctly excluded noise)</span>
+      </div>
+      <pre><code>  PROMPT (Excerpts 1 and 2 as the Retrieval Integration Recipe would
+  produce them -- stitched, correctly excluded of the three unrelated
+  chunks -- plus the clerk's own question):
+
+  "Answer using ONLY the excerpts below. Excerpt 1 (Mossgate v. Harrow
+  County, 2019, Sec. 4.2, score 0.91): 'The excited utterance exception
+  applies when a statement is made while the declarant was under the
+  stress of excitement caused by the event.' Excerpt 2 (Mossgate v.
+  Harrow County, 2019, Sec. 4.3, score 0.88, the paragraph immediately
+  following Excerpt 1 in the same opinion): 'However, this exception
+  does NOT apply if more than ten minutes elapsed between the startling
+  event and the statement, absent evidence of continuous stress.'
+  Question: Does the exception apply if a witness made the statement 25
+  minutes after the event with no evidence of continued stress? Cite
+  which excerpt supports your answer."
+
+  RESPONSE (live, unedited, 54.1s, cold load ~19.6s of that):
+  "Based on Excerpt 2, the excited utterance exception does not apply if
+  more than ten minutes elapsed between the startling event and the
+  statement, absent evidence of continuous stress. Since 25 minutes have
+  elapsed in this scenario, the excited utterance exception would not be
+  applicable."</code></pre>
+    </div>
+    <p>
+      A clean, correct result: given the recipe's own well-formed,
+      stitched, correctly-filtered bundle, the model identifies the
+      controlling clause, cites the correct excerpt by number, and
+      reaches the right legal conclusion. This is exactly what Step 1
+      through Step 4 exist to make possible.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 2 -- POST /api/chat, llama3.2:latest, this session (Excerpt 2 truncated away, noise present)</span>
+      </div>
+      <pre><code>  PROMPT (the general rule only, plus two unrelated excerpts standing in
+  for the naive pipeline's truncated-away qualifying clause and its
+  never-excluded noise -- the same question):
+
+  "Answer using ONLY the excerpts below. Excerpt 1 (Mossgate v. Harrow
+  County, 2019, Sec. 4.2, score 0.91): [general rule, same text as
+  above]. Excerpt 2 (Talbot v. State, 2003, unrelated, business
+  records): [...]. Excerpt 3 (Renwick v. Ostgate, 2011, unrelated,
+  expert witness qualification): [...]. Question: Does the exception
+  apply if a witness made a statement 25 minutes after the event with no
+  evidence of continued stress? Cite which excerpt supports your
+  answer."
+
+  RESPONSE (live, unedited, 69.9s, this call's own load ~0.6s):
+  "Based on Excerpt 1 [...] it appears that the excited utterance
+  exception typically applies when the declarant is under the stress of
+  excitement caused by the event. However, this excerpt does not provide
+  clear guidance on how long after the event a statement must be made
+  [...] The fact that the witness made the statement 25 minutes after
+  the event with no evidence of continued stress suggests that the
+  stress of excitement may not have been present [...] Therefore, based
+  on Excerpt 1 alone, I would argue that the excited utterance exception
+  may not apply in this situation [...]"</code></pre>
+    </div>
+    <p>
+      A genuinely nuanced second result, read honestly rather than graded
+      pass/fail. Without the ten-minute clause in context at all, the
+      model did not confidently misstate the rule the way CiteLine's own
+      hook-story failure did — it correctly noticed the excerpt it had
+      was incomplete on the timing question. But its actual path there
+      was still a real problem: it reasoned its way to a plausible-
+      sounding conclusion ("the stress of excitement may not have been
+      present") that is not stated anywhere in Excerpt 1, effectively
+      inventing a rationale the retrieved text never provided, rather
+      than stating plainly that the provided excerpts don't answer a
+      timing question at all. This is a precise, concrete illustration of
+      why Step 2's boundary-safe fit and Step 4's stitching matter even
+      when a model doesn't fail as visibly as CiteLine's own hook story:
+      a missing load-bearing clause doesn't just risk a confidently wrong
+      answer, it can also produce a confident-sounding answer built on
+      reasoning that was never actually grounded in anything retrieved.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a retriever returns correctly ranked,
+      correctly scored chunks — retrieval architecture itself did its
+      job — and the request type still fails, either by confidently
+      omitting the fact that actually decides the answer (CiteLine's own
+      hook story) or by fabricating plausible-sounding reasoning to fill
+      a gap a missing chunk left behind (this chapter's own second live
+      capture).</p>
+      <p><strong>Assumption being made:</strong> that "the retriever
+      returned the right chunks, in the right order" is the same claim
+      as "the context handed to the model is well-formed." Chapter 7
+      already showed correct retrieval per source isn't the same as
+      coherent combination across sources; this chapter shows correct
+      ranking within a single retriever's own output isn't the same as a
+      well-formed single source, before combination with anything else
+      is even in play.</p>
+      <p><strong>What actually distinguishes a well-engineered retrieval
+      hand-off:</strong> not whether the retriever itself found the right
+      passages (every approach in this chapter's own comparison table
+      achieves that) but whether a relevance floor was applied on
+      purpose, whether the budget fit respected chunk boundaries instead
+      of truncating mid-clause, whether provenance survived into the
+      final block, whether adjacent same-document chunks were
+      recognized and stitched, and whether an empty or low-confidence
+      result was surfaced honestly instead of papered over.</p>
+      <p><strong>Why this closes Module 4:</strong> Chapter 7 assumed a
+      well-formed retrieved source as a given input to its own Step 1
+      inventory; this chapter is what makes that assumption true in the
+      first place. Together, Chapters 7 and 8 cover the module's own two
+      labs completely: assembling multiple already-well-formed sources
+      without contradiction (Ch. 7), and turning one retriever's raw
+      ranked output into a well-formed source before it ever reaches that
+      inventory (Ch. 8) — neither chapter re-derives the other's own
+      recipe, and this chapter's own project, closing the module, is
+      built to require both.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      well-integrated retrieved source applies a relevance floor before
+      selecting anything, fits surviving chunks to budget at a chunk
+      boundary rather than a character count, preserves each chunk's
+      provenance, stitches adjacent same-document chunks into coherent
+      passages, surfaces an empty or low-confidence result explicitly,
+      and only then is handed to Chapter 7's own Source Assembly Recipe
+      as a single, well-formed candidate source — never assumed
+      well-formed just because the underlying ranking was correct.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>A retriever returning correctly ranked, correctly scored
+        chunks is not the same as a well-formed context source — the two
+        live captures this session showed a missing load-bearing clause
+        can produce either a confidently wrong answer or a
+        confident-sounding but ungrounded one.</li>
+        <li>Unconditional top-<code>k</code> stuffing includes chunks by
+        definition, not by relevance, and truncates by raw character
+        count with no awareness of chunk boundaries — CiteLine's actual
+        pipeline cut its single most load-bearing chunk mid-clause this
+        way.</li>
+        <li>The fix is a deterministic six-step recipe, not retriever
+        tuning: apply a relevance floor, fit to budget at a chunk
+        boundary, preserve provenance, stitch adjacent same-document
+        chunks, handle an empty/low-confidence result explicitly, and
+        hand the result to Chapter 7's own Source Assembly Recipe as one
+        well-formed source.</li>
+        <li>Relevance-floor filtering alone is a real, worthwhile
+        improvement over unconditional top-<code>k</code> — but it does
+        not fix mid-clause truncation or un-stitched, disconnected
+        adjacent chunks on its own.</li>
+        <li>Chunk boundaries produced during retrieval are mechanical
+        (fixed-size or fixed-character splits), not semantic — nothing
+        about where a retriever happened to cut reflects where one legal,
+        medical, or policy point ends and its own qualifying limit
+        begins.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model as every prior chapter
+      (<code>llama3.2:latest</code>). <code>POST /api/chat</code> was
+      called twice this session and succeeded on the first attempt both
+      times, consistent with Chapters 4 through 7's own sessions:
+      the first call (this chapter's own stitched, correctly-filtered
+      Excerpt 1+2 prompt, a 200-second timeout) returned a real response
+      in 54.1 seconds, with about 19.6 seconds of that spent on the
+      model's own cold load; a second call minutes later (the
+      truncated-clause, noise-present prompt, a 150-second timeout)
+      returned in 69.9 seconds, with its own reported load time only
+      about 0.6 seconds — the model was already resident, and the longer
+      wall-clock time this time came from generation itself, not a
+      reload. Both results are reported honestly as this session's own
+      data point, not a claim the earlier intermittent hang documented in
+      Chapter 3 is permanently resolved; future sessions should keep
+      budgeting for retries with generous (120s+) timeouts regardless, as
+      `PROJECT_STATE.md` instructs. As in every prior chapter, no graded
+      <code>solution.py</code> in this chapter depends on a live call —
+      every relevance-floor, budget-fit, provenance, and stitching
+      decision in the automated harnesses is deterministic, hand-computed
+      data, for the same 20-second-timeout reason documented in Chapters
+      3 through 7. Both live captures above are real and unedited, used
+      as illustrative content this chapter's own argument depends on (a
+      well-formed retrieved bundle produces a grounded, correctly cited
+      answer; a poorly-formed one can produce either a confidently wrong
+      answer or a confident-sounding but ungrounded one), not as
+      something any graded script requires to pass.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying:</p>
+    <ol>
+      <li id="src-1">Anthropic, <em>"Effective context engineering for AI
+      agents"</em> —
+      <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a>.
+      Re-fetched live this session and confirmed live; this URL was cited
+      by an earlier chapter's own session, disclosed honestly here as
+      re-fetched for a different passage than before — specifically its
+      framing of context as the "smallest possible set of high-signal
+      tokens that maximize the likelihood of the desired outcome," which
+      this chapter cites directly for Step 3's provenance-preservation
+      rationale (an unattributed chunk is lower-signal than the same
+      chunk with its source attached) rather than any budget-sizing or
+      deduplication claim an earlier chapter drew from the same source.</li>
+      <li id="src-2">LangChain, <em>"Text splitter integrations"</em>
+      (Docs by LangChain) —
+      <a href="https://docs.langchain.com/oss/python/integrations/splitters" target="_blank" rel="noopener">docs.langchain.com/oss/python/integrations/splitters</a>.
+      Fetched live and confirmed live this session (the historically-cited
+      `python.langchain.com/docs/how_to/recursive_text_splitter/` URL now
+      308-redirects to a different page with no splitter content, so this
+      is the current working page for the same guidance, disclosed
+      honestly rather than left pointing at a dead redirect). States
+      directly: "for most use cases, start with the
+      `RecursiveCharacterTextSplitter`" — confirming that standard
+      production chunk boundaries default to mechanical, character-based
+      splits, not semantic ones — direct grounding for this chapter's
+      Step 4 argument that stitching adjacent chunks back together is a
+      real, necessary integration step, not a hypothetical edge case.</li>
+      <li id="src-3">Google Cloud, <em>"Filter searches by document-level
+      relevance"</em> (Agent Search / Discovery Engine documentation) —
+      <a href="https://docs.cloud.google.com/generative-ai-app-builder/docs/filter-by-relevance" target="_blank" rel="noopener">docs.cloud.google.com/generative-ai-app-builder/docs/filter-by-relevance</a>.
+      Fetched live and confirmed live this session. Documents a
+      configurable relevance threshold (`HIGH`/`MEDIUM`/`LOW`/`LOWEST`)
+      that excludes retrieved results below the chosen bar, stating
+      plainly that "a `HIGH` threshold might return fewer documents with
+      high relevance score while the `LOWEST` threshold might return more
+      documents that might not be relevant to the search query" —
+      independent, shipped-production-vendor confirmation that Step 1's
+      relevance floor and Step 5's explicit handling of a low-confidence
+      result solve a named, real engineering problem, not a concern
+      unique to this course's own framing of it.</li>
+      <li id="src-4">Microsoft, <em>"Chunk documents"</em> (Azure AI
+      Search documentation, Microsoft Learn) —
+      <a href="https://learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents" target="_blank" rel="noopener">learn.microsoft.com/en-us/azure/search/vector-search-how-to-chunk-documents</a>.
+      Fetched live and confirmed live this session. States directly that
+      "overlapping a small amount of text between chunks can help
+      maintain continuity and context" and recommends a specific default
+      (512-token chunks, 25% overlap) precisely to ensure "smoother
+      transitions between chunks" — an independent, production-vendor
+      acknowledgment of the exact discontinuity problem this chapter's
+      Step 4 stitching step addresses directly, approached from the
+      opposite end of the pipeline (overlap at chunking time versus
+      stitching at integration time).</li>
+      <li id="src-5">Pinecone, <em>"Chunking Strategies for LLM
+      Applications"</em> —
+      <a href="https://www.pinecone.io/learn/chunking-strategies/" target="_blank" rel="noopener">pinecone.io/learn/chunking-strategies/</a>.
+      Fetched live and confirmed live this session. States that "if our
+      chunks are too small or too large, it may lead to imprecise search
+      results or missed opportunities to surface relevant content" — an
+      independent vector-database vendor's own confirmation that chunk
+      sizing directly governs whether load-bearing content survives
+      retrieval intact, the same underlying risk this chapter's hook
+      story and worked-math table dramatize with CiteLine's own dropped
+      qualifying clause (quoted here for the claim it actually makes, not
+      over-stated as a claim about mid-sentence splitting specifically).</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's Retrieval Integration Recipe out
+    loud — see
+    <a href="interview-questions.html">Chapter 8 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="what-is">
+    <span class="label">Module 4's closing project</span>
+    This chapter ships Module 4's single L3 Independent project, drawing
+    on both Chapter 7's Source Assembly Recipe and this chapter's own
+    Retrieval Integration Recipe together — see
+    <a href="project/index.html">the Module 4 project</a>.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-07-multi-source-context-assembly/lesson.html">&larr; Chapter 7</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

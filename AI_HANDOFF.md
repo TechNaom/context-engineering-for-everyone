@@ -31,7 +31,7 @@ before it's written into a lesson.
 ## Current state (as of 2026-08-23)
 
 **Read `PROJECT_STATE.md` for the authoritative, up-to-date status.**
-Short version: this is the course's **seventh session**. Session 1 built
+Short version: this is the course's **eighth session**. Session 1 built
 Discovery, the curriculum map, the full repository scaffold, and
 Chapter 1 ("The Context Budget"). Session 2 built Chapter 2
 ("Designing Context Window Budgets"), completing Module 1 in full.
@@ -42,9 +42,11 @@ Systems"), closing Module 2 in full. Session 5 built Chapter 5
 built Chapter 6 ("Avoiding Lost-in-the-Middle"), closing Module 3 in
 full and shipping Module 3's single joint project. Session 7 built
 Chapter 7 ("Multi-Source Context Assembly"), opening Module 4, shipping
-no project of its own (Module 4's single project is planned for the end
-of Chapter 8). Chapters 8-13 exist only as `.gitkeep`'d directories, not
-yet built.
+no project of its own. Session 8 built Chapter 8 ("Retrieval
+Integration: From Ranked Results to Context"), closing Module 4 in full
+and shipping Module 4's single project — the curriculum map's own
+literal L3 Independent tier. Chapters 9-13 exist only as `.gitkeep`'d
+directories, not yet built.
 
 - Directory skeleton (`.gitkeep` in every not-yet-built chapter
   directory from the start — the bootstrap bug found in prior sibling
@@ -170,6 +172,31 @@ yet built.
   in place; unlike Module 3's own tier gap, Module 4's project lands
   cleanly on the curriculum map's own L3 Independent tier already
   assigned to Chapter 8 (full reasoning in the quality audit).
+- **Chapter 8 ("Retrieval Integration: From Ranked Results to Context")
+  is built and live**, closing Module 4 in full. See
+  `quality-audits/chapter-08-audit.md`. Uses Chapters 1-7 as a lens: the
+  budget, memory policies, the Compression Fidelity Recipe, the Context
+  Ordering Recipe, and the Source Assembly Recipe are all given inputs,
+  not re-derived. This chapter's own job is the handoff Chapter 7
+  deliberately left open: turning a retriever's own raw ranked, scored
+  chunk list into one well-formed source before it ever reaches Chapter
+  7's own inventory step — a six-step Retrieval Integration Recipe
+  (apply a relevance floor before selecting anything, fit surviving
+  chunks to budget at a chunk boundary rather than truncating
+  mid-sentence, preserve each chunk's provenance, stitch adjacent
+  same-document chunks back together, handle a low-confidence or empty
+  result set explicitly, hand the resolved bundle to Chapter 7's own
+  Source Assembly Recipe as one source). **This session shipped Module
+  4's single project**, closing the module — Quartzfield Regional Public
+  Defender Consortium's BriefLine, drawing on both Chapter 7 (source
+  assembly) and Chapter 8 (retrieval integration) together, landing on
+  the curriculum map's own literal L3 Independent tier with no scaffold
+  beyond the given spec, unlike Module 3's own tier-gap workaround. This
+  session also caught and corrected two of five originally planned
+  citations during live verification (a stale LangChain redirect with no
+  relevant content, and an AWS Bedrock page that returned no fetchable
+  body text) rather than leaving them uncorrected — a stricter citation
+  outcome than Chapter 7's own clean session, disclosed honestly.
 
 ## Naming conventions
 
@@ -205,9 +232,12 @@ yet built.
   first-attempt successes after resuming (64.8s cold, 10.9s warm — a
   supplementary connectivity re-check) — reported honestly as each
   session's own result, not evidence the intermittent pattern is
-  resolved. Re-check and disclose honestly every session, budgeting for
-  retries throughout the session (not just at the start), with generous
-  timeouts (120s+) even after an earlier call has already succeeded.
+  resolved. Session 8 also got two consecutive first-attempt successes
+  (54.1s cold with ~19.6s of that as load time, 69.9s on a second call
+  whose own reported load time was only ~0.6s). Re-check and disclose
+  honestly every session, budgeting for retries throughout the session
+  (not just at the start), with generous timeouts (120s+) even after an
+  earlier call has already succeeded.
 - Every code example — every budget calculator, memory store,
   compression pipeline, context assembler, evaluator — must be run for
   real before being written into a lesson. A claimed number that wasn't
@@ -231,15 +261,16 @@ yet built.
   opening Module 2; Session 4 built Chapter 4 only, closing Module 2;
   Session 5 built Chapter 5 only, opening Module 3; Session 6 built
   Chapter 6 only, closing Module 3 in full; Session 7 built Chapter 7
-  only, opening Module 4 — matching exactly how
-  `ai-engineering-for-everyone` itself progressed. (Session 7's own
-  build was interrupted partway through by a connection error and
-  resumed within the same logical session, verifying everything already
-  on disk before continuing — this is not an exception to the
-  one-chapter-at-a-time discipline, just a resumed single chapter.)
+  only, opening Module 4; Session 8 built Chapter 8 only, closing Module
+  4 in full — matching exactly how `ai-engineering-for-everyone` itself
+  progressed. (Session 7's own build was interrupted partway through by
+  a connection error and resumed within the same logical session,
+  verifying everything already on disk before continuing — this is not
+  an exception to the one-chapter-at-a-time discipline, just a resumed
+  single chapter.)
 - **Check every fictional org against the running exclusion list before
-  naming a new one** — see `quality-audits/chapter-07-audit.md` for the
-  full, current list (75 orgs across Chapters 1-7 so far, checked
+  naming a new one** — see `quality-audits/chapter-08-audit.md` for the
+  full, current list (86 orgs across Chapters 1-8 so far, checked
   against `ai-engineering-for-everyone`'s own full compiled list with
   zero collision found) and extend it (don't restart it) for every new
   chapter. Each new chapter's audit should reproduce the full list plus
@@ -266,10 +297,15 @@ yet built.
   own project lands cleanly on the curriculum map's own **L3
   Independent** tier already assigned to Chapter 8 by the numbered
   ladder — unlike Module 3's gap, no honest-labeling workaround is
-  needed here; Chapter 8's own session should plan and ship this L3
-  project, drawing on both Chapter 7 and Chapter 8 together, closing
-  Module 4. See `quality-audits/chapter-07-audit.md` for the full
-  reasoning.
+  needed here. **Chapter 8's session shipped this L3 project**,
+  Quartzfield Regional Public Defender Consortium's BriefLine, drawing
+  on both Chapter 7 (source assembly) and Chapter 8 (retrieval
+  integration) together, closing Module 4, implemented with no scaffold
+  beyond the given spec and data per the L3 tier's own definition. See
+  `quality-audits/chapter-08-audit.md` for the full reasoning. Module
+  5's own project (Chapters 9-11) has not yet been scoped — check
+  `CURRICULUM_MAP.md`'s own "Projects" section for its tier before
+  assuming it ships at the end of Chapter 9, 10, or 11.
 - **State explicitly, in each new chapter's own lesson text, what it is
   NOT re-teaching** from `rag-for-everyone`, `mcp-for-everyone`, or
   `ai-engineering-for-everyone` Chapter 3 wherever its subject sits
@@ -278,40 +314,47 @@ yet built.
   Chapter 1 modeled it directly in its "Why This Course Exists"
   section.
 
-## Current task: Chapter 8 — "Retrieval Integration: From Ranked Results to Context"
+## Current task: Chapter 9 — "Context Engineering for Tool Use"
 
-Closes Module 4 (Multi-Source Context Assembly). See `PROJECT_STATE.md`'s
-"Next Recommended Task" section for the full handoff detail: what not to
-re-derive from Chapters 1-7 (including Chapter 7's own six-step Source
-Assembly Recipe — Chapter 8 narrows specifically to the RAG handoff,
-turning one retriever's own ranked output into well-formed context, not
-re-teaching retrieval architecture, chunking, embeddings, or ranking
-quality itself), the new-org exclusion list to check first (75 orgs
-across Chapters 1-7 so far), citation/Ollama re-verification discipline
-(Chapter 7's own session fetched all 5 citations clean with zero
-redirects — a less churny outcome than Chapters 3-6, disclosed as that
-session's own result, not an expectation; the Ollama hang remains
-intermittent — Chapters 4-7 all got two clean first-attempt successes
-per round, but that is each session's own data point, not a resolved
-pattern; budget for retries throughout the session regardless), **ship
-Module 4's single project, closing the module** — it lands cleanly on
-the curriculum map's own L3 Independent tier already assigned to Chapter
-8 (unlike Module 3's own tier gap), and should draw on both Chapter 7
-(source assembly) and Chapter 8 (retrieval integration) together, not a
-Chapter-8-only task wearing a Module 4 label — and the
-registration-staleness locations to update in the same session once
-`lesson.html` exists (`assets/chapters-data.js`, root `index.html`'s
-hero-stats and intro paragraph — it should read "8 of 13 chapters live"
-and "4 of 6 modules complete," since Chapter 8 closes Module 4,
-`docs/curriculum/index.html`'s chapter-card status, lede paragraph, and
-Module 4's feature card changed from "In Progress" to "Complete").
+Opens Module 5 (Context Engineering for Agentic Systems), Chapters
+9-11. See `PROJECT_STATE.md`'s "Next Recommended Task" section for the
+full handoff detail: what not to re-derive from Chapters 1-8 (the
+budget ledger, memory policies, the Compression Fidelity Recipe, the
+Context Ordering Recipe, the Source Assembly Recipe, and the Retrieval
+Integration Recipe are all given inputs a tool call's own context
+payload may still depend on, not re-taught fresh) — Chapter 9's own new
+job is deciding what belongs in a tool call's context payload in the
+first place: which tool definitions the model actually needs for this
+turn, how much of a tool's own result belongs in context afterward, and
+how much prior tool-call history should persist. Re-confirm the
+protocol-agnostic boundary against `mcp-for-everyone` (per
+`docs/discovery-notes.md` section 1.2) before writing, the new-org
+exclusion list to check first (86 orgs across Chapters 1-8 so far, in
+`quality-audits/chapter-08-audit.md`), citation/Ollama re-verification
+discipline (Chapter 8's own session needed to correct two of five
+originally planned citations during live verification — a stricter
+outcome than Chapter 7's own clean session, disclosed honestly, not an
+expectation either way; the Ollama hang remains intermittent — Chapters
+4-8 all got two clean first-attempt successes per round, but that is
+each session's own data point, not a resolved pattern; budget for
+retries throughout the session regardless), confirming whether Module
+5's own project is due at the end of Chapter 9, 10, or 11 (check
+`CURRICULUM_MAP.md`'s own "Projects" section — do not assume Chapter 9
+ships one solo), and the registration-staleness locations to update in
+the same session once `lesson.html` exists (`assets/chapters-data.js`,
+root `index.html`'s hero-stats and intro paragraph — it should read "9
+of 13 chapters live," with "4 of 6 modules complete" unchanged since
+Module 5 also needs Chapters 10-11, `docs/curriculum/index.html`'s
+chapter-card status, lede paragraph, and Module 5's feature card changed
+to "In Progress").
 
 ## Next task after that
 
-Chapter 9 ("Context Engineering for Tool Use"), opening Module 5 — not
-yet planned in detail beyond the curriculum map's own module outcomes; a
-future session should read Chapter 8's own quality audit before
-starting, not assume its scope from the curriculum map alone.
+Chapter 10 ("Context Engineering for Multi-Agent Systems"), continuing
+Module 5 — not yet planned in detail beyond the curriculum map's own
+module outcomes; a future session should read Chapter 9's own quality
+audit before starting, not assume its scope from the curriculum map
+alone.
 
 ## Important architectural decisions (see PROJECT_STATE.md for full detail)
 

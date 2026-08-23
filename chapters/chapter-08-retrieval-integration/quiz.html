@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieval Integration Quiz — Context Engineering for Everyone</title>
+<meta name="description" content="Interactive quiz for Retrieval Integration: From Ranked Results to Context.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-08" data-chapter-id="chapter-08">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="lesson.html">&larr; Back to the lesson</a></p>
+
+  <span class="chapter-badge">Chapter 8 Quiz</span>
+  <h1>Retrieval Integration: From Ranked Results to Context</h1>
+  <p>Fill in each blank, then check your answers. A perfect score marks this chapter complete.</p>
+
+  <div class="quiz-progress-wrap" aria-hidden="true">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+
+  <form onsubmit="return false;">
+
+    <div class="quiz-question">
+      <label for="q1"><span class="q-num">1</span> CiteLine's retriever correctly ranked the ten-minute qualifying clause second out of five chunks, yet the pipeline still dropped it, because the cutoff truncated by raw ______ count instead of respecting a chunk boundary.</label>
+      <div class="fib-row">
+        <input type="text" id="q1" class="fib-blank" data-answers="character,characters" aria-label="Answer for question 1">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q2"><span class="q-num">2</span> Chapter 7 assumed every candidate source already arrived well-formed; this chapter owns the handoff that makes a retriever's raw ______ output into one such well-formed source.</label>
+      <div class="fib-row">
+        <input type="text" id="q2" class="fib-blank" data-answers="ranked" aria-label="Answer for question 2">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q3"><span class="q-num">3</span> Step 1 of the Retrieval Integration Recipe applies a relevance ______ before selecting anything, rather than taking the top k chunks unconditionally.</label>
+      <div class="fib-row">
+        <input type="text" id="q3" class="fib-blank" data-answers="floor" aria-label="Answer for question 3">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q4"><span class="q-num">4</span> Step 2 fits surviving chunks to budget by score, stopping at a chunk ______ rather than truncating mid-sentence.</label>
+      <div class="fib-row">
+        <input type="text" id="q4" class="fib-blank" data-answers="boundary" aria-label="Answer for question 4">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q5"><span class="q-num">5</span> Step 3 preserves each surviving chunk's ______ (source document, section, and score) so later steps and citations can point to where it came from.</label>
+      <div class="fib-row">
+        <input type="text" id="q5" class="fib-blank" data-answers="provenance" aria-label="Answer for question 5">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q6"><span class="q-num">6</span> Step 4 ______ adjacent chunks from the same document back together, since standard chunk boundaries are mechanical, character-based splits, not semantic ones.</label>
+      <div class="fib-row">
+        <input type="text" id="q6" class="fib-blank" data-answers="stitches,merges" aria-label="Answer for question 6">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q7"><span class="q-num">7</span> Step 5 surfaces a low-confidence or ______ result set explicitly, rather than silently falling back to the top-ranked chunk anyway.</label>
+      <div class="fib-row">
+        <input type="text" id="q7" class="fib-blank" data-answers="empty" aria-label="Answer for question 7">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q8"><span class="q-num">8</span> Step 6 hands the resolved, provenance-tagged bundle to Chapter ______'s own Source Assembly Recipe as a single inventoried source.</label>
+      <div class="fib-row">
+        <input type="text" id="q8" class="fib-blank" data-answers="7,seven" aria-label="Answer for question 8">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div id="check-all-wrap">
+      <button type="button" id="check-all-btn" class="check-btn">Check All Answers</button>
+      <span id="quiz-score"></span>
+    </div>
+
+    <div class="quiz-celebration" id="quiz-celebration" aria-live="polite">
+      Perfect score. Chapter complete.
+    </div>
+  </form>
+
+  <div class="chapter-nav">
+    <a href="lesson.html">&larr; Back to Lesson</a>
+    <a href="exercises/index.html">Exercises &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/quiz-engine.js"></script>
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

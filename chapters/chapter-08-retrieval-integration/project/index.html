@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieval Integration Project — Context Engineering for Everyone</title>
+<meta name="description" content="Module 4's closing L3 Independent project: build Quartzfield Regional Public Defender Consortium's BriefLine retrieval-integration AND source-assembly pipeline together -- drawing on both Chapter 7 and Chapter 8.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-08">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../interview-questions.html">&larr; Back to interview questions</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Module 4 Project — L3 Independent</span>
+    <span class="reading-time">~75 min</span>
+  </div>
+  <h1>Project: Build Quartzfield's BriefLine Retrieval Integration + Source Assembly Pipeline</h1>
+  <p>
+    Quartzfield Regional Public Defender Consortium's fictional
+    pre-hearing brief assistant, BriefLine, prepares a sentencing brief
+    in two parts. This is Module 4's closing lab, drawing on
+    <strong>both</strong> chapters this module built — Chapter 7's
+    Source Assembly Recipe and Chapter 8's own Retrieval Integration
+    Recipe — per the curriculum map's own paired Module 4 labs. You
+    design both halves at once: turning a retriever's raw ranked output
+    into one well-formed source (Chapter 8's skill), then combining that
+    source with three others for the same request and resolving a
+    genuine contradiction between two of them (Chapter 7's skill).
+  </p>
+
+  <div class="what-is">
+    <span class="label">A note on this project's tier</span>
+    This is the curriculum map's own literal L3 Independent tier project
+    — unlike Module 3's own project, which fell in a gap the ladder never
+    assigned, this one lands exactly where the four-tier ladder says it
+    should (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8, L4 the Ch. 13
+    capstone). "Independent" means no scaffold: <code>starter.py</code>
+    gives you the full spec and data, but no partially-filled template
+    and no step-by-step hints beyond that.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run it</span>
+    Download <code>starter.py</code>, fill in your Part 1 (retrieval
+    integration) and Part 2 (source assembly) choices and both
+    write-ups, then run <code>python3 starter.py</code>. Most of this
+    project's self-check is fully mechanical — it verifies your Part 1
+    relevance-floor, boundary-safe-fit, stitching, and provenance
+    choices, and separately verifies your Part 2 contradiction
+    detection, authority-based resolution, and budget fit. Compare
+    against <code>solution.py</code>, then self-grade against
+    <code>RUBRIC.md</code>.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+    <a href="RUBRIC.md">RUBRIC.md</a>
+    <a href="README.md">README.md</a>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you're given</h3>
+    <p>Five ranked, scored retrieval chunks (a 0.55 relevance floor and a 380-token budget); four candidate sources for the assembled window, including your own Part 1 output, with a genuine contradiction between two of them about whether a sentencing departure exception currently applies; a fixed authority ranking and a 500-token window budget.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you produce</h3>
+    <p>A valid relevance-floor survivor set, a boundary-safe budget fit that never truncates a chunk mid-sentence, correct stitching of consecutive same-document chunks, complete provenance for every kept chunk; a correct contradiction detection and authority-based resolution between two disagreeing sources, a correct retained-source set, and a budget-fit confirmation; and two defended write-ups, one per part.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Passing bar</h2>
+    <p>22/28 (about 80%) or higher on <code>RUBRIC.md</code>'s seven criteria, with no single criterion scoring 0. <code>solution.py</code> is one complete, valid reference design scoring a full 28/28 — not the only correct design, since both write-ups are intentionally open.</p>
+  </div>
+
+  <div class="what-is">
+    <span class="label">Module 4, complete</span>
+    This project closes Module 4 (Chapters 7-8) in full. Chapter 9,
+    opening Module 5, moves to context engineering for agentic and
+    tool-use systems.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../interview-questions.html">&larr; Interview Questions</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

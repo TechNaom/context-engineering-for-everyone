@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrieval Integration Practice Bank — Context Engineering for Everyone</title>
+<meta name="description" content="Eight practice scenarios for Retrieval Integration: From Ranked Results to Context.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-08">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../exercises/index.html">&larr; Back to exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 8 Practice Bank</span>
+    <span class="reading-time">~30 min, hands-on</span>
+  </div>
+  <h1>Practice Bank: Retrieval Integration</h1>
+  <p>
+    Eight short, independent scenarios, each its own fictional system —
+    none of them Mossgate Regional Law Library Consortium/CiteLine or
+    Cobalt Ridge Claims Adjustment Bureau/DossierLine again. Each
+    scenario is a few sentences and one judgment or arithmetic question
+    about this chapter's own new skill: applying a relevance floor,
+    fitting chunks to budget at a chunk boundary, preserving provenance,
+    stitching adjacent same-document chunks, and handling a
+    low-confidence or empty result — not retrieval architecture itself,
+    and not multi-source contradiction resolution. The point is speed
+    and accuracy across many different systems.
+  </p>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Harborlight Maritime Archive Society <span class="badge-coming-soon">Judgment</span></h3>
+    <p>A retrieval pipeline always takes the top 5 ranked chunks regardless of score. Does that guarantee every included chunk is actually relevant?</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Aspenfield Community College Library <span class="badge-coming-soon">Production-gear</span></h3>
+    <p>Given four scored chunks and a relevance floor, compute which survive.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> Beacon Crest Genealogy Society <span class="badge-coming-soon">Judgment</span></h3>
+    <p>A pipeline drops chunks below a relevance floor but still truncates survivors by raw character count. Does relevance-floor filtering alone guarantee no mid-sentence cut?</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> Slatebrook Patent Research Group <span class="badge-coming-soon">Production-gear</span></h3>
+    <p>Select surviving chunks in score order until budget is spent, stopping at a chunk boundary rather than truncating mid-chunk.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> Timberline Structural Engineering Archive <span class="badge-coming-soon">Judgment</span></h3>
+    <p>Two adjacent, individually-accurate chunks from the same report are left un-stitched. Does per-chunk accuracy guarantee a coherent combined passage?</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> Garnet Valley Genetic Testing Registry <span class="badge-coming-soon">Production-gear</span></h3>
+    <p>Decide which of two chunk pairs are consecutive passages of the same document and should be stitched.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> Poplar Crossing School District Archive <span class="badge-coming-soon">Production-gear</span></h3>
+    <p>A naive-vs-recipe regression check on a load-bearing accommodation clause, including whether the resolved total still fits budget.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> Otterbend Wildlife Research Station <span class="badge-coming-soon">Judgment</span></h3>
+    <p>Every retrieved chunk scores below the relevance floor. Safe to proceed with the best-available chunk anyway, or surface no relevant result?</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../exercises/index.html">&larr; Exercises</a>
+    <a href="../interview-questions.html">Interview Questions &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

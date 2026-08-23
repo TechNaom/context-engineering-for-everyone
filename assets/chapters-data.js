@@ -8,9 +8,9 @@
   written exam actually exists in assessments/written-exams/.
 
   Chapters 1-2 (Module 1, complete), Chapters 3-4 (Module 2, complete),
-  and Chapters 5-6 (Module 3, complete) are live as of this build -- see
-  PROJECT_STATE.md for status. Chapters 7-13 are planned, `.gitkeep`'d,
-  not yet built.
+  Chapters 5-6 (Module 3, complete), and Chapters 7-8 (Module 4,
+  complete) are live as of this build -- see PROJECT_STATE.md for
+  status. Chapters 9-13 are planned, `.gitkeep`'d, not yet built.
 */
 
 window.CEFE_MODULES = [
@@ -93,7 +93,8 @@ window.CEFE_MODULES = [
         id: "chapter-08",
         num: 8,
         title: "Retrieval Integration: From Ranked Results to Context",
-        description: "Turning a retriever's ranked results into well-formed context -- the handoff point with RAG, not a re-run of retrieval architecture."
+        description: "Turning a retriever's ranked results into well-formed context -- the handoff point with RAG, not a re-run of retrieval architecture.",
+        path: "chapters/chapter-08-retrieval-integration/lesson.html"
       }
     ]
   },
