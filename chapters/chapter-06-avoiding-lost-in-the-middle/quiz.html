@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avoiding Lost-in-the-Middle Quiz — Context Engineering for Everyone</title>
+<meta name="description" content="Interactive quiz for Avoiding Lost-in-the-Middle.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-06" data-chapter-id="chapter-06">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="lesson.html">&larr; Back to the lesson</a></p>
+
+  <span class="chapter-badge">Chapter 6 Quiz</span>
+  <h1>Avoiding Lost-in-the-Middle</h1>
+  <p>Fill in each blank, then check your answers. A perfect score marks this chapter complete.</p>
+
+  <div class="quiz-progress-wrap" aria-hidden="true">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+
+  <form onsubmit="return false;">
+
+    <div class="quiz-question">
+      <label for="q1"><span class="q-num">1</span> Chapter 5's fidelity check proves a fact is ______ in the compressed output; it says nothing about whether the model reliably uses it from its final assembled position.</label>
+      <div class="fib-row">
+        <input type="text" id="q1" class="fib-blank" data-answers="present" aria-label="Answer for question 1">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q2"><span class="q-num">2</span> In the hook, VitalsLine's allergy note failed to surface not because it was removed or altered, but because nothing decided its ______ in the assembled window.</label>
+      <div class="fib-row">
+        <input type="text" id="q2" class="fib-blank" data-answers="position,placement,location" aria-label="Answer for question 2">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q3"><span class="q-num">3</span> Liu et al.'s original finding describes a ______-shaped performance curve, where accuracy is highest at the beginning and end of a long context and lowest in the middle.</label>
+      <div class="fib-row">
+        <input type="text" id="q3" class="fib-blank" data-answers="U" aria-label="Answer for question 3">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q4"><span class="q-num">4</span> Per the 2024 "Found in the Middle" paper, the mechanistic cause of the effect is an intrinsic ______ bias toward the start and end of the input, regardless of content relevance.</label>
+      <div class="fib-row">
+        <input type="text" id="q4" class="fib-blank" data-answers="attention" aria-label="Answer for question 4">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q5"><span class="q-num">5</span> Chroma's 2025 "Context Rot" report found a genuine nuance: the 18 tested models performed ______ on shuffled, incoherent haystacks than on structurally coherent ones.</label>
+      <div class="fib-row">
+        <input type="text" id="q5" class="fib-blank" data-answers="better" aria-label="Answer for question 5">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q6"><span class="q-num">6</span> The Context Ordering Recipe's Step 2 reserves the ______ positions (start and end) for the highest load-bearing-weight content.</label>
+      <div class="fib-row">
+        <input type="text" id="q6" class="fib-blank" data-answers="anchor" aria-label="Answer for question 6">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q7"><span class="q-num">7</span> Per Anthropic's own long-context guidance, placing the ______ near the end of the prompt, after long reference material, can improve response quality by up to 30 percent in tests.</label>
+      <div class="fib-row">
+        <input type="text" id="q7" class="fib-blank" data-answers="query,instruction" aria-label="Answer for question 7">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q8"><span class="q-num">8</span> This chapter's ordering discipline runs on content already selected for inclusion; deciding WHICH sources belong and how several combine without contradiction is Chapter ______'s subject, opening Module 4.</label>
+      <div class="fib-row">
+        <input type="text" id="q8" class="fib-blank" data-answers="7,seven" aria-label="Answer for question 8">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div id="check-all-wrap">
+      <button type="button" id="check-all-btn" class="check-btn">Check All Answers</button>
+      <span id="quiz-score"></span>
+    </div>
+
+    <div class="quiz-celebration" id="quiz-celebration" aria-live="polite">
+      Perfect score. Chapter complete.
+    </div>
+  </form>
+
+  <div class="chapter-nav">
+    <a href="lesson.html">&larr; Back to Lesson</a>
+    <a href="exercises/index.html">Exercises &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/quiz-engine.js"></script>
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

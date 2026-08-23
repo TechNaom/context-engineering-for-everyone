@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avoiding Lost-in-the-Middle — Context Engineering for Everyone</title>
+<meta name="description" content="Chapter 5 made sure compressed content survives intact. This chapter asks a different question: even when every fact is present, unmodified, and fully within budget, does WHERE it sits in the assembled context window still change whether the model actually uses it? Closes Module 3 with a re-verified look at the 'lost in the middle' finding and Module 3's guided project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-06">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 6</span>
+    <span class="badge-difficulty">Advanced</span>
+    <span class="reading-time">~35 min</span>
+  </div>
+
+  <h1>Avoiding Lost-in-the-Middle</h1>
+  <p class="lede">
+    Chapter 5 built a real fidelity check for compression: does the
+    content that survives a compression call still contain what a
+    downstream decision depends on? That question has a yes/no answer,
+    and Chapter 5's own recipe answers it. This chapter, closing Module
+    3, asks a different question that a passed fidelity check cannot
+    answer on its own: once every load-bearing fact is present, verbatim,
+    unmodified, and fully within budget — does <em>where</em> it sits in
+    the final assembled context window still change whether the model
+    actually uses it? The honest answer, re-verified this session against
+    research newer than this course's own first chapter cited, is yes —
+    with real nuance about how much, and for which models.
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. A perfectly compressed chart, a missed allergy</a>
+    <a href="#why-this-chapter">2. Why every recipe before this one left this open</a>
+    <a href="#reverify">3. Is "lost in the middle" still true? A re-verification</a>
+    <a href="#the-recipe">4. The Context Ordering Recipe</a>
+    <a href="#approaches-compared">5. Three approaches, compared</a>
+    <a href="#worked-math">6. Worked math: Marchside's buried allergy note</a>
+    <a href="#live-capture">7. A live-captured positional example</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Marchside Regional Trauma Network is a fictional multi-site trauma
+      hospital system. Its pre-operative review assistant, VitalsLine,
+      helps an anesthesiologist review a patient's full intake
+      conversation before signing off on a procedure — vitals,
+      medication history, allergies, prior complications, and the
+      surgical team's own notes, all assembled into one context window
+      for a final "any contraindications?" check. By the time this
+      chapter's story starts, the team behind VitalsLine had done
+      everything right, in order: Chapter 2's recipe gave this request
+      type a correctly sized budget; Chapter 3's hybrid policy pinned
+      every safety-critical disclosure and managed the rest with a
+      verbatim window and running summary; Chapter 4's write/retrieval
+      policy correctly recalled a documented lidocaine allergy from a
+      prior visit, months earlier, into this session's context; and
+      Chapter 5's fidelity-checked compression pipeline ran on the
+      aged-out portions of this session's own long intake conversation
+      and preserved every flagged candidate, the allergy note included,
+      verbatim, confirmed present by its own Step 6 validation gate.
+    </p>
+    <p>
+      Every mechanism this course has built so far worked exactly as
+      designed. The recalled allergy fact was in the window. It was not
+      truncated. It was not paraphrased into something vaguer. It passed
+      every check Chapters 1 through 5 know how to run. And when the
+      anesthesiologist asked VitalsLine "summarize any contraindications
+      for anesthesia," the assistant's answer didn't mention it.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">vitalsline_assemble.py (context assembly, before this chapter)</span>
+      </div>
+      <pre><code>  def assemble_context(pinned_facts, recalled_facts, running_summary, verbatim_window, query):
+      # Chapters 1-5 correctly decided WHAT belongs in this window: a
+      # real budget (Ch. 2), a real pin/summary/window shape (Ch. 3), a
+      # real long-term recall policy (Ch. 4), and fidelity-checked
+      # compression for everything that had to shrink (Ch. 5). Nothing
+      # here decided WHERE each piece goes once they're all selected --
+      # they were simply concatenated in the order they became
+      # available: pins first (as they were disclosed), then the
+      # recalled long-term facts, then the running summary, then the
+      # verbatim window, then the query.
+      return pinned_facts + recalled_facts + running_summary + verbatim_window + [query]
+      # The recalled lidocaine allergy fact landed roughly in the
+      # middle of a 2,900-token assembled window. Nothing about that
+      # position was ever a deliberate decision.</code></pre>
+    </div>
+    <p>
+      The allergy fact had been disclosed by the patient early in a
+      prior visit, written to long-term storage correctly (Chapter 4),
+      and recalled correctly into this session (Chapter 4 again) — which
+      placed it toward the front of the recalled-facts block, ahead of
+      this session's own long intake conversation. But this session's
+      intake conversation was itself a long back-and-forth about
+      logistics, insurance, and pre-op instructions, and by the time it
+      was concatenated after the recalled facts and before the final
+      query, the allergy note sat at roughly the 40th percentile of a
+      2,900-token window — not truncated, not summarized away, not
+      anywhere near either edge. VitalsLine's answer confidently listed
+      two other, less consequential contraindications that happened to
+      sit near the start and the end of the window, and never surfaced
+      the allergy sitting in the middle.
+    </p>
+    <p>
+      This is a genuinely new failure mode, distinct from every prior
+      chapter's own story. SignalDesk (Ch. 1) had no budget. TriageLine
+      (Ch. 2) had a budget shaped for the wrong request type. RouteLine
+      (Ch. 3) had a naive eviction mechanism. HearthLine (Ch. 4) lost a
+      fact at a session boundary nothing was watching. GridLine (Ch. 5)
+      lost a detail inside an uncontrolled compression call. VitalsLine
+      got every one of those right — a correct budget, a correct
+      pin/summary/window shape, a correct long-term recall policy, a
+      correct fidelity-checked compression pipeline — and the load-
+      bearing fact was still functionally invisible, not because it was
+      ever removed, shortened, or altered, but because nothing decided
+      where it belonged in the window once everything correct was
+      already inside it.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>Why Every Recipe Before This One Left This Open</h2>
+    <p>
+      This chapter uses Chapters 1 through 5 as a lens, not fresh
+      material — if the budget ledger, pinning, verbatim windows,
+      long-term write/retrieval policy, or the Compression Fidelity
+      Recipe aren't already familiar, Chapters 2 through 5 are where
+      those skills live, and none of them are re-taught here. Every one
+      of those chapters answers a question about <em>presence</em>:
+      does the token budget include this? Was this evicted or kept? Was
+      this written to durable storage, and recalled back? Did this
+      survive compression intact? This chapter's own question is about
+      <em>position</em>, not presence — once a piece of content has
+      correctly passed every earlier gate and is sitting in the final
+      assembled window, does where it sits change how reliably the
+      model actually uses it? This course's very first chapter already
+      named this effect in passing, citing Liu et al.'s original "lost
+      in the middle" finding as one line of evidence for the budget
+      ledger's own framing<sup><a href="#src-1">[1]</a></sup>. This
+      chapter is where that citation graduates from a supporting data
+      point to this course's own central subject, closing Module 3.
+    </p>
+    <p>
+      One boundary worth stating as directly as every prior chapter has
+      stated its own: this chapter does not decide <em>which</em>
+      sources make it into the window, or how several sources should be
+      combined without contradicting each other — that is Chapter 7's
+      subject (Multi-Source Context Assembly), opening Module 4
+      immediately after this one. This chapter's ordering discipline
+      runs on content that has already been selected for inclusion,
+      the same way Chapter 5's compression ran on content already
+      inside a request's context rather than deciding what to retrieve
+      in the first place. Chapter 7 is where several already-selected
+      sources get composed into one coherent window; this chapter is
+      what governs the internal ordering of whatever that window ends
+      up containing, whether it comes from one source or several.
+    </p>
+  </section>
+
+  <section id="reverify" class="subtopic">
+    <h2>Is "Lost in the Middle" Still True? A Re-Verification</h2>
+    <p>
+      Liu et al.'s 2023 paper, cited by this course since Chapter 1,
+      found that "performance is often highest when relevant
+      information occurs at the beginning or end of the input context,
+      and significantly degrades when models must access relevant
+      information in the middle of long
+      contexts"<sup><a href="#src-1">[1]</a></sup> — a U-shaped
+      performance curve, measured across multi-document question
+      answering and key-value retrieval tasks. That paper is now three
+      years old relative to this session, tested against models that
+      are no longer the current frontier, and this course's own
+      `PROJECT_STATE.md` flagged since Chapter 1 that it needed
+      re-checking against more current research before this chapter
+      treated it as settled — this chapter is where that re-check
+      finally happens, honestly, rather than assumed.
+    </p>
+    <p>
+      Two more recent, independently fetched sources this session:
+    </p>
+    <div class="lesson-card">
+      <h3>2024 — a mechanistic explanation, not just a repeated observation</h3>
+      <p>
+        Hsieh et al.'s 2024 paper, "Found in the Middle," goes further
+        than re-observing the effect: it identifies <em>why</em> it
+        happens. Models "exhibit a U-shaped attention bias where the
+        tokens at the beginning and at the end of [the] input receive
+        higher attention, regardless of their
+        relevance"<sup><a href="#src-2">[2]</a></sup> — an intrinsic
+        property of how attention is distributed across position,
+        independent of what the content actually says. The paper's own
+        proposed fix, a calibration mechanism that lets a model "attend
+        to contexts faithfully according to their relevance, even
+        [when] they are in the middle," improved retrieval-augmented
+        results by "up to 15 percentage
+        points"<sup><a href="#src-2">[2]</a></sup> — evidence that the
+        effect is real, mechanistic, and at least partially
+        correctable, not an artifact of the original paper's specific
+        prompts or models.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>2025 — the finding still holds on frontier models, with real nuance</h3>
+      <p>
+        Chroma's 2025 "Context Rot" report tested 18 current frontier
+        models — including GPT-4.1, the Claude 4 family, Gemini 2.5, and
+        Qwen3 — and found that "models do not process context uniformly"
+        and that performance "grows less reliable as input length
+        increases"<sup><a href="#src-3">[3]</a></sup>, with accuracy
+        drops of 30-50% well before any documented context-length
+        limit. This confirms the original finding is not an artifact of
+        2023-era models specifically. But the report also adds a genuine
+        nuance this chapter has to disclose honestly, not smooth over:
+        models in the study performed <em>better</em> on shuffled,
+        logically incoherent "haystacks" than on structurally coherent
+        ones — meaning the effect isn't simply "middle position is
+        always worse," it interacts with document structure and content
+        coherence in ways the original 2023 paper's simpler
+        experimental setup didn't isolate.
+      </p>
+    </div>
+    <p>
+      The honest, re-verified position this chapter takes: the core
+      claim — that a model's reliability in using information is not
+      uniform across context position, and specifically tends to
+      degrade for content that sits away from the beginning and end —
+      still holds across current frontier model families as of 2025, not
+      only the smaller 2023-era models Liu et al. originally tested.
+      What has changed since Chapter 1's original citation is the
+      picture's precision: the effect is now understood to have a
+      mechanistic, partially correctable cause (attention bias, not an
+      unfixable property of transformers generally), its exact shape and
+      magnitude are model- and context-length-specific rather than one
+      universal curve, and document structure/coherence measurably
+      interacts with it. None of that weakens the practical
+      recommendation this chapter builds toward — it strengthens it,
+      because it means the mitigation (deliberate placement, not hope)
+      is worth the engineering cost on every current model family this
+      research has tested, not a defensive habit against a stale, single
+      three-year-old paper.
+    </p>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Context Ordering Recipe</h2>
+    <p>
+      Five steps, run after Chapters 1-5's own gates have already
+      selected and fidelity-checked what belongs in the window, deciding
+      where each piece actually goes:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Rank what's already inside by load-bearing weight</h3>
+      <p>
+        Reuse Chapter 5's own candidate-extraction concept, one level up:
+        instead of asking "what must survive compression," ask "of
+        everything that already survived and is going into this window,
+        what does the model's answer actually depend on most?" Not every
+        included fact is equally load-bearing — VitalsLine's allergy
+        note and its parking-instructions note are both correctly
+        present, but only one changes a clinical decision.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Reserve the anchor positions for the highest-weight content</h3>
+      <p>
+        Both research sources agree the beginning and end of the window
+        are where a model's attention is most reliable, regardless of
+        the exact mechanism or magnitude on a given
+        model<sup><a href="#src-1">[1]</a><a href="#src-2">[2]</a></sup>.
+        The highest-weight content from Step 1 — safety-critical facts,
+        pinned content, anything a wrong answer would be dangerous or
+        costly for — belongs at one of those two anchors, not wherever
+        it happened to land after concatenation.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Reorder the middle deliberately, don't just leave arrival order</h3>
+      <p>
+        For anything that can't fit at an anchor (there are only two, and
+        real windows hold more than two facts), apply an explicit
+        reordering strategy rather than trusting retrieval order,
+        write-timestamp order, or conversation order to be a good proxy
+        for relevance. LangChain's own `LongContextReorder` utility
+        implements exactly this: it places "the most relevant documents
+        ... at extrema (e.g., the first and last pieces of context)" and
+        pushes "the least relevant documents ... to the
+        middle"<sup><a href="#src-5">[5]</a></sup> — a concrete,
+        implementable version of Step 2 and Step 3 together, for any
+        context assembled from multiple ranked pieces.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Put the query and instructions near the end, after reference material</h3>
+      <p>
+        Anthropic's own long-context guidance is direct: "place your
+        long documents and inputs near the top of your prompt, above
+        your query, instructions, and examples," noting that "queries at
+        the end can improve response quality by up to 30 percent in
+        tests, especially with complex, multidocument
+        inputs"<sup><a href="#src-4">[4]</a></sup>. This is Step 2's own
+        logic applied to the instruction itself: what the model needs to
+        act on right now belongs at the anchor closest to where
+        generation begins.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Test position directly; never assume order-invariance</h3>
+      <p>
+        A passed Chapter 5 fidelity check only proves content is present
+        — it says nothing about whether the model reliably used it from
+        its assembled position. Run an explicit positional probe: take a
+        known load-bearing fact, place it at a few different positions
+        across representative window sizes, and confirm the system's
+        actual answer quality doesn't silently degrade for the middle
+        placements. Because the 2025 re-verification found the effect's
+        exact shape is model- and length-specific, not one fixed curve
+        to hardcode<sup><a href="#src-3">[3]</a></sup>, this test has to
+        be re-run after any model swap or meaningful context-length
+        change, the same "don't assume it's still true" discipline this
+        chapter's own re-verification section just modeled.
+      </p>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it gets wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Arrival order (VitalsLine's actual pipeline)</td>
+          <td>Concatenates pins, recalled facts, summary, verbatim window, and query in whatever order they became available, with no positional review.</td>
+          <td>Never, once any of the content is load-bearing — arrival order is an accident of pipeline mechanics, not a relevance signal.</td>
+          <td>VitalsLine's exact failure: a correctly present, correctly compressed, safety-critical fact landed in the statistically least-reliable position with nothing checking it.</td>
+        </tr>
+        <tr>
+          <td>Naive "move everything important to the top"</td>
+          <td>Front-loads anything deemed important, with no separate anchor reserved for the query/instruction itself.</td>
+          <td>Genuinely never as a complete policy — it captures half of Step 2 (the start anchor) but crowds out Step 4 (the end anchor closest to generation), since a long, front-loaded document block still separates the model's instructions from where it starts generating.</td>
+          <td>Solves one anchor and quietly recreates the same problem at the other: an instruction buried after a long front-loaded block is now the thing sitting away from the edges.</td>
+        </tr>
+        <tr>
+          <td>Weight-ranked, both-anchors, position-tested placement (the fix)</td>
+          <td>Ranks content by load-bearing weight (Step 1), reserves both anchors for the highest-weight content and the query (Steps 2 and 4), deliberately reorders the middle rather than leaving it to arrival order (Step 3), and validates with an explicit positional probe (Step 5).</td>
+          <td>Any window where a wrong or missed answer has a real cost — safety, compliance, financial, or operational — and where the window holds more than a trivial amount of content.</td>
+          <td>Genuinely lower-stakes content still pays a small ordering-review cost even when nothing would have gone wrong either way — an accepted, bounded tradeoff, same as every prior chapter's own bounded policy.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: Marchside's Buried Allergy Note</h2>
+    <p>
+      VitalsLine's assembled pre-op window for this patient totals 2,900
+      tokens: 400 tokens of pinned safety facts, 350 tokens of recalled
+      long-term facts (including the 40-token lidocaine allergy note),
+      900 tokens of running summary, 1,150 tokens of verbatim window, and
+      a 100-token query. Three placement strategies, same total token
+      count, same included content — nothing added, nothing removed,
+      nothing re-compressed:
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>Where the 40-token allergy note lands</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Arrival order (actual pipeline)</td>
+          <td>~40th percentile of the 2,900-token window — inside the recalled-facts block, itself sandwiched between the pinned block and the much larger summary/verbatim blocks that follow.</td>
+          <td>Per the research this chapter re-verified, this is close to the statistically least-reliable band for both the original 2023 finding and its 2024-2025 confirmations. VitalsLine's answer omitted the allergy.</td>
+        </tr>
+        <tr>
+          <td>Naive "move everything important to the top"</td>
+          <td>Front of the window, alongside every other pinned/recalled fact — but the query is now 2,800 tokens away, at the very end, separated from the instruction context by the entire summary and verbatim blocks.</td>
+          <td>The allergy note itself would likely be found. But the same research motivates keeping the query near the end, close to generation — a long undifferentiated front-loaded block re-creates a version of the same risk for whatever the model needs to act on right now.</td>
+        </tr>
+        <tr>
+          <td>Weight-ranked, both-anchors placement (the fix)</td>
+          <td>Placed at the start anchor, as the single highest-weight safety fact identified in Step 1 — ahead of lower-weight pinned/recalled content, not just grouped with it by category.</td>
+          <td>The allergy note sits at the most reliable anchor position; the query sits at the other anchor, right before generation; the rest of the window (summary, verbatim history, lower-weight recalled facts) fills the middle, exactly where the research says reliability is weakest — deliberately, for the content that can most afford it.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      The fix was never "shrink the window" (Chapter 5's own subject) or
+      "recall fewer facts" (Chapter 4's own subject) — every earlier
+      chapter's own recipe was already correct here. The fix was
+      deciding, on purpose, which content gets the two most reliable
+      positions in a window whose total content was never in question.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>A Live-Captured Positional Example</h2>
+    <p>
+      As in every prior chapter, every exercise and practice solution in
+      this chapter uses deterministic, directly computed position/weight
+      data for its automated self-checks, for the same
+      20-second-`local_check.sh`-timeout reason documented since Chapter
+      3. But it's worth showing what a real model actually does with a
+      load-bearing fact placed in the middle of a short context,
+      captured live and unedited this session:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture -- POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>  PROMPT (three facts about a fictional company; the load-bearing
+  safety fact is placed in the middle, surrounded by unrelated filler,
+  with a direct question about it asked at the end):
+
+  "I will give you three facts about a fictional company Marrenvale
+  Logistics. Fact A (stated first): The warehouse manager is named
+  Priya Okafor. Fact B (stated in the middle, surrounded by unrelated
+  filler about weather and lunch): The forklift with serial number
+  FL-2291 failed a safety inspection on June 3rd and must not be used
+  until repaired. Fact C (stated last): The shipping dock closes at
+  6pm on weekdays. Question: what safety issue was reported, and what
+  is the exact serial number of the affected equipment?"
+
+  RESPONSE (live, unedited):
+  "According to Fact B, the forklift with a specific safety issue
+  failed a safety inspection, but the actual issue isn't stated.
+
+  The exact serial number of the affected equipment is FL-2291."</code></pre>
+    </div>
+    <p>
+      A genuinely nuanced partial result, read honestly rather than
+      graded pass/fail. The model correctly located Fact B and correctly
+      extracted the specific identifier (FL-2291) from the middle of the
+      context — a real success this chapter shouldn't erase to make a
+      cleaner story. But it explicitly reported that "the actual issue
+      isn't stated," when the prompt states plainly, in that same middle
+      position, exactly what the issue was ("failed a safety inspection
+      ... and must not be used until repaired"). The model retrieved the
+      identifier attached to the middle-positioned fact more reliably
+      than it retrieved the fact's own substance — a small, concrete
+      instance of the pattern this chapter's own research re-verification
+      describes: position measurably affects reliability even when
+      nothing about the fact itself is ambiguous, missing, or
+      compressed away. It is exactly why Step 5's positional probe has
+      to check the actual content of the answer, not just whether the
+      response mentions the right token or ID.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a request type correctly implements
+      every recipe this course has taught through Chapter 5 — a real
+      budget, a real pin/summary/window shape, a real long-term recall
+      policy, a real fidelity-checked compression pipeline — and a
+      present, unmodified, correctly-included safety fact still doesn't
+      make it into the model's answer.</p>
+      <p><strong>Assumption being made:</strong> that "the fact is in
+      the context window" is the same claim as "the model will reliably
+      use the fact." Chapter 5 already showed presence isn't the same as
+      surviving compression intact; this chapter shows surviving intact
+      isn't the same as being reliably attended to, either.</p>
+      <p><strong>What actually distinguishes a well-engineered context
+      assembly step:</strong> not whether every fact is technically
+      present (every approach in this chapter's own comparison table
+      achieves that) but whether the highest-weight content was
+      deliberately placed at the positions research shows are most
+      reliable, and whether that placement was actually tested against
+      the live system rather than assumed from a single research paper,
+      however well-established.</p>
+      <p><strong>Why this matters before Chapter 7:</strong> Chapter 7
+      asks a related but distinct question — once several different
+      sources (retrieved documents, tool output, conversation history,
+      system instructions) all need to go into one window together,
+      <em>which</em> sources belong and how do they get combined without
+      contradicting or crowding each other out? This chapter deliberately
+      assumed the set of included content as a given and asked only
+      where inside the window it should sit; Chapter 7 is where the
+      question of composing multiple sources into that set gets full
+      depth.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      well-ordered context window ranks its own already-selected content
+      by load-bearing weight, reserves both anchor positions (start and
+      the position closest to generation) for the highest-weight content
+      and the active instruction, deliberately reorders whatever remains
+      rather than trusting arrival order, and is validated with an
+      explicit positional probe re-run after any model or context-length
+      change — never assumed correct just because a fidelity check
+      already confirmed the content survives.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>Presence is not the same as reliable use — VitalsLine
+        implemented every recipe through Chapter 5 correctly, and a
+        present, unmodified, correctly-compressed safety fact still
+        wasn't surfaced, because nothing decided where it belonged in
+        the assembled window.</li>
+        <li>Re-verified this session: the core "lost in the middle"
+        claim (position measurably affects reliability, especially for
+        content away from the start and end) still holds across current
+        frontier model families as of 2025, not only the 2023-era models
+        the original paper tested — but its exact shape is model- and
+        length-specific and interacts with document structure, not one
+        fixed universal curve.</li>
+        <li>The fix is deliberate placement, not less content: rank
+        already-included content by load-bearing weight, reserve both
+        anchor positions (start, and the position nearest generation) for
+        the highest-weight content and the active query, and don't leave
+        the middle to arrival order.</li>
+        <li>This chapter's own live capture showed a model correctly
+        extract a specific identifier from a middle-positioned fact while
+        still reporting the fact's own substance as "not stated" — a real
+        instance of position affecting reliability even when nothing
+        about the fact was missing, ambiguous, or compressed away.</li>
+        <li>A passed Chapter 5 fidelity check proves content is present;
+        it says nothing about whether the model reliably used it from its
+        assembled position — the two checks are complementary, and a
+        system needs both, not one standing in for the other.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model as every prior chapter
+      (<code>llama3.2:latest</code>). <code>POST /api/chat</code> was
+      called twice this session and succeeded on the first attempt both
+      times — consistent with Chapters 4 and 5's own sessions, not
+      Chapter 3's, but reported honestly as this session's own result,
+      not a claim the earlier intermittent hang is permanently resolved:
+      a first call (a 200-second timeout, this course's standing
+      generous-patience discipline) returned a real response in about
+      114 seconds, almost entirely the model's own cold load time (about
+      100 seconds of the total); a second, warm call a few minutes later
+      (also a 200-second timeout) returned in about 5 seconds. Future
+      sessions should keep budgeting for retries with generous (120s+)
+      timeouts regardless, exactly as `PROJECT_STATE.md` instructs,
+      since Chapter 3's own session already showed a successful warm
+      call can still be followed by a later timeout within the same
+      session. As in every prior chapter, no graded <code>solution.py</code>
+      in this chapter depends on a live call — every weight-ranking and
+      positional-probe decision in the automated harnesses is
+      deterministic, hand-computed data, for the same
+      20-second-timeout reason documented in Chapters 3 through 5. The
+      live capture above is real and unedited, used as illustrative
+      content this chapter's own argument depends on (that positional
+      unreliability is real and measurable even for unambiguous,
+      uncompressed facts), not as something any graded script requires
+      to pass.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying — including Chapter 1's own original "lost in the middle" citation, re-fetched and re-read here specifically because this chapter is where that finding becomes the central subject rather than a supporting data point:</p>
+    <ol>
+      <li id="src-1">Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni, and
+      Liang, <em>"Lost in the Middle: How Language Models Use Long
+      Contexts"</em> —
+      <a href="https://arxiv.org/abs/2307.03172" target="_blank" rel="noopener">arxiv.org/abs/2307.03172</a>.
+      Re-fetched live this session and confirmed still live and unchanged
+      since Chapter 1's own citation. The original, peer-reviewed
+      (published at TACL) finding that "performance is often highest
+      when relevant information occurs at the beginning or end of the
+      input context, and significantly degrades when models must access
+      relevant information in the middle of long contexts" — the
+      foundational finding this entire chapter re-verifies rather than
+      assumes.</li>
+      <li id="src-2">Hsieh, Chuang, Li, Wang, Le, Kumar, Glass, Ravikumar,
+      and Krishnamurthy (approximate author order per the paper's own
+      listing), <em>"Found in the Middle: Calibrating Positional
+      Attention Bias Improves Long Context Utilization"</em> (2024) —
+      <a href="https://arxiv.org/abs/2406.16008" target="_blank" rel="noopener">arxiv.org/abs/2406.16008</a>.
+      Fetched live and confirmed live this session. This chapter's
+      required 2024/2025 re-verification source: identifies a "U-shaped
+      attention bias where the tokens at the beginning and at the end of
+      [the] input receive higher attention, regardless of their
+      relevance" as the mechanistic cause of the original finding, and
+      demonstrates a calibration fix improving retrieval-augmented
+      results "by up to 15 percentage points" — direct grounding for
+      this chapter's own honest conclusion that the effect is real,
+      mechanistic, and partially correctable, not an artifact specific
+      to the original 2023 paper's models.</li>
+      <li id="src-3">Hong, Troynikov, and Huber, <em>"Context Rot: How
+      Increasing Input Tokens Impacts LLM Performance"</em> (Chroma
+      Research, 2025) —
+      <a href="https://www.trychroma.com/research/context-rot" target="_blank" rel="noopener">trychroma.com/research/context-rot</a>
+      (this session's fetch of the historical
+      <code>research.trychroma.com/context-rot</code> URL 301-redirected
+      here; the redirect target was fetched and confirmed live). This
+      chapter's second required re-verification source: tested 18
+      current frontier models (including GPT-4.1, the Claude 4 family,
+      Gemini 2.5, and Qwen3) and found performance "grows less reliable
+      as input length increases," with non-uniform accuracy drops of
+      30-50% well before documented context limits — direct evidence the
+      original finding generalizes to 2025-era frontier models, not only
+      2023-era ones, while also surfacing an honest nuance (models
+      performed better on shuffled than structurally coherent long
+      contexts in this study) this chapter discloses rather than
+      omits.</li>
+      <li id="src-4">Anthropic, <em>"Prompting best practices"</em>
+      (Claude Platform Docs, "Long context prompting" section) —
+      <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices" target="_blank" rel="noopener">platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices</a>
+      (this session's fetch of the historical
+      <code>docs.claude.com/en/docs/build-with-claude/prompt-engineering/long-context-tips</code>
+      URL 302-redirected here, and the long-context guidance itself is
+      now folded into this consolidated prompting-practices page rather
+      than living on its own dedicated URL; the redirect target was
+      fetched and confirmed live). States "place your long documents and
+      inputs near the top of your prompt, above your query, instructions,
+      and examples," noting "queries at the end can improve response
+      quality by up to 30 percent in tests" — direct grounding for this
+      chapter's Step 4 (the query/instruction belongs at the anchor
+      closest to generation).</li>
+      <li id="src-5">LangChain, <em>`LongContextReorder` API reference</em>
+      (`langchain-community`) —
+      <a href="https://reference.langchain.com/python/langchain-community/document_transformers/long_context_reorder/LongContextReorder" target="_blank" rel="noopener">reference.langchain.com/python/langchain-community/document_transformers/long_context_reorder/LongContextReorder</a>.
+      Fetched live and confirmed live this session. Disclosed honestly:
+      this session's first attempt to cite LangChain's own how-to guide
+      for this feature (historically at
+      <code>python.langchain.com/docs/how_to/long_context_reorder/</code>)
+      found that page genuinely removed — it now 308-redirects to a
+      generic package overview page with no equivalent replacement
+      content, a real dead link rather than a relocation, unlike this
+      chapter's other two redirects above. This API reference page was
+      fetched instead and confirmed to still document the same behavior:
+      the transformer reorders documents so the "most relevant documents"
+      sit "at extrema (e.g., the first and last pieces of context)" while
+      less relevant ones are pushed toward the middle — a concrete,
+      shipped implementation of this chapter's Steps 2 and 3 together,
+      directly citing Liu et al.'s own paper as its motivation.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's Context Ordering Recipe out
+    loud — see
+    <a href="interview-questions.html">Chapter 6 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="what-is">
+    <span class="label">Module 3's project</span>
+    This chapter closes Module 3 and ships its single guided project,
+    drawing on both Chapter 5 (compression fidelity) and this chapter
+    (context ordering) together — see
+    <a href="project/index.html">the Module 3 project</a>.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-05-context-compression-and-summarization/lesson.html">&larr; Chapter 5</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

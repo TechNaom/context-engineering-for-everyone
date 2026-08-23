@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avoiding Lost-in-the-Middle Project — Context Engineering for Everyone</title>
+<meta name="description" content="Module 3's closing project: design Brackholt County Court Records Office's ArchiveLine compression-fidelity AND context-ordering pipeline together -- drawing on both Chapter 5 and Chapter 6.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-06">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../interview-questions.html">&larr; Back to interview questions</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Module 3 Project</span>
+    <span class="reading-time">~60 min</span>
+  </div>
+  <h1>Project: Build Brackholt's ArchiveLine Compression + Ordering Pipeline</h1>
+  <p>
+    Brackholt County Court Records Office's fictional docket-review
+    assistant, ArchiveLine, helps a public defender review an active
+    case file before a hearing. This is Module 3's closing lab, drawing
+    on <strong>both</strong> chapters this module built — Chapter 5's
+    Compression Fidelity Recipe and Chapter 6's own Context Ordering
+    Recipe — per the curriculum map's own paired Module 3 labs. You
+    design both halves at once: compressing an aged-out conversation
+    segment without losing what it must preserve (Chapter 5's skill),
+    and deciding where every already-included content block belongs in
+    the final assembled window (this chapter's own skill).
+  </p>
+
+  <div class="what-is">
+    <span class="label">A note on this project's tier</span>
+    The curriculum map's own four-tier project ladder doesn't assign a
+    numbered tier to Module 3 — it jumps from L2 (Ch. 4) to L3 (Ch. 8).
+    This project fills that gap under this course's own "one project
+    per module" convention, sitting between L2's partial scaffold and
+    L3's no-scaffold: a full spec is given, but no part is solved for
+    you. See <code>quality-audits/chapter-06-audit.md</code> for the
+    full reasoning.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run it</span>
+    Download <code>starter.py</code>, fill in your Part 1 (compression)
+    and Part 2 (ordering) choices and both write-ups, then run
+    <code>python3 starter.py</code>. Most of this project's self-check
+    is fully mechanical — it verifies your Part 1 candidate/strategy
+    choices, and separately verifies your Part 2 block placements
+    against the anchor/middle rules and the assembled window's budget.
+    Compare against <code>solution.py</code>, then self-grade against
+    <code>RUBRIC.md</code>.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+    <a href="RUBRIC.md">RUBRIC.md</a>
+    <a href="README.md">README.md</a>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you're given</h3>
+    <p>A 3,000-token raw segment that must compress to a fixed 600-token target, with three already-flagged load-bearing candidates; a 3,200-token assembled-window budget containing six already-correctly-included content blocks (two high-weight, three low-weight, one query), each tagged with its own token count.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you produce</h3>
+    <p>A valid compressed-candidate set and strategy choice per candidate that preserves all three flagged details; a valid block-position assignment that reserves both anchor positions for the highest-weight content and the active query, leaves every low-weight block in the middle, and fits the window budget; and two defended write-ups, one per part.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Passing bar</h2>
+    <p>19/24 (about 80%) or higher on <code>RUBRIC.md</code>'s six criteria, with no single criterion scoring 0. <code>solution.py</code> is one complete, valid reference design scoring a full 24/24 — not the only correct design, since the compressed wording and both write-ups are intentionally open.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../interview-questions.html">&larr; Interview Questions</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

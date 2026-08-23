@@ -48,7 +48,7 @@
       <p><strong>Outcome:</strong> design short-term memory that stays in budget; design a long-term memory system with a real retrieval-into-context policy.</p>
     </div>
     <div class="feature-card">
-      <h3>Module 3: Context Compression and Curation</h3>
+      <h3>Module 3: Context Compression and Curation — Complete</h3>
       <p>Making the most of a limited budget: what to compress, and where in the window it goes.</p>
       <p><strong>Outcome:</strong> compress/summarize context without losing load-bearing content; order context to avoid lost-in-the-middle degradation.</p>
     </div>
@@ -76,7 +76,7 @@
     <a class="chapter-card" data-chapter-link="chapter-03" href="../../chapters/chapter-03-short-term-conversational-memory/lesson.html"><span class="chapter-card-num">Chapter 3 — Live</span><h3>Short-Term Conversational Memory</h3><p>Managing turn-by-turn history inside a bounded window without silently truncating something load-bearing.</p></a>
     <a class="chapter-card" data-chapter-link="chapter-04" href="../../chapters/chapter-04-long-term-and-persistent-memory-systems/lesson.html"><span class="chapter-card-num">Chapter 4 — Live</span><h3>Long-Term and Persistent Memory Systems</h3><p>What a system should remember across sessions, and the real decision of what to retrieve back into context later.</p></a>
     <a class="chapter-card" data-chapter-link="chapter-05" href="../../chapters/chapter-05-context-compression-and-summarization/lesson.html"><span class="chapter-card-num">Chapter 5 — Live</span><h3>Context Compression and Summarization</h3><p>The real mechanics a compression call uses to decide what survives -- opening Module 3, without losing what a downstream step depends on.</p></a>
-    <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 6 — Planned</span><h3>Avoiding Lost-in-the-Middle</h3><p>Why position inside the context window changes how well a model uses information.</p></a>
+    <a class="chapter-card" data-chapter-link="chapter-06" href="../../chapters/chapter-06-avoiding-lost-in-the-middle/lesson.html"><span class="chapter-card-num">Chapter 6 — Live</span><h3>Avoiding Lost-in-the-Middle</h3><p>Why position inside the context window changes how well a model uses information -- closing Module 3 with a re-verified look at the research and Module 3's own guided project.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 7 — Planned</span><h3>Multi-Source Context Assembly</h3><p>Composing several context sources into one window without the pieces contradicting each other.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 8 — Planned</span><h3>Retrieval Integration: From Ranked Results to Context</h3><p>Turning a retriever's ranked results into well-formed context — the handoff point with RAG.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 9 — Planned</span><h3>Context Engineering for Tool Use</h3><p>Deciding what tool definitions, results, and history a model needs in context for a tool call.</p></a>
@@ -95,14 +95,18 @@
     and Chapter 4 builds the real write and retrieval policy that
     decides what a system persists across sessions and what comes back
     into context for a given turn, closing the module with an L2
-    Assisted project. Chapter 5 is now live too, opening Module 3
-    (Context Compression and Curation): it engineers the real mechanics
-    a compression call uses to decide what survives once content no
-    longer fits its budget, a step Chapter 3's own recipe deliberately
-    left unopened. Per this course's one-project-per-module convention,
-    Chapter 5 does not ship its own project — Module 3's single project
-    ships once, solo, at the end of Chapter 6. Chapter 6 and Chapters
-    7-13 are scaffolded (`.gitkeep`'d directories under
+    Assisted project. Chapters 5-6 are now live too, completing Module 3
+    (Context Compression and Curation) in full: Chapter 5 engineers the
+    real mechanics a compression call uses to decide what survives once
+    content no longer fits its budget, a step Chapter 3's own recipe
+    deliberately left unopened, and Chapter 6 engineers where
+    already-included content should sit inside the assembled window,
+    re-verifying the "lost in the middle" finding (Liu et al., 2023)
+    against 2024-2025 research before treating it as settled on current
+    model families. Per this course's one-project-per-module convention,
+    Chapter 5 shipped no project of its own — Module 3's single project,
+    drawing on both chapters together, ships with Chapter 6, closing the
+    module. Chapters 7-13 are scaffolded (`.gitkeep`'d directories under
     <code>chapters/</code>) and planned per
     <a href="CURRICULUM_MAP.md">CURRICULUM_MAP.md</a>, not yet built —
     see <code>PROJECT_STATE.md</code> for the current, authoritative

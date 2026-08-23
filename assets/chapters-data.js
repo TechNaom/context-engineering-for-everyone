@@ -8,9 +8,9 @@
   written exam actually exists in assessments/written-exams/.
 
   Chapters 1-2 (Module 1, complete), Chapters 3-4 (Module 2, complete),
-  and Chapter 5 (Module 3, opened) are live as of this build -- see
-  PROJECT_STATE.md for status. Chapter 6 and Chapters 7-13 are planned,
-  `.gitkeep`'d, not yet built.
+  and Chapters 5-6 (Module 3, complete) are live as of this build -- see
+  PROJECT_STATE.md for status. Chapters 7-13 are planned, `.gitkeep`'d,
+  not yet built.
 */
 
 window.CEFE_MODULES = [
@@ -72,7 +72,8 @@ window.CEFE_MODULES = [
         id: "chapter-06",
         num: 6,
         title: "Avoiding Lost-in-the-Middle",
-        description: "Why position inside the context window changes how well a model uses information, and how to curate and order context around it."
+        description: "Why position inside the context window changes how well a model uses information, and how to curate and order context around it.",
+        path: "chapters/chapter-06-avoiding-lost-in-the-middle/lesson.html"
       }
     ]
   },

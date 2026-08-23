@@ -1,11 +1,12 @@
 # PROJECT_STATE.md — Context Engineering for Everyone
 
-Last updated: 2026-08-23 (Session 5 — Chapter 5, "Context Compression
-and Summarization," complete, opening Module 3. Session 4 built Chapter
-4, closing Module 2 in full. Session 3 built Chapter 3, opening Module
-2. Session 2 built Chapter 2, completing Module 1. Session 1 built
-Discovery, the curriculum map, the full repository scaffold, and
-Chapter 1.)
+Last updated: 2026-08-23 (Session 6 — Chapter 6, "Avoiding
+Lost-in-the-Middle," complete, closing Module 3 in full and shipping
+Module 3's single joint project. Session 5 built Chapter 5, opening
+Module 3. Session 4 built Chapter 4, closing Module 2 in full. Session
+3 built Chapter 3, opening Module 2. Session 2 built Chapter 2,
+completing Module 1. Session 1 built Discovery, the curriculum map, the
+full repository scaffold, and Chapter 1.)
 
 ## Course Objective
 
@@ -488,16 +489,130 @@ only).
       `docs/curriculum/index.html` (Chapter 5's chapter-card now "Live"
       with a working link, and its own lede paragraph updated to
       describe Module 3 opening and the deferred Chapter 6 project).
+- [x] **Ollama re-checked fresh in Session 6, two consecutive
+      first-attempt successes**: `/api/tags` responded normally
+      (`llama3.2:latest` still installed). `/api/chat` was called
+      twice, both under a 200-second timeout: a first call (a
+      positional-bias prompt placing a load-bearing fact in the middle
+      of a short context) returned in **113.7 seconds**, almost
+      entirely cold model-load time (~100s); a second, warm call a few
+      minutes later returned in **5.1 seconds**. Reported honestly as
+      this session's own result, consistent with Sessions 4 and 5's own
+      consecutive successes, not treated as evidence the earlier
+      intermittent-hang finding no longer applies. The first capture is
+      used in Chapter 6's `lesson.html` as a live, unedited "Live-
+      Captured Positional Example," notable for a genuinely nuanced
+      partial result: the model correctly extracted a specific
+      identifier (a forklift serial number) from a middle-positioned
+      fact while explicitly reporting the fact's own substance as "isn't
+      stated," when it plainly was — read honestly as a real instance of
+      position affecting reliability even when nothing about the fact
+      was missing, ambiguous, or compressed away. No graded
+      `solution.py` in Chapter 6 depends on a live call, for the same
+      20-second-`local_check.sh`-timeout reason every prior chapter
+      documented.
+- [x] **Chapter 6 built and live — "Avoiding Lost-in-the-Middle,"
+      closing Module 3 in full**. Uses Chapters 1-5 as a lens, not
+      fresh material: the token budget, pin/summary/window shape,
+      long-term write/retrieval policy, and fidelity-checked compression
+      pipeline are all given inputs, not re-derived. This chapter's own
+      job is the positional question every prior chapter assumed out of
+      scope: given a final, assembled set of already-correctly-included
+      content, *where* it sits inside the window measurably changes
+      whether the model actually uses it. Hook: Marchside Regional
+      Trauma Network's VitalsLine, a pre-op review assistant that
+      implemented every recipe through Chapter 5 correctly (a real
+      budget, a real pin/summary/window shape, a real long-term recall
+      policy, a real fidelity-checked compression pipeline) and still
+      failed to surface a documented, present, unmodified lidocaine
+      allergy fact, because nothing decided where it belonged once
+      everything correct was already inside the window — a genuinely
+      distinct failure from all five prior chapters' hooks (no budget;
+      wrong-shaped budget; naive within-session eviction; no
+      cross-session memory; an uncontrolled compression call). Builds a
+      five-step Context Ordering Recipe (rank by load-bearing weight;
+      reserve the anchor positions for the highest-weight content;
+      reorder the middle deliberately; put the query near the end,
+      closest to generation; test position directly with an explicit
+      probe, re-run after any model/length change) and a three-approach
+      comparison table (arrival order; naive "move everything to the
+      top" — still leaves the query anchor uncovered; weight-ranked,
+      both-anchors, position-tested placement). Full worked math for
+      VitalsLine's 2,900-token hook window compared across all three
+      approaches. **Re-verified the "Lost in the Middle" (Liu et al.,
+      2023) citation this session, resolving the Known Issue flagged
+      since Chapter 1**: fetched two additional, more recent sources
+      live — Hsieh et al.'s 2024 "Found in the Middle" (identifies the
+      mechanistic cause, an intrinsic U-shaped attention bias, and a
+      partially corrective calibration method) and Chroma's 2025
+      "Context Rot" report (an 18-frontier-model 2025 replication,
+      including GPT-4.1/Claude 4/Gemini 2.5/Qwen3, confirming the effect
+      persists on current models while surfacing a genuine nuance —
+      models performed better on shuffled than structurally coherent
+      long contexts). The lesson's own "Re-Verification" section states
+      the honest conclusion directly: the core claim still holds on
+      2025-era frontier models, but its exact shape is now understood to
+      be model- and length-specific with a mechanistic, partially
+      correctable cause, not a fixed universal curve. Grounded in these
+      5 real, live-verified sources this session (Liu et al.'s original
+      2023 paper, re-fetched and confirmed unchanged; Hsieh et al. 2024;
+      Chroma's 2025 report, following a live redirect; Anthropic's
+      Claude Platform Docs long-context-prompting guidance, following a
+      live redirect after its dedicated URL was folded into a
+      consolidated page; and LangChain's `LongContextReorder` API
+      reference, cited after LangChain's own how-to guide for the same
+      feature was found to be a genuine dead link this session,
+      disclosed honestly rather than silently swapped). 8 exercises (6
+      production-gear: position-percentile arithmetic, load-bearing
+      weight classification, a positional probe, query-anchor
+      classification, an arrival-order-vs-weight-ranked regression gate,
+      a retest/escalation decision), 8 practice scenarios (4 judgment
+      calls, 4 production-gear) across 8 fresh fictional orgs, and 8
+      interview questions across all 4 levels. **Ships Module 3's single
+      guided project this session**, drawing on both Chapter 5
+      (compression fidelity) and Chapter 6 (context ordering) together
+      per the curriculum map's own paired Module 3 labs — Brackholt
+      County Court Records Office/ArchiveLine, a two-part design task
+      whose self-check mechanically verifies both Part 1's compression
+      candidate/strategy choices and Part 2's anchor/middle placement
+      rules and budget fit. Disclosed honestly as sitting between the
+      curriculum map's own L2 and L3 tiers, since the map's numbered
+      project ladder does not itself assign a tier to Module 3 (full
+      reasoning in `quality-audits/chapter-06-audit.md`).
+- [x] **Quality audit** (`quality-audits/chapter-06-audit.md`) — honest
+      self-critique (including the disclosed gap that this chapter's
+      positional-probe exercises validate against clean hand-authored
+      position/weight labels, not real natural-language model output,
+      flagged for a later chapter), the full Lost-in-the-Middle
+      re-verification writeup, the honest project-tier resolution (no
+      numbered ladder tier applies to Module 3; this is the course's own
+      one-project-per-module convention filling the L2/L3 gap), a
+      fictional-org exclusion check extending Chapters 1-5's list with
+      11 new orgs (65 total in this repo), checked against
+      `ai-engineering-for-everyone`'s own full compiled list with zero
+      collision found, and full documentation of the citation churn
+      (two live redirects to relocated content, one genuine dead link
+      requiring a different source page from the same provider)
+      encountered during verification.
+- [x] **Step 5: Validation (Chapter 6)** — `scripts/local_check.sh` run
+      at the end of this session; passed clean (folder structure,
+      placeholder-text scan, Python syntax, every `solution.py` executed
+      for real, JS syntax and chapter-path validation, secret scan).
+- [x] **Registration updated in the same session (Chapter 6)**:
+      `assets/chapters-data.js` (Chapter 6's `path` added), root
+      `index.html` (hero-stats now "6 of 13 chapters live" / "3 of 6
+      modules complete," and the "All Chapters" intro paragraph rewritten
+      to describe all six live chapters and Module 3's completion), and
+      `docs/curriculum/index.html` (Chapter 6's chapter-card now "Live"
+      with a working link, its own lede paragraph updated, and Module
+      3's feature card marked "Complete").
 
 ## Pending / Not Started
 
-- Chapter 6 and Chapters 7-13 — scaffolded with `.gitkeep` only, no
+- Chapter 7 and Chapters 8-13 — scaffolded with `.gitkeep` only, no
   content. Per this ecosystem's standing discipline, they are built one
   chapter at a time in future sessions, each validated before the next
-  begins — do not mass-build multiple chapters in one pass. Chapter 6
-  also owns Module 3's single project (per the one-project-per-module
-  convention), so it is not a drop-in-content-only session the way
-  Chapters 2, 3, and 5 were.
+  begins — do not mass-build multiple chapters in one pass.
 - No module written exams, module-assessments, or architecture
   challenges exist yet — `assessments/` is fully scaffolded but empty
   (`.gitkeep` in every subdirectory) until the modules they cover are
@@ -528,11 +643,27 @@ only).
   not as evidence the intermittent-hang finding above no longer holds;
   future sessions should still budget for retries and generous
   timeouts by default.
-- The "Lost in the Middle" citation (Liu et al., 2023) is the original
-  finding, not a more recent replication — flagged in the quality audit
-  as something Chapter 6 (which owns this topic in depth) should
-  re-verify against more current research before treating the finding
-  as settled across all current model families.
+- **RESOLVED in Session 6 (Chapter 6).** The "Lost in the Middle"
+  citation (Liu et al., 2023) was flagged since Chapter 1 as the
+  original finding, not a more recent replication. Chapter 6's own
+  session re-verified it live against two newer sources: Hsieh et al.
+  2024 ("Found in the Middle," a mechanistic explanation and a partially
+  corrective calibration method) and Chroma's 2025 "Context Rot" report
+  (an 18-frontier-model replication confirming the effect persists on
+  2025-era models). Honest conclusion, stated in `lesson.html`'s own
+  "Re-Verification" section: the core claim still holds on current
+  frontier models, but its exact shape is model- and length-specific
+  with a mechanistic, partially correctable cause, not a fixed universal
+  curve as the original single paper alone might suggest. Full detail in
+  `quality-audits/chapter-06-audit.md`.
+- Chapter 6's own positional-probe exercises (Exercise 5, Practice
+  Scenario 4, and the project's Part 2 self-check) validate placement
+  against clean, hand-authored position/weight labels, not the harder
+  real-world problem of deriving load-bearing weight or measuring actual
+  positional recall from real model output — flagged in
+  `quality-audits/chapter-06-audit.md` as an open gap for a later
+  chapter or revision, the same category of gap Chapter 5's own audit
+  flagged for its fidelity-check exercises.
 - Chapter 5's own fifth citation (`arxiv.org/abs/2606.29251`, "When
   Summaries Distort Decisions: Information Fidelity in LLM-Compressed
   Financial Analysis") is an arXiv preprint, not a peer-reviewed or
@@ -589,8 +720,19 @@ only).
   5 shipped no project of its own, confirmed explicitly in both
   `lesson.html`/`interview-questions.html` and
   `quality-audits/chapter-05-audit.md`, rather than silently omitting
-  the section. Chapter 6 must ship Module 3's single project — this is
-  now a firm commitment, not a default to re-litigate.
+  the section. **RESOLVED in Session 6 (Chapter 6).** Chapter 6 shipped
+  Module 3's single project as committed, drawing on both Chapter 5
+  (compression) and Chapter 6 (ordering) together. It also resolved a
+  related, previously unstated question: the curriculum map's own
+  numbered project ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch.
+  8, L4 the capstone) does not assign any numbered tier to Module 3 at
+  all — it jumps from L2 to L3 across Chapters 4-8. Module 3's project is
+  therefore labeled "Module 3 Project," not a numbered tier, in every
+  artifact — full reasoning in `quality-audits/chapter-06-audit.md`.
+  Future modules whose own project falls between two ladder tiers (none
+  currently expected, since Modules 4-6 each map cleanly to L3/L4) should
+  follow this same honest-labeling precedent rather than inventing an
+  unearned numbered tier.
 
 ## Design Standards
 
@@ -605,100 +747,101 @@ extended (not restarted) in each chapter's own quality audit.
 
 ## Next Recommended Task
 
-**Chapter 6 — "Avoiding Lost-in-the-Middle," closing Module 3 — and
-shipping Module 3's single project.**
+**Chapter 7 — "Multi-Source Context Assembly," opening Module 4.**
 
-Per `docs/curriculum/CURRICULUM_MAP.md`: Module 3 (Context Compression
-and Curation), Chapters 5-6. Module 3's outcomes: "compress/summarize
-context without losing load-bearing content; order context to avoid
-lost-in-the-middle degradation." Chapter 5 (this session) owned the
-first outcome — the real compression *mechanics* (a six-step
-Compression Fidelity Recipe) that decide what survives when content no
-longer fits its budget. Chapter 6 owns the second outcome: given that
-content has survived compression intact (Chapter 5's own subject),
-*where* it gets placed inside the final assembled context window
-measurably changes how reliably the model actually uses it — the "lost
-in the middle" effect Chapter 1's own hook first named in passing.
-Chapter 6's own lab, per the module outcomes: "reorder a context window
-to fix a lost-in-the-middle failure." Per the now-confirmed
-one-project-per-module convention (see "Open Decisions" above, applied
-as intended in Chapter 5's own session), **Chapter 6 must also ship
-Module 3's single project** — this is a firm commitment carried forward
-from Chapter 5's session, not a default to re-litigate. Read Chapter
-5's own quality audit before scoping Chapter 6's project shape against
-the module's stated lab and outcomes, per `AI_HANDOFF.md`'s standing
-instruction not to assume Chapter 6's scope from the curriculum map
-alone.
+Per `docs/curriculum/CURRICULUM_MAP.md`: Module 4 (Multi-Source Context
+Assembly), Chapters 7-8, difficulty Advanced. Module 4's outcomes:
+"assemble multi-source context without contradiction or crowding;
+integrate a RAG pipeline's ranked results into context correctly."
+Chapter 7's own lab, per the module outcomes: "assemble context from 3+
+real sources for one request." Chapter 6 (this session) closed Module 3
+having deliberately assumed the *set* of content going into a window as
+already decided, asking only where inside the window each already-
+included piece should sit (see Chapter 6's own "Why Every Recipe Before
+This One Left This Open" section, which states this boundary against
+Chapter 7 explicitly). Chapter 7 owns the question Chapter 6 deferred:
+which sources belong in the window at all — retrieved documents, tool
+output, conversation history, system instructions — and how several
+different sources get combined into one coherent window without
+contradicting or crowding each other out. Chapter 8 ("Retrieval
+Integration: From Ranked Results to Context") then narrows specifically
+to the RAG handoff: turning one retriever's ranked results into
+well-formed context, not re-teaching retrieval architecture itself
+(`rag-for-everyone`'s subject). Per this course's confirmed
+one-project-per-module convention (see "Open Decisions" above), Module
+4's own project should be planned once, likely at the end of Chapter 8
+— read Chapter 6's own quality audit (`quality-audits/chapter-06-audit.md`)
+for the honest project-tier-labeling precedent it set (no numbered
+ladder tier for a module the map doesn't itself assign one to) before
+assuming Chapter 8's project shape from the curriculum map alone.
 
 What NOT to re-derive:
-- The five-line Context Budget Ledger (Chapter 1), the five-step
-  Budget Allocation Recipe (Chapter 2), the six-step Short-Term Memory
-  Policy Recipe (Chapter 3), the six-step Long-Term Memory Policy
-  Recipe (Chapter 4), and the six-step Compression Fidelity Recipe
-  (Chapter 5) are already-built material. Chapter 6 should re-read
-  Chapter 5's own "Context Engineering Builder Thought Process" section
-  (it explicitly named ordering/positioning as deferred to Chapter 6)
-  before scoping its own content, so it neither re-teaches what Chapter
-  5 already covered (deciding what content survives compression) nor
-  leaves a gap between the two. Chapter 6's own new job is the
-  positional question every prior chapter assumed as out of scope: given
-  a final, assembled set of content (already correctly budgeted per
-  Chapters 1-2, already correctly evicted/compressed per Chapters 3-5,
-  already correctly retrieved per Chapter 4), where in the window does
-  each piece go, and how does that placement change whether the model
-  actually attends to it. Do not re-explain budgeting, pinning,
-  write/retrieval criteria, or compression mechanics — Chapter 6 can
-  reference them briefly as the *inputs* its own ordering step receives,
-  not re-teach them.
+- The five-line Context Budget Ledger (Chapter 1), the five-step Budget
+  Allocation Recipe (Chapter 2), the six-step Short-Term Memory Policy
+  Recipe (Chapter 3), the six-step Long-Term Memory Policy Recipe
+  (Chapter 4), the six-step Compression Fidelity Recipe (Chapter 5), and
+  the five-step Context Ordering Recipe (Chapter 6) are already-built
+  material. Chapter 7 should re-read Chapter 6's own "Why Every Recipe
+  Before This One Left This Open" and "Context Engineering Builder
+  Thought Process" sections (both explicitly name multi-source
+  composition as Chapter 7's own deferred subject) before scoping its
+  own content, so it neither re-teaches what Chapter 6 already covered
+  (positioning already-selected content) nor leaves a gap between the
+  two. Chapter 7's own new job is source *selection and combination*:
+  given several candidate sources for one request, which belong, how do
+  they get merged into one window without contradicting or crowding
+  each other, and how does Chapter 6's own ordering discipline apply
+  once multiple sources are combined rather than one. Do not re-explain
+  budgeting, pinning, write/retrieval criteria, compression mechanics,
+  or anchor/positional-probe mechanics — Chapter 7 can reference them
+  briefly as *inputs* its own assembly step receives, not re-teach them.
 - The course's positioning relative to `rag-for-everyone`,
   `mcp-for-everyone`, and `ai-engineering-for-everyone` Chapter 3 is
   already established in `docs/discovery-notes.md` and Chapter 1's own
-  "Why This Course Exists" section — Chapter 6 can reference it briefly
-  but should not re-argue it from scratch.
-- Read Chapter 5's own quality audit
-  (`quality-audits/chapter-05-audit.md`) before starting, not just the
+  "Why This Course Exists" section — Chapter 7 can reference it briefly
+  but should not re-argue it from scratch. Chapter 7's own boundary
+  against `rag-for-everyone` needs particular care: this course assumes
+  ranked/retrieved results as a given input (that's `rag-for-everyone`'s
+  and this course's own Chapter 8's subject), and Chapter 7's job is
+  combining that already-retrieved content with other sources, not
+  retrieval quality itself.
+- Read Chapter 6's own quality audit
+  (`quality-audits/chapter-06-audit.md`) before starting, not just the
   curriculum map — per `AI_HANDOFF.md`'s own standing instruction, it
   may surface scope notes this file doesn't fully capture.
-- **Re-verify the "Lost in the Middle" citation (Liu et al., 2023)
-  against more current research before treating the finding as settled
-  across all current model families** — flagged in the Known Issues
-  section above across multiple prior chapters as something Chapter 6
-  specifically, not any earlier chapter, owns resolving, since this is
-  the chapter where that finding moves from a supporting citation to
-  the chapter's own central subject.
 
-New-org exclusion list: read `quality-audits/chapter-05-audit.md`'s
-full running list (Chapters 1-4's combined 44 orgs plus Chapter 5's 10
-new orgs — Brannigan Home Energy Services, Kirkholme Public Transit
-Safety Board, Lynhaven Community Health Partners, Sablewood Legal
-Trust, Coalridge Municipal Transit Authority, Pikestone Logistics
-Group, Rowancraig Insurance Underwriters, Draymoor Agricultural
-Cooperative, Osprey Ridge Wealth Management, Talmarsh Veterinary
-Alliance — 54 total in this repo) plus `ai-engineering-for-everyone`'s
-own full compiled list (see that repo's
-`quality-audits/chapter-13-audit.md`) before naming any new fictional
-org for Chapter 6, and extend — don't restart — the list in
-`quality-audits/chapter-06-audit.md`.
+New-org exclusion list: read `quality-audits/chapter-06-audit.md`'s
+full running list (Chapters 1-5's combined 54 orgs plus Chapter 6's 11
+new orgs — Marchside Regional Trauma Network, Calverton Public
+Defender's Office, Nunroth Independent Bookstore Cooperative, Vesparro
+Marine Salvage, Holstead Grain Exchange, Quenby Historical Archive
+Society, Farrowline Dairy Cooperative, Delacroix Regional Airport
+Authority, Pennwhistle Community Radio Network, Ostergaard Marine
+Insurance, Brackholt County Court Records Office — 65 total in this
+repo) plus `ai-engineering-for-everyone`'s own full compiled list (see
+that repo's `quality-audits/chapter-13-audit.md`) before naming any new
+fictional org for Chapter 7, and extend — don't restart — the list in
+`quality-audits/chapter-07-audit.md`.
 
-Citation/Ollama re-verification discipline: do not assume Chapter 5's
+Citation/Ollama re-verification discipline: do not assume Chapter 6's
 five citations are still live — re-fetch and re-read anything reused,
-and treat all-new sources as the default (Chapter 5's own session
-needed to follow one live redirect and set aside one initially
-attempted candidate page in favor of a more directly relevant one —
+and treat all-new sources as the default (Chapter 6's own session
+needed to follow two live redirects to relocated content and replace one
+initially attempted URL that turned out to be a genuine dead link —
 expect similar churn, not stability by default). Re-check Ollama's
 `/api/tags` and `/api/chat` fresh at the start of the session, even
-though Chapters 4 and 5 both got two consecutive first-attempt
+though Chapters 4, 5, and 6 all got two consecutive first-attempt
 successes — Chapter 3 already showed a successful warm call can still
 be followed by a later timeout within the same session, so treat the
 endpoint as intermittently slow/hanging by default, budget for retries
 throughout the session, not just at the start, and keep timeouts
 generous (120s+) throughout.
 
-Registration-staleness check reminders: once Chapter 6's `lesson.html`
+Registration-staleness check reminders: once Chapter 7's `lesson.html`
 exists, update `assets/chapters-data.js` (add its `path`), the root
-`index.html` (`hero-stats` counts and the "All Chapters" intro
-paragraph — it should read "6 of 13 chapters live" AND "3 of 6 modules
-complete" once Chapter 6 ships, since it closes Module 3), and
+`index.html` (`hero-stats` counts — it should read "7 of 13 chapters
+live," with "3 of 6 modules complete" staying as-is until Chapter 8
+closes Module 4 — and the "All Chapters" intro paragraph), and
 `docs/curriculum/index.html` (its own chapter-card status and lede
 paragraph) in the same session — these four locations drifted stale in
 multiple sibling courses' own build histories when a chapter shipped
@@ -710,7 +853,7 @@ Local validation, done at the end of every session:
 $ bash scripts/local_check.sh
 ```
 
-Passed clean at the end of this session (Chapter 5) — folder
+Passed clean at the end of this session (Chapter 6) — folder
 structure, placeholder-text scan, Python syntax, every `solution.py`
 executed for real, JS syntax and chapter-path validation, secret scan.
 See this session's own commit message / `AI_HANDOFF.md` for the exact

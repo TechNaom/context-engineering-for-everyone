@@ -31,16 +31,17 @@ before it's written into a lesson.
 ## Current state (as of 2026-08-23)
 
 **Read `PROJECT_STATE.md` for the authoritative, up-to-date status.**
-Short version: this is the course's **fifth session**. Session 1 built
+Short version: this is the course's **sixth session**. Session 1 built
 Discovery, the curriculum map, the full repository scaffold, and
 Chapter 1 ("The Context Budget"). Session 2 built Chapter 2
 ("Designing Context Window Budgets"), completing Module 1 in full.
 Session 3 built Chapter 3 ("Short-Term Conversational Memory"), opening
 Module 2. Session 4 built Chapter 4 ("Long-Term and Persistent Memory
 Systems"), closing Module 2 in full. Session 5 built Chapter 5
-("Context Compression and Summarization"), opening Module 3. Chapter 6
-and Chapters 7-13 exist only as `.gitkeep`'d directories, not yet
-built.
+("Context Compression and Summarization"), opening Module 3. Session 6
+built Chapter 6 ("Avoiding Lost-in-the-Middle"), closing Module 3 in
+full and shipping Module 3's single joint project. Chapters 7-13 exist
+only as `.gitkeep`'d directories, not yet built.
 
 - Directory skeleton (`.gitkeep` in every not-yet-built chapter
   directory from the start — the bootstrap bug found in prior sibling
@@ -115,6 +116,31 @@ built.
   one-project-per-module convention, Module 3's single project ships
   once, solo, at the end of Chapter 6; `interview-questions.html` says
   so explicitly.
+- **Chapter 6 ("Avoiding Lost-in-the-Middle") is built and live**,
+  closing Module 3 in full. See `quality-audits/chapter-06-audit.md`.
+  Uses Chapters 1-5 as a lens: the budget, pin/summary/window shape,
+  long-term recall policy, and fidelity-checked compression pipeline
+  are all given inputs, not re-derived. This chapter's own job is the
+  positional question every prior chapter assumed out of scope: given a
+  final, assembled set of already-correctly-included content, *where*
+  it sits inside the window measurably changes whether the model
+  actually uses it — a five-step Context Ordering Recipe (rank by
+  load-bearing weight, reserve the anchor positions for the
+  highest-weight content, reorder the middle deliberately, put the
+  query near the end closest to generation, test position directly with
+  an explicit probe). **This session also re-verified the "Lost in the
+  Middle" (Liu et al., 2023) citation** flagged since Chapter 1 —
+  fetched two newer sources live (Hsieh et al. 2024's "Found in the
+  Middle," Chroma's 2025 "Context Rot" report) and stated an honest
+  conclusion in the lesson itself: the core claim still holds on
+  current frontier models, but its exact shape is model- and
+  length-specific with a mechanistic, partially correctable cause, not
+  a fixed universal curve. **Ships Module 3's single guided project**
+  this session (Brackholt County Court Records Office/ArchiveLine),
+  drawing on both Chapter 5 (compression) and Chapter 6 (ordering)
+  together — disclosed honestly as sitting between the curriculum map's
+  own L2 and L3 tiers, since the map's numbered ladder doesn't itself
+  assign a tier to Module 3 (full reasoning in the quality audit).
 
 ## Naming conventions
 
@@ -138,15 +164,16 @@ built.
   even after an earlier call in the same session had already succeeded
   warm, before a third attempt succeeded in under 9 seconds. Treat this
   endpoint as *intermittently* slow/hanging, not "cold once, fast
-  forever after." `/api/tags` has responded normally in all five
+  forever after." `/api/tags` has responded normally in all six
   sessions with `llama3.2:latest` installed. Session 4 got two
   consecutive first-attempt successes (74.4s cold, 21.8s warm), with no
   retries needed. Session 5 also got two consecutive first-attempt
-  successes (64s cold, 8s warm) — reported honestly as each session's
-  own result, not evidence the intermittent pattern is resolved. Re-check
-  and disclose honestly every session, budgeting for retries throughout
-  the session (not just at the start), with generous timeouts (120s+)
-  even after an earlier call has already succeeded.
+  successes (64s cold, 8s warm). Session 6 also got two consecutive
+  first-attempt successes (113.7s cold, 5.1s warm) — reported honestly
+  as each session's own result, not evidence the intermittent pattern is
+  resolved. Re-check and disclose honestly every session, budgeting for
+  retries throughout the session (not just at the start), with generous
+  timeouts (120s+) even after an earlier call has already succeeded.
 - Every code example — every budget calculator, memory store,
   compression pipeline, context assembler, evaluator — must be run for
   real before being written into a lesson. A claimed number that wasn't
@@ -168,27 +195,34 @@ built.
   built Discovery, the scaffold, and Chapter 1 only; Session 2 built
   Chapter 2 only, completing Module 1; Session 3 built Chapter 3 only,
   opening Module 2; Session 4 built Chapter 4 only, closing Module 2;
-  Session 5 built Chapter 5 only, opening Module 3 — matching exactly
-  how `ai-engineering-for-everyone` itself progressed.
+  Session 5 built Chapter 5 only, opening Module 3; Session 6 built
+  Chapter 6 only, closing Module 3 in full — matching exactly how
+  `ai-engineering-for-everyone` itself progressed.
 - **Check every fictional org against the running exclusion list before
-  naming a new one** — see `quality-audits/chapter-05-audit.md` for the
-  full, current list (54 orgs across Chapters 1-5 so far, checked
+  naming a new one** — see `quality-audits/chapter-06-audit.md` for the
+  full, current list (65 orgs across Chapters 1-6 so far, checked
   against `ai-engineering-for-everyone`'s own full compiled list with
   zero collision found) and extend it (don't restart it) for every new
   chapter. Each new chapter's audit should reproduce the full list plus
   its own new orgs, so the next session only ever needs to read the
   latest one.
-- **One project per module, at the project ladder's own stated tier —
-  not one project per chapter.** Chapters 2-3 each shipped a second,
-  module-internal L1-tier project, logging the tension with the
-  curriculum map's own ladder as open both times; Chapter 4's session
-  finally resolved it by shipping the curriculum map's literal "L2
-  Assisted" project once, solo, closing Module 2, and confirmed this as
-  the convention going forward. Chapter 5's session applied this
+- **One project per module, at the project ladder's own stated tier
+  where the ladder assigns one — otherwise labeled honestly as a
+  module-level project with no numbered tier.** Chapters 2-3 each
+  shipped a second, module-internal L1-tier project, logging the tension
+  with the curriculum map's own ladder as open both times; Chapter 4's
+  session finally resolved it by shipping the curriculum map's literal
+  "L2 Assisted" project once, solo, closing Module 2, and confirmed this
+  as the convention going forward. Chapter 5's session applied this
   convention as intended — no project this chapter, confirmed explicitly
-  rather than silently omitted. Chapter 6 must ship Module 3's single
-  project — this is now a firm commitment, not a default to
-  re-litigate.
+  rather than silently omitted. Chapter 6's session shipped Module 3's
+  single project as committed, and also found the curriculum map's own
+  numbered ladder does not assign any tier to Module 3 at all (it jumps
+  from L2 after Ch. 4 to L3 after Ch. 8) — resolved by labeling it
+  "Module 3 Project," not an invented numbered tier; see
+  `quality-audits/chapter-06-audit.md` for the full reasoning, and apply
+  the same honest-labeling approach if a future module's project ever
+  falls in a similar gap.
 - **State explicitly, in each new chapter's own lesson text, what it is
   NOT re-teaching** from `rag-for-everyone`, `mcp-for-everyone`, or
   `ai-engineering-for-everyone` Chapter 3 wherever its subject sits
@@ -197,42 +231,37 @@ built.
   Chapter 1 modeled it directly in its "Why This Course Exists"
   section.
 
-## Current task: Chapter 6 — "Avoiding Lost-in-the-Middle"
+## Current task: Chapter 7 — "Multi-Source Context Assembly"
 
-Closes Module 3 (Context Compression and Curation) and **must ship
-Module 3's single project** — the now-confirmed one-project-per-module
-convention was applied as intended in Chapter 5's session (no project
-there, by design), which makes Chapter 6's own project a firm
-commitment, not optional. See `PROJECT_STATE.md`'s "Next Recommended
-Task" section for the full handoff detail: what not to re-derive from
-Chapters 1-5 (including Chapter 5's own six-step Compression Fidelity
-Recipe — Chapter 6 starts from "content has survived compression
-intact" as a given input and owns the positional question every prior
-chapter assumed out of scope: where content sits inside the final
-assembled window, and how that changes whether the model actually
-attends to it), the new-org exclusion list to check first (54 orgs
-across Chapters 1-5 so far), citation/Ollama re-verification discipline
-(the hang is intermittent — Chapters 4 and 5 both got two clean
-first-attempt successes, but that is each session's own data point, not
-a resolved pattern; budget for retries throughout the session
-regardless), re-verifying the "Lost in the Middle" citation (Liu et al.,
-2023) against more current research before treating the finding as
-settled across all current model families — Chapter 6 specifically owns
-this, not any earlier chapter, since the finding becomes this chapter's
-own central subject rather than a supporting citation — and the
-registration-staleness locations to update in the same session once
-`lesson.html` exists (`assets/chapters-data.js`, root `index.html`'s
-hero-stats and intro paragraph — it should read "6 of 13 chapters live"
-AND "3 of 6 modules complete" once Chapter 6 ships, since it closes
-Module 3, `docs/curriculum/index.html`'s chapter-card status and lede
-paragraph).
+Opens Module 4 (Multi-Source Context Assembly). See
+`PROJECT_STATE.md`'s "Next Recommended Task" section for the full
+handoff detail: what not to re-derive from Chapters 1-6 (including
+Chapter 6's own five-step Context Ordering Recipe — Chapter 7 starts
+from "the set of content is already selected" as a given and owns the
+question every prior chapter deferred: which sources belong in a window
+at all, and how several different sources get combined without
+contradicting or crowding each other out), the new-org exclusion list
+to check first (65 orgs across Chapters 1-6 so far), citation/Ollama
+re-verification discipline (the hang is intermittent — Chapters 4, 5,
+and 6 all got two clean first-attempt successes, but that is each
+session's own data point, not a resolved pattern; budget for retries
+throughout the session regardless), the honest project-tier-labeling
+precedent Chapter 6 set (no invented numbered tier where the curriculum
+map's own ladder doesn't assign one), and the registration-staleness
+locations to update in the same session once `lesson.html` exists
+(`assets/chapters-data.js`, root `index.html`'s hero-stats and intro
+paragraph — it should read "7 of 13 chapters live," with "3 of 6
+modules complete" staying as-is until Chapter 8 closes Module 4,
+`docs/curriculum/index.html`'s chapter-card status and lede paragraph).
 
 ## Next task after that
 
-Chapter 7 ("Multi-Source Context Assembly"), opening Module 4 — not yet
-planned in detail beyond the curriculum map's own module outcomes; a
-future session should read Chapter 6's own quality audit before
-starting, not assume its scope from the curriculum map alone.
+Chapter 8 ("Retrieval Integration: From Ranked Results to Context"),
+closing Module 4 — not yet planned in detail beyond the curriculum
+map's own module outcomes; a future session should read Chapter 7's own
+quality audit before starting, not assume its scope from the curriculum
+map alone. Per the one-project-per-module convention, Module 4's own
+project should be planned once, likely at the end of Chapter 8.
 
 ## Important architectural decisions (see PROJECT_STATE.md for full detail)
 

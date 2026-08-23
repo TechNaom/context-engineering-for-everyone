@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avoiding Lost-in-the-Middle Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Avoiding Lost-in-the-Middle.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-06">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 6 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Avoiding Lost-in-the-Middle</h1>
+  <p>
+    These exercises use a second scenario, deliberately different from
+    the lesson's Marchside Regional Trauma Network/VitalsLine hook:
+    <strong>Calverton Public Defender's Office</strong>, a fictional
+    public defender's office. Its case-file review assistant,
+    <strong>DocketLine</strong>, handles case files that can run long
+    before the attorney's actual question gets asked. Chapters 1-5's
+    own recipes are already given here — every fact is present,
+    unmodified, and within budget. Building the real ordering mechanics
+    that decide where each fact goes is the point.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — position-
+    percentile arithmetic, weight classification, a positional probe,
+    anchor classification, a regression gate, and a retest decision,
+    not just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match scenarios to ordering approaches</h3>
+    <p>Decide which of three DocketLine scenarios use arrival order, naive top-loading, or the full weight-ranked, both-anchors pipeline.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the Context Ordering Recipe</h3>
+    <p>Put the lesson's five recipe steps in the correct sequence, from ranking by weight to testing position directly.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Position-percentile arithmetic</h3>
+    <p>Compute a fact's midpoint percentile in a 3,200-token window and whether it falls in the high-risk middle band.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Load-bearing weight classification</h3>
+    <p>Decide which case-file details carry enough weight to require an anchor position.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Positional probe: anchor-required facts</h3>
+    <p>Find which anchor-required facts are missing from a produced window's actual placements, and whether the probe passes.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Query/instruction anchor classification</h3>
+    <p>Classify six content types by whether they belong at the end anchor nearest generation.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Arrival-order-vs-weight-ranked regression gate</h3>
+    <p>Confirm a load-bearing detail arrival order would bury is correctly surfaced by weight-ranked placement.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Retest/escalation decision</h3>
+    <p>For three positional-probe outcomes, decide whether to ship or retest/reposition.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

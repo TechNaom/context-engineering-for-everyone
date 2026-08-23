@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avoiding Lost-in-the-Middle Interview Questions — Context Engineering for Everyone</title>
+<meta name="description" content="Interview questions for Avoiding Lost-in-the-Middle.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-06">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="practice/index.html">&larr; Back to practice bank</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 6 Interview Questions</span>
+    <span class="reading-time">~18 min</span>
+  </div>
+  <h1>Interview Questions: Avoiding Lost-in-the-Middle</h1>
+  <p>Grouped by level — beginner, intermediate, senior, architect. Each includes a strong answer, a red flag, a follow-up, and what the question actually proves.</p>
+
+  <div class="lesson-card">
+    <h2>1. (Beginner) VitalsLine had a correct budget, correct pinning, a correct long-term recall policy, and a correct fidelity-checked compression pipeline. Why did it still miss a load-bearing allergy fact?</h2>
+    <p><strong>Strong answer:</strong> Chapters 1-5 all answer questions about presence — is the fact in the budget, was it evicted, was it persisted and recalled, did it survive compression intact. None of them decide where a correctly-included fact ends up in the final assembled window. VitalsLine's allergy fact was present, unmodified, and within budget — it simply landed near the 40th percentile of the window with nothing deciding that was a bad position for safety-critical content.</p>
+    <p><strong>Red flag:</strong> Blames the budget, the recall policy, or the compression step, rather than identifying that nothing in the pipeline ever made a positional decision.</p>
+    <p><strong>Follow-up:</strong> "If the team just added more pinning to protect the allergy fact, would that have fixed the actual problem?"</p>
+    <p><strong>What this proves:</strong> Understands the precise boundary between what Chapters 1-5 already engineer and what this chapter engineers.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>2. (Beginner) What does "lost in the middle" actually mean, in one sentence a non-technical stakeholder would understand?</h2>
+    <p><strong>Strong answer:</strong> A model's ability to reliably use information from a long context isn't the same everywhere in that context — it's most reliable for information near the beginning or the end, and measurably less reliable for information sitting in the middle, even when nothing about that information is missing, shortened, or ambiguous.</p>
+    <p><strong>Red flag:</strong> Describes it as a truncation or token-limit problem rather than a positional-reliability problem within content that's already fully present.</p>
+    <p><strong>Follow-up:</strong> "Is this the same thing as the context window being too small?"</p>
+    <p><strong>What this proves:</strong> Can articulate this chapter's central distinction — presence versus reliable use — without conflating it with earlier chapters' subjects.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>3. (Intermediate) A teammate says: "we already re-verified this back in 2023 with Liu et al. — it's a solved, well-known finding, no need to re-check it." How do you respond?</h2>
+    <p><strong>Strong answer:</strong> The core claim still holds, but treating a single 2023 paper as permanently settled skips real, newer information. A 2024 paper ("Found in the Middle") identified the mechanistic cause — an intrinsic U-shaped attention bias — and showed it's partially correctable. A 2025 report (Chroma's "Context Rot") confirmed the effect persists on today's frontier models, but also found a genuine nuance the original paper didn't isolate: models performed better on shuffled than structurally coherent long contexts in that study. Treating any single paper as the final word skips real refinements that change how you'd engineer around the problem.</p>
+    <p><strong>Red flag:</strong> Either dismisses the original finding as outdated without engaging with what's actually changed, or defends it as unchanged without being able to name what the newer research adds.</p>
+    <p><strong>Follow-up:</strong> "What would make you re-check this finding again in the future?"</p>
+    <p><strong>What this proves:</strong> Applies the same "re-verify, don't assume a citation is still good" discipline this course applies to its own citations, specifically to the finding this chapter is built on.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>4. (Intermediate) How is this chapter's subject different from what Chapter 7 (Multi-Source Context Assembly) will teach?</h2>
+    <p><strong>Strong answer:</strong> This chapter assumes the set of content going into the window is already decided — every source has already been selected, and this chapter only asks where inside the window each piece should sit. Chapter 7 answers an earlier question: which sources belong at all, and how do several different sources get combined into one window without contradicting or crowding each other out. A system could nail Chapter 7's assembly perfectly and still get this chapter's ordering wrong, or vice versa — they're sequential, complementary decisions.</p>
+    <p><strong>Red flag:</strong> Conflates "which sources are included" with "where included content sits," or can't articulate which chapter owns which question.</p>
+    <p><strong>Follow-up:</strong> "If your retriever returns three perfectly relevant documents, does this chapter's recipe tell you which three to pick?"</p>
+    <p><strong>What this proves:</strong> Can hold the boundary between adjacent chapters explicitly.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>5. (Senior) You're reviewing a new context-assembly pipeline before it ships. What do you check beyond "is every load-bearing fact somewhere in the window"?</h2>
+    <p><strong>Strong answer:</strong> Presence is necessary but not sufficient. Check that content is explicitly ranked by load-bearing weight, not just concatenated in arrival order. Check that both anchor positions (start, and the position nearest generation) are reserved for the highest-weight content and the active query. And specifically check for an explicit positional probe: has anyone actually tested that a known load-bearing fact, placed at a middle position, is still reliably retrieved by the live system — not just assumed from a research paper?</p>
+    <p><strong>Red flag:</strong> Signs off purely because every fact is technically somewhere in the window, with no scrutiny of whether placement was ever a deliberate decision or a positional probe was ever run.</p>
+    <p><strong>Follow-up:</strong> "Show me the actual positional-probe result for this pipeline's highest-stakes fact. When was it last run, and against which model?"</p>
+    <p><strong>What this proves:</strong> Understands presence is a floor, and that a re-run positional probe is the one piece of this chapter's recipe a naive "just concatenate everything" pipeline has no equivalent of at all.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>6. (Senior) How do you decide how much engineering investment a given window's ordering deserves?</h2>
+    <p><strong>Strong answer:</strong> Look at what's actually at stake if content in the middle gets missed — a clinical decision, a legal filing, a financial recommendation, versus a casual FAQ answer with no real cost to a partial miss. High-stakes windows justify the full recipe: explicit weight ranking, reserved anchors, deliberate middle reordering, and a tested positional probe re-run per model. Low-stakes windows may reasonably accept arrival order's risk, the same proportionate-judgment discipline Chapter 5 required for its own fidelity-checked-pipeline decision, applied here to ordering investment instead.</p>
+    <p><strong>Red flag:</strong> Proposes the full recipe for every window "to be safe" with no engagement with the actual engineering cost, or the reverse — accepts arrival order for a window a real decision clearly depends on.</p>
+    <p><strong>Follow-up:</strong> "Your team says every window needs a positional probe, no exceptions. What's the cost of that policy, and is it justified for an internal FAQ bot?"</p>
+    <p><strong>What this proves:</strong> Applies proportionate judgment consistently across chapters, not treating this chapter's recipe as free.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>7. (Architect) Design a lightweight governance process so every context-assembly pipeline in a production system actually gets a positional review, not just a token-budget review.</h2>
+    <p><strong>Strong answer:</strong> Require a standard artifact per assembly pipeline: the explicit weight-ranking logic and why, which content is assigned to each anchor and why, and evidence a positional probe was run against a deliberately middle-placed, known load-bearing fact and passed — not just that the pipeline fits its token budget. Pair it with an automated regression check that re-runs the positional probe on every model swap or meaningful context-length change, since this chapter's own re-verified research shows the effect's exact shape is model- and length-specific. Track positional-probe failure rates as a first-class production metric.</p>
+    <p><strong>Red flag:</strong> A process that only checks token budget and content presence, with no requirement that positional placement was ever tested against a known-bad arrangement.</p>
+    <p><strong>Follow-up:</strong> "A model provider silently updates their model behind the same API version string. How would your process catch that this invalidates your last positional probe?"</p>
+    <p><strong>What this proves:</strong> Architect-level judgment — treats positional reliability as something that needs continuous verification tied to the specific model in production.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>8. (Architect) Leadership says: "our new model has a much larger context window and seems to handle long documents better overall — do we still need explicit ordering logic?"</h2>
+    <p><strong>Strong answer:</strong> A larger, more capable context window changes the calculus but doesn't eliminate the need. This chapter's own re-verification found the effect persists on today's frontier models — Chroma's 2025 study tested 18 current models, including large-context frontier systems, and still found non-uniform reliability by position. A bigger window may shrink the effect's magnitude for that specific model, but "seems to handle it better" is not the same as "tested and confirmed reliable for our specific load-bearing content" — that claim needs a positional probe re-run against the new model, not an assumption carried over from the old one.</p>
+    <p><strong>Red flag:</strong> Treats a larger or more capable context window as sufficient proof the ordering problem no longer applies, with no engagement with this chapter's own re-verified 2025 evidence that it persists on frontier models.</p>
+    <p><strong>Follow-up:</strong> "What's the smallest, cheapest test you'd run before trusting that claim for a safety-critical window?"</p>
+    <p><strong>What this proves:</strong> Can reason about model capability improvements as a reason to re-test, not a reason to skip testing.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Strategy Tips</h2>
+    <ul>
+      <li>Ground every answer in VitalsLine's actual failure (every recipe through Chapter 5 correct, one un-engineered positional decision) rather than a generic "keep important things near the top" answer.</li>
+      <li>For senior/architect questions, always name the positional-probe step specifically — it's the one piece of this chapter's recipe a naive "just concatenate everything" pipeline has no equivalent of at all.</li>
+      <li>If you're new to engineering interviews: reason out loud by naming which of this chapter's two failure-prone moments (deciding weight and anchor placement, versus testing that placement actually worked) a given scenario is testing, before proposing a fix.</li>
+    </ul>
+  </div>
+
+  <div class="what-is">
+    <span class="label">Module 3's project</span>
+    This chapter closes Module 3 and ships its single guided project,
+    drawing on both Chapter 5 (compression fidelity) and this chapter
+    (context ordering) together — see
+    <a href="project/index.html">the Module 3 project</a>.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="practice/index.html">&larr; Practice Bank</a>
+    <a href="project/index.html">Module 3 Project &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>
