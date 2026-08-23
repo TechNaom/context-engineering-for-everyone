@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Designing Context Window Budgets Interview Questions — Context Engineering for Everyone</title>
+<meta name="description" content="Interview questions for Designing Context Window Budgets.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-02">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="practice/index.html">&larr; Back to practice bank</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 2 Interview Questions</span>
+    <span class="reading-time">~18 min</span>
+  </div>
+  <h1>Interview Questions: Designing Context Window Budgets</h1>
+  <p>Grouped by level — beginner, intermediate, senior, architect. Each includes a strong answer, a red flag, a follow-up, and what the question actually proves.</p>
+
+  <div class="lesson-card">
+    <h2>1. (Beginner) What's the difference between diagnosing a context-budget problem and allocating a context budget, in your own words?</h2>
+    <p><strong>Strong answer:</strong> Diagnosis looks at a system that's already running and asks which of the five ledger lines is responsible for an observed failure — it happens after the fact. Allocation happens before a single request is sent: given a request type and a model's hard context-window limit, decide on purpose how many tokens each of the five lines gets, so there's a real budget to diagnose against later if something does go wrong.</p>
+    <p><strong>Red flag:</strong> Treats the two as interchangeable, or can't explain why a team would need both.</p>
+    <p><strong>Follow-up:</strong> "Which one does a team need first, on a brand-new feature that hasn't shipped yet?"</p>
+    <p><strong>What this proves:</strong> Understands this chapter's actual relationship to Chapter 1 — a lens applied earlier in the lifecycle, not a repeat of the same skill.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>2. (Beginner) Why does this chapter's recipe reserve Working Space (Line 5) before doing anything else with the budget?</h2>
+    <p><strong>Strong answer:</strong> Every token the model generates also counts against the same fixed context window the input competes for — it isn't a separate, free allowance. Reserving Line 5 first means every later number is computed against the real remaining budget, not an optimistic number that ignores the cost of the model's own output.</p>
+    <p><strong>Red flag:</strong> Treats Working Space as an afterthought, or assumes "budget" only concerns input content.</p>
+    <p><strong>Follow-up:</strong> "What actually happens if a team forgets to reserve output space and a long response is generated near the window's limit?"</p>
+    <p><strong>What this proves:</strong> Understands that a context window is a shared resource between input and output, not two separate pools.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>3. (Intermediate) Walk through why TriageLine's Chronic Care Check-In incident happened even though the team had already done real context-budget work.</h2>
+    <p><strong>Strong answer:</strong> The team correctly derived a budget for New Symptom Triage — real reserved output, real system-instructions line, real profile-driven split. The gap was treating that derived budget as a property of the whole system rather than a property of the specific request type it was derived for. Chronic Care Check-In had a fundamentally different content shape, but reused Triage's percentages unchanged, under-provisioning Recalled Long-Term Memory and forcing an emergency truncation with no real policy behind which content got cut.</p>
+    <p><strong>Red flag:</strong> Blames the incident on "not having a budget," missing that a budget existed and was simply misapplied.</p>
+    <p><strong>Follow-up:</strong> "What would you check before reusing one request type's budget for another, even on the identical model and window?"</p>
+    <p><strong>What this proves:</strong> Understands allocation as a per-request-type artifact, the chapter's central distinction.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>4. (Intermediate) A teammate proposes splitting a request type's remaining budget evenly across Grounding Context, Conversation History, and Recalled Long-Term Memory — one-third each, every time, to keep things simple. What's the problem?</h2>
+    <p><strong>Strong answer:</strong> An even split ignores that different request types have genuinely different content shapes. A short, single-turn lookup barely needs conversation history but leans heavily on grounding; a long-document review is dominated by one grounding source and barely touches history or memory. Splitting evenly wastes budget on lines a request type doesn't need while starving the line that actually matters most — a subtler version of exactly the mismatch that broke Chronic Care Check-In.</p>
+    <p><strong>Red flag:</strong> Defends an even split as "fair" without engaging with actual content-shape differences between request types.</p>
+    <p><strong>Follow-up:</strong> "Name one request-type archetype where an even split would be badly wrong, and explain why."</p>
+    <p><strong>What this proves:</strong> Understands that a real allocation has to be derived from a request type's actual profile, not a default rule of thumb.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>5. (Senior) You're asked to sign off on a new request type's budget allocation before it ships. What do you actually check, beyond "does the math add up"?</h2>
+    <p><strong>Strong answer:</strong> The arithmetic passing is necessary but not sufficient. Check that the profile percentages are actually derived from this request type's real content shape, not copied from a convenient existing request type; check that Working Space was reserved based on this request type's real expected response length; and validate the allocation against the worst realistic case in real data, not the median case a demo happens to use. A budget that only survives the typical case is not validated, it's untested.</p>
+    <p><strong>Red flag:</strong> Signs off purely on the numbers summing correctly, with no mention of profile derivation or worst-case validation.</p>
+    <p><strong>Follow-up:</strong> "The team tells you they tested against 'a few representative conversations.' What's your follow-up question?"</p>
+    <p><strong>What this proves:</strong> Understands that a passing self-check on arithmetic is a floor, not a substitute for real validation discipline.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>6. (Senior) A product team wants to add a fifth request type to an assistant that already has four budgeted request types on the same model. How do you decide whether the new request type needs its own allocation or can reuse an existing one?</h2>
+    <p><strong>Strong answer:</strong> Compare the new request type's actual content shape — expected conversation length, grounding volume, recalled-memory volume — against each existing request type's profile, not just against which one "feels similar." If an existing request type's profile and Line 1/Line 5 costs are a genuine match, reuse is defensible; if any dimension differs meaningfully, a full re-derivation is required, because a matching window size says nothing about whether the underlying content shape matches — the same trap that broke Chronic Care Check-In even though it shared TriageLine's exact window.</p>
+    <p><strong>Red flag:</strong> Treats "same model, same window" as sufficient grounds for reuse.</p>
+    <p><strong>Follow-up:</strong> "What's the cheapest way to check whether two request types actually share a content shape, before doing a full re-derivation?"</p>
+    <p><strong>What this proves:</strong> Can generalize the chapter's central lesson to a new, unscripted scenario rather than reciting the hook's specific facts.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>7. (Architect) Design a lightweight governance process so every new request type on a shared, multi-request-type assistant gets a real budget allocation before it ships, without slowing every team down to a crawl.</h2>
+    <p><strong>Strong answer:</strong> Require a short, standard artifact per request type before launch: the hard window limit and model used, the reserved Working Space and System Instructions costs, the chosen profile percentages with a one-paragraph justification tied to real content data, and evidence of worst-case validation (the specific longest-conversation and fullest-memory-record test cases used). Make the artifact small enough to write in minutes for a simple request type, but require an actual re-derivation whenever a new request type's content shape genuinely differs from an existing one. Pair it with an automated check that flags when two request types share an identical numeric allocation despite differing profiles — exactly the silent-reuse failure this chapter's hook shows.</p>
+    <p><strong>Red flag:</strong> Proposes a heavyweight review board with no concrete artifact, or a process so light it wouldn't have caught Chronic Care Check-In's actual mistake.</p>
+    <p><strong>Follow-up:</strong> "How would this process differ for a request type that's a minor variant of an existing one versus a genuinely new shape?"</p>
+    <p><strong>What this proves:</strong> Architect-level judgment — turns a per-request-type discipline into a proportionate, enforceable organizational process.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>8. (Architect) A leadership team asks: "we already have a documented context-budget policy from Chapter 1's diagnostic work — isn't allocation the same skill applied earlier?" How do you explain what's actually different?</h2>
+    <p><strong>Strong answer:</strong> A diagnostic policy is built to recognize failure patterns after they occur — reactive by design, even when well documented. Allocation is a design discipline applied per request type, before any request ships, producing a concrete artifact (a real token split across five lines, validated against a worst case) that a later diagnosis can actually be checked against. Without allocation, diagnosis has nothing to compare a failing system to except "it feels wrong" — with a real allocation on record, a diagnosis can say precisely which line's real numbers were violated, and by how much. The two are complementary halves of the same discipline, not the same skill at different times.</p>
+    <p><strong>Red flag:</strong> Claims the two skills are interchangeable, or can't explain what artifact allocation produces that diagnosis depends on.</p>
+    <p><strong>Follow-up:</strong> "If your org could only build one of the two disciplines this quarter, which would you pick first, and why?"</p>
+    <p><strong>What this proves:</strong> Can articulate the precise relationship between Chapters 1 and 2 to a non-specialist audience without collapsing them into the same thing.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Strategy Tips</h2>
+    <ul>
+      <li>Ground every answer in the TriageLine incident's actual mechanism (a budget correctly derived for one request type, silently reused for a differently shaped one) rather than a generic "always have a budget" answer.</li>
+      <li>For senior/architect questions, always name a concrete artifact or check, not just a principle.</li>
+      <li>If you're new to engineering interviews: reason out loud by naming the request type's real content shape first, before touching a single percentage — that's exactly the order this chapter's recipe uses.</li>
+    </ul>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="practice/index.html">&larr; Practice Bank</a>
+    <a href="project/index.html">Project &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Designing Context Window Budgets Practice Bank — Context Engineering for Everyone</title>
+<meta name="description" content="Eight fast scenario-based practice items for Designing Context Window Budgets.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-02">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../exercises/index.html">&larr; Back to exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 2 Practice Bank</span>
+    <span class="reading-time">~20 min, fast pattern recognition</span>
+  </div>
+  <h1>Practice Bank: Designing Context Window Budgets</h1>
+  <p>
+    Eight short, independent scenarios, each its own fictional system —
+    none of them Vantry Health Network/TriageLine or Corravine
+    Freight/DispatchLine again. Each scenario is a few sentences and one
+    judgment or arithmetic question about <em>allocating</em> a budget,
+    not diagnosing one already broken. The point of this bank isn't
+    depth on one system — it's speed and accuracy across many different
+    systems, the way a real pre-launch budget review actually feels.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Practice standard</span>
+    Eight scenarios. Two are pure judgment calls (Scenario 5 asks
+    whether a bigger window removes the need to allocate; Scenario 6
+    asks whether a matching profile shape alone is enough to safely
+    reuse a budget) and two are production-gear arithmetic (Scenario 7
+    derives a real token allocation; Scenario 8 finds a real deficit
+    from allocated-vs-actual numbers).
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect 8/8.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 1</span>
+    <h3>Marrenkirk Insurance Group</h3>
+    <p>A claims-review assistant adds a new "Document-Heavy Claim Review" request type, where one large uploaded claim file dominates almost every request, with little conversation history or persisted memory involved. Which archetype profile fits this request type?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 2</span>
+    <h3>Duvane Utilities Cooperative</h3>
+    <p>An outage-report assistant's team allocates Lines 1 through 4 carefully, then lets the model's response use "however much is left over," reserving nothing up front. Which recipe step did they skip?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 3</span>
+    <h3>Graytide Hospitality Group</h3>
+    <p>A booking-concierge assistant's team computes the Line 2/3/4 split first, using the full context window as the base, and only afterward subtracts Line 1's tokens from whatever's left. Is this ordering still correct?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 4</span>
+    <h3>Oakspire Home Care Network</h3>
+    <p>A caregiver-scheduling assistant's team tests their new budget only against typical, average-length conversations, and never checks it against the longest real conversations in their own data. Which recipe step did they skip?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 5 &middot; Judgment</span>
+    <h3>Corundale Media Group</h3>
+    <p>A content-review assistant's team upgrades from a 16,000-token model to a 128,000-token model and declares "our budget allocation problem is solved, no more per-request-type work needed." Is this reasoning sound?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 6 &middot; Judgment</span>
+    <h3>Pallisade Manufacturing</h3>
+    <p>Two request types happen to share the same archetype profile. A teammate argues this means it's safe to copy one request type's exact numeric token budget onto the other without re-deriving anything. Is this safe?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 7 &middot; Production-gear</span>
+    <h3>Redcliff Credit Union</h3>
+    <p>A fraud-review tool-dispatch assistant runs on a 24,000-token window, reserving 2,000 tokens for output and 800 for system instructions. Using the tool-heavy profile, what is the Grounding Context (L2) allocation, in tokens?</p>
+  </div>
+
+  <div class="scenario-card">
+    <span class="scenario-tag">Scenario 8 &middot; Production-gear</span>
+    <h3>Thackery Regional Exchange</h3>
+    <p>A shipped budget allocated L2=9,000, L3=6,000, L4=3,000 tokens. A worst-case audit finds the actual need is L2=7,000, L3=8,200, L4=2,500 tokens. Which single ledger line is genuinely under-provisioned?</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../exercises/index.html">&larr; Exercises</a>
+    <a href="../interview-questions.html">Interview Questions &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

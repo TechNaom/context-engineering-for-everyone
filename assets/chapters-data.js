@@ -7,8 +7,9 @@
   applies to a module's `examPath`: set it to null until that module's
   written exam actually exists in assessments/written-exams/.
 
-  Chapter 1 (Module 1) is live as of this build -- see PROJECT_STATE.md
-  for status. Chapters 2-13 are planned, `.gitkeep`'d, not yet built.
+  Chapters 1-2 (Module 1, now complete) are live as of this build -- see
+  PROJECT_STATE.md for status. Chapters 3-13 are planned, `.gitkeep`'d,
+  not yet built.
 */
 
 window.CEFE_MODULES = [
@@ -28,7 +29,8 @@ window.CEFE_MODULES = [
         id: "chapter-02",
         num: 2,
         title: "Designing Context Window Budgets",
-        description: "Allocating a fixed token budget across system instructions, history, retrieved context, and tool output -- on purpose, not by accident."
+        description: "Allocating a fixed token budget across system instructions, history, retrieved context, and tool output -- on purpose, not by accident.",
+        path: "chapters/chapter-02-designing-context-window-budgets/lesson.html"
       }
     ]
   },

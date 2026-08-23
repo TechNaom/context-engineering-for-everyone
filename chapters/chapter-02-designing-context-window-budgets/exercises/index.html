@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Designing Context Window Budgets Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Designing Context Window Budgets.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-02">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 2 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Designing Context Window Budgets</h1>
+  <p>
+    These exercises use a second scenario, deliberately different from
+    the lesson's Vantry Health Network/TriageLine hook:
+    <strong>Corravine Freight</strong>, a fictional freight-dispatch
+    company. Its internal dispatcher assistant, <strong>DispatchLine</strong>,
+    serves several distinct request types on the same 16,000-token
+    model. Applying the five-step allocation recipe to fresh request
+    types is the point; recalling the lesson's own numbers by heart
+    won't get you through these.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — budget
+    subtraction, profile-split arithmetic, worst-case validation,
+    reuse-safety judgment, from-scratch allocation design, and a recipe
+    completeness gate, not just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match request types to profiles</h3>
+    <p>Assign the correct archetype profile (short lookup, long recurring, tool-heavy, long-document) to four DispatchLine request types, based on each one's actual content shape.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the allocation recipe steps</h3>
+    <p>Put the lesson's five allocation-recipe steps in the correct sequence, from fixing the hard limit to validating the worst realistic case.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Reserve output + system, compute remaining budget</h3>
+    <p>Given Quick Status Lookup's window, reserved output, and system-instructions sizes, compute the real remaining budget for Lines 2, 3, and 4.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Profile-split arithmetic</h3>
+    <p>Split Exercise 3's remaining budget across Lines 2, 3, and 4 using the short-lookup profile's percentages.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Worst-case validation</h3>
+    <p>Given an already-computed allocation and a real worst-case need for each line, classify each line as surplus or deficit.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Reuse-safety judgment</h3>
+    <p>Decide whether it's safe to reuse Quick Status Lookup's budget for the differently shaped Multi-Leg Route Exception Review request type.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Design a new allocation from scratch</h3>
+    <p>Apply the full five-step recipe to Full Manifest Audit, a brand-new request type on a larger, 32,000-token-window model.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Recipe completeness gate</h3>
+    <p>Confirm all five recipe steps were actually applied while working through Exercises 1&ndash;7 — the same completeness discipline a real team runs before a new request type's budget ships.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

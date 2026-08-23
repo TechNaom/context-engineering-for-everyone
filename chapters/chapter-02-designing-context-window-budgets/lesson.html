@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Designing Context Window Budgets — Context Engineering for Everyone</title>
+<meta name="description" content="Chapter 1 named the five-line Context Budget Ledger and diagnosed a failure after the fact. Chapter 2 teaches the practical skill of allocating a real token budget across all five lines for a given request type and hard window limit -- before a single request is sent.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-02">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 2</span>
+    <span class="badge-difficulty">Intermediate</span>
+    <span class="reading-time">~28 min</span>
+  </div>
+
+  <h1>Designing Context Window Budgets</h1>
+  <p class="lede">
+    Chapter 1 named the five-line Context Budget Ledger and used it to
+    <em>diagnose</em> a failure after it already happened. This chapter
+    teaches the other half of the skill, the half a working context
+    engineer uses far more often: <em>allocating</em> a real token
+    budget across all five ledger lines for a specific request type and
+    a specific model's hard context-window limit, on purpose, before a
+    single request is ever sent.
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. The budget that was never re-derived</a>
+    <a href="#why-this-chapter">2. Why allocation, not just diagnosis</a>
+    <a href="#the-recipe">3. The Budget Allocation Recipe</a>
+    <a href="#request-profiles">4. Request-type profiles: why one split doesn't fit all</a>
+    <a href="#worked-math">5. Worked math: TriageLine vs. Chronic Care Check-In</a>
+    <a href="#second-window">6. A second worked example: a smaller window, a different model</a>
+    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
+    <a href="#recap">8. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Vantry Health Network is a fictional regional healthcare provider.
+      Its patient-facing chat assistant, TriageLine, launched with real
+      context-engineering discipline behind it — the team had read
+      exactly the kind of lesson Chapter 1 teaches, and refused to ship
+      an unbounded, unmanaged request the way Brackwater's SignalDesk
+      once did. For TriageLine's first request type, "New Symptom
+      Triage" (a patient describing a new symptom, three to six turns,
+      an escalation recommendation at the end), the team measured real
+      conversation lengths, sized the model's 32,000-token context
+      window, and wrote down an explicit budget across all five ledger
+      lines before writing a line of request-building code. It worked.
+      Every audit was clean, every load test passed.
+    </p>
+    <p>
+      Eight months later, the product team ships a second request type
+      on the same assistant: "Chronic Care Check-In," a longer,
+      recurring conversation for patients managing an ongoing condition
+      — reviewing recent lab results, current medications, and any
+      dosage changes since the last check-in. The engineer assigned to
+      ship it, under a normal deadline, does something that feels
+      completely reasonable: TriageLine already has a working, audited
+      budget. She reuses it exactly, line for line, rather than
+      re-deriving one for the new request type.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">triageline_budget.py (the budget config, reused unchanged for a new request type)</span>
+      </div>
+      <pre><code>  # Derived and load-tested for "New Symptom Triage" -- short
+  # conversations, light medication history, no lab data.
+  BUDGET = {
+      "context_window_tokens": 32_000,
+      "L5_working_space": 3_000,     # reserved output
+      "L1_system_instructions": 1_000,
+      # Remaining 28,000 tokens split by New Symptom Triage's profile:
+      "L2_grounding_context_pct": 0.45,   # symptom knowledge base
+      "L3_conversation_history_pct": 0.35, # short, 3-6 turn conversations
+      "L4_recalled_memory_pct": 0.20,      # allergy list only
+  }
+
+  # request_type="chronic_care_checkin" now reuses BUDGET unchanged --
+  # no new profile was derived for a conversation type with a
+  # completely different shape: 12-20 turns, full medication list,
+  # recent lab panels, comorbidity history.
+  def build_request(request_type, patient_context):
+      return assemble_context(BUDGET, patient_context)</code></pre>
+    </div>
+    <p>
+      For the first few weeks, Chronic Care Check-In looks fine in
+      spot checks — reviewers happen to test with patients on short
+      medication lists. Then a patient named Talia, managing a
+      long-standing anticoagulation therapy, has a check-in where her
+      cardiologist recently changed her dosage of warfarin. TriageLine's
+      recalled-memory line (Line 4), sized at 20% of the budget because
+      that was right for New Symptom Triage's short allergy list, cannot
+      hold Talia's full medication list plus the fresh lab panel. The
+      context-assembly code, under pressure to fit the line's fixed
+      token cap, truncates the medication list alphabetically once it
+      exceeds budget — and "warfarin," alphabetically late, is exactly
+      the entry that gets cut. TriageLine reviews Talia's other
+      medications for interactions, finds none, and gives an
+      all-clear that never actually checked the one medication whose
+      dosage had just changed.
+    </p>
+    <p>
+      Nothing about this incident is a repeat of Brackwater's failure.
+      TriageLine has a real budget, a real reserved output allowance, a
+      real system-instructions line — every lesson from Chapter 1 was
+      followed. The gap is narrower and easier to miss: <strong>a budget
+      derived correctly for one request type was applied unchanged to a
+      second request type with a fundamentally different shape</strong>,
+      and nobody re-derived the allocation before shipping it. That is
+      this chapter's actual subject.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>Why Allocation, Not Just Diagnosis</h2>
+    <p>
+      This chapter uses Chapter 1's five-line ledger as a lens, not a
+      fresh mental model — if the names System Instructions, Grounding
+      Context, Conversation History, Recalled Long-Term Memory, and
+      Working Space aren't already familiar, Chapter 1 is the place to
+      get that vocabulary, not here. What Chapter 1's own project asked
+      you to do was <em>diagnose</em> an existing system's gaps, after
+      the fact, the way a real review finds them. This chapter asks a
+      different, earlier question: given a request type you haven't
+      shipped yet, and a specific model's hard context-window limit,
+      what should each of the five lines get, on purpose, before the
+      first real request goes out the door?
+    </p>
+    <p>
+      That distinction matters because it's the one Talia's incident
+      shows directly: TriageLine's team didn't skip budgeting the way
+      Brackwater's team did. They budgeted once, correctly, for one
+      request type — then treated that budget as a property of the
+      <em>system</em> rather than a property of the <em>request type it
+      was derived for</em>. A context-engineered feature needs a real
+      allocation for every distinct shape of request it serves, not one
+      allocation copied everywhere convenient. This chapter's own
+      positioning against the course's neighbors is exactly what
+      Chapter 1's "Why This Course Exists" section already stated in
+      full — this chapter doesn't re-argue it, only applies it one
+      level deeper: a well-managed prompt template
+      (`ai-engineering-for-everyone` Chapter 3) and a good retriever
+      (`rag-for-everyone`) still won't tell you how many of the
+      retriever's tokens actually fit next to this request type's
+      conversation history and recalled memory inside a fixed window —
+      that arithmetic is this chapter's job.
+    </p>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Budget Allocation Recipe</h2>
+    <p>
+      A production model provider's own guidance is direct about the
+      order this has to happen in: "to stay within context window
+      limits, use the token counting API to estimate token usage before
+      sending messages" — allocation is a before-the-request
+      discipline, not an after-the-fact cleanup.<sup><a href="#src-1">[1]</a></sup>
+      Five steps, run in order, every time a new request type ships:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Fix the hard limit</h3>
+      <p>
+        Start from the actual model's real context-window size, not a
+        round number you assume. Context-window size is a property of
+        the specific model you call — provider documentation confirms
+        this varies model to model, sometimes by an order of magnitude
+        within the same provider's own lineup.<sup><a href="#src-2">[2]</a></sup>
+        Whatever number you use here is Step 1's only job: get the
+        actual ceiling right before doing any arithmetic against it.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Reserve Working Space (Line 5) first, not last</h3>
+      <p>
+        Every token the model generates also counts against the same
+        fixed window a request's input competes for — providers are
+        explicit that the context window "holds the conversation history
+        plus the new output" the model generates, not input alone.<sup><a href="#src-1">[1]</a></sup>
+        Reserving Line 5 first, sized to this specific request type's
+        expected response length, is what makes every later line's real
+        available budget honest instead of optimistic.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Fix Line 1 (System Instructions)</h3>
+      <p>
+        Small and stable by design (per `ai-engineering-for-everyone`
+        Chapter 3's own discipline) — measure its real token count once
+        per request type (system instructions can legitimately differ
+        by request type, e.g. a stricter safety preamble for a clinical
+        request type) and treat it as a fixed subtraction, not something
+        to re-negotiate per request.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Split what's left across Lines 2, 3, and 4 by this request type's real profile</h3>
+      <p>
+        This is the step Talia's incident skipped. The remaining budget
+        (window minus Line 5 minus Line 1) does not split evenly, and it
+        does not split the same way for every request type — a short,
+        single-turn lookup and a long, memory-heavy recurring
+        conversation have genuinely different shapes, and Section 4
+        below gives concrete starting profiles for common request-type
+        archetypes.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Validate against the worst realistic case, not the median</h3>
+      <p>
+        Talia's medication list wasn't the typical case reviewers
+        happened to test — it was a real but less common shape the
+        allocation had to survive anyway. Validate every new allocation
+        against the longest conversation, the fullest recalled-memory
+        record, and the largest grounding-context pull this request type
+        plausibly produces, not the case that's easiest to demo.
+      </p>
+    </div>
+  </section>
+
+  <section id="request-profiles" class="subtopic">
+    <h2>Request-Type Profiles: Why One Split Doesn't Fit All</h2>
+    <p>
+      Step 4 needs a real starting point, not a guess made fresh every
+      time. These four archetypes cover most production request types;
+      treat the percentages as a starting allocation to validate against
+      real data for your own system, not a fixed law.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Request-type archetype</th>
+          <th>L2 Grounding</th>
+          <th>L3 History</th>
+          <th>L4 Recalled Memory</th>
+          <th>Why this shape</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Short, single-turn lookup (e.g. New Symptom Triage)</td>
+          <td>45%</td>
+          <td>35%</td>
+          <td>20%</td>
+          <td>Little history to carry, grounding does most of the real work.</td>
+        </tr>
+        <tr>
+          <td>Long, recurring conversation (e.g. Chronic Care Check-In)</td>
+          <td>35%</td>
+          <td>40%</td>
+          <td>25%</td>
+          <td>History grows fastest across many turns; memory needs real headroom for a full record, not a short list.</td>
+        </tr>
+        <tr>
+          <td>Tool-heavy agentic turn</td>
+          <td>55%</td>
+          <td>25%</td>
+          <td>20%</td>
+          <td>Grounding here includes tool definitions and tool results, which routinely dominate — this is a starting placeholder Chapter 9 builds into a real profile in depth.</td>
+        </tr>
+        <tr>
+          <td>Long-document review</td>
+          <td>65%</td>
+          <td>20%</td>
+          <td>15%</td>
+          <td>One dominant grounding source (the document) crowds out most other lines by design, not by accident.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Notice Line 1 and Line 5 aren't columns here — they're fixed
+      subtractions from Step 2 and Step 3, decided once per request type
+      before this table's percentages ever apply to what's left.
+    </p>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: TriageLine vs. Chronic Care Check-In</h2>
+    <p>
+      Run the actual numbers from the hook, the way a real allocation
+      review would, both for the allocation that shipped and the one
+      that should have shipped.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Step</th>
+          <th>New Symptom Triage (correctly derived)</th>
+          <th>Chronic Care Check-In (reused, wrong)</th>
+          <th>Chronic Care Check-In (re-derived, correct)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Context window</td>
+          <td>32,000</td>
+          <td>32,000</td>
+          <td>32,000</td>
+        </tr>
+        <tr>
+          <td>Line 5 (reserved output)</td>
+          <td>&minus; 3,000</td>
+          <td>&minus; 3,000</td>
+          <td>&minus; 3,000</td>
+        </tr>
+        <tr>
+          <td>Line 1 (system instructions)</td>
+          <td>&minus; 1,000</td>
+          <td>&minus; 1,000</td>
+          <td>&minus; 1,000</td>
+        </tr>
+        <tr>
+          <td>Remaining for L2+L3+L4</td>
+          <td>28,000</td>
+          <td>28,000</td>
+          <td>28,000</td>
+        </tr>
+        <tr>
+          <td>Profile used</td>
+          <td>Short lookup (45/35/20)</td>
+          <td>Short lookup (45/35/20) &mdash; reused, never re-derived</td>
+          <td>Long recurring (35/40/25) &mdash; re-derived for this request type</td>
+        </tr>
+        <tr>
+          <td>Line 2 (Grounding) tokens</td>
+          <td>12,600</td>
+          <td>12,600</td>
+          <td>9,800</td>
+        </tr>
+        <tr>
+          <td>Line 3 (History) tokens</td>
+          <td>9,800</td>
+          <td>9,800</td>
+          <td>11,200</td>
+        </tr>
+        <tr>
+          <td>Line 4 (Recalled Memory) tokens</td>
+          <td>5,600</td>
+          <td>5,600</td>
+          <td>7,000</td>
+        </tr>
+        <tr>
+          <td>Actual need for this request type</td>
+          <td>L2 &asymp; 9,500 / L3 &asymp; 4,000 / L4 &asymp; 1,500 &mdash; all comfortably in budget</td>
+          <td>L2 &asymp; 9,500 (2,900 wasted, unused) / L3 &asymp; 13,000 (3,200 short) / L4 &asymp; 7,000 (1,400 short)</td>
+          <td>L2 &asymp; 9,500 (fits) / L3 &asymp; 13,000 (still tight on long tails &mdash; a real input to Chapter 3's summarization policy) / L4 &asymp; 7,000 (fits)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Two things happen at once when a budget is reused across request
+      types without re-deriving it, and both are visible in the middle
+      column above: Line 2 sits <strong>2,900 tokens over-provisioned</strong>
+      — real budget wasted on a line that didn't need it — while Lines 3
+      and 4 sit <strong>3,200 and 1,400 tokens under-provisioned</strong>,
+      forcing an emergency truncation with no real policy behind which
+      content gets cut. That's exactly the alphabetical medication-list
+      truncation that dropped Talia's warfarin entry: not a bug in the
+      truncation code, a predictable consequence of a Line 4 allocation
+      that was never sized for what this request type actually needed.
+      The re-derived column doesn't magically make every line generous —
+      Line 3 is still tight against the longest real conversations, which
+      is a correct, honest result: it's the real signal that Chronic
+      Care Check-In needs Chapter 3's compression discipline on top of a
+      correct allocation, not instead of one.
+    </p>
+  </section>
+
+  <section id="second-window" class="subtopic">
+    <h2>A Second Worked Example: a Smaller Window, a Different Model</h2>
+    <p>
+      The recipe holds under a completely different hard limit too — the
+      steps don't change, only the numbers do. Suppose Vantry also runs
+      a lightweight, locally hosted model for an internal staff FAQ tool
+      with an 8,000-token context window, serving short, single-turn
+      lookups (the same archetype as New Symptom Triage, at a much
+      smaller scale):
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">staff_faq_budget.py (same recipe, an 8,000-token window instead of 32,000)</span>
+      </div>
+      <pre><code>  CONTEXT_WINDOW = 8_000
+  RESERVED_OUTPUT = 800          # short, single-paragraph answers
+  SYSTEM_INSTRUCTIONS = 400      # small, stable staff-tool prompt
+  remaining = CONTEXT_WINDOW - RESERVED_OUTPUT - SYSTEM_INSTRUCTIONS
+  # remaining = 8,000 - 800 - 400 = 6,800
+
+  # Short-lookup profile: 45% grounding / 35% history / 20% memory
+  grounding_budget = round(remaining * 0.45)   # 3,060
+  history_budget   = round(remaining * 0.35)   # 2,380
+  memory_budget    = round(remaining * 0.20)   # 1,360
+  # 3,060 + 2,380 + 1,360 = 6,800 -- accounts for the full remaining budget</code></pre>
+    </div>
+    <p>
+      Same five steps, an 8,000-token ceiling instead of 32,000, and the
+      same short-lookup profile from Section 4 because the request
+      shape — not the window size — is what selects the profile. A
+      request type doesn't get a different split just because its
+      model's window happens to be smaller; it gets a different split
+      because its actual content shape is different, which is precisely
+      what TriageLine's team got backwards when Chronic Care Check-In
+      shipped on the <em>same</em> window as New Symptom Triage but with
+      a fundamentally different shape.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a second request type on an
+      already-budgeted assistant produces a subtly wrong answer, and the
+      team that shipped it followed every rule from the last chapter —
+      real budget, real reserved output, real system-instructions line.</p>
+      <p><strong>Assumption being made:</strong> that a budget which
+      passed audit and load testing for one request type is a property
+      of the system as a whole, safe to reuse anywhere convenient. It
+      isn't — a budget allocation is derived from a specific request
+      type's actual content shape (how long its conversations run, how
+      much grounding material it pulls, how much persisted memory it
+      needs recalled), and a new request type with a different shape
+      needs its own allocation, even on the identical model and window.</p>
+      <p><strong>What actually distinguishes a well-allocated system:</strong>
+      not the presence of a budget, but whether every distinct request
+      type has had its own budget derived against its own real
+      worst-case content, validated before shipping — not inherited from
+      whatever request type happened to ship first.</p>
+      <p><strong>Why this matters before Module 2:</strong> Module 2
+      (Chapters 3-4) asks you to design short-term and long-term memory
+      policies that operate <em>inside</em> a line's allocated budget —
+      you can't design a sound eviction or recall policy for Line 3 or
+      Line 4 if the number of tokens that line is actually allowed to
+      spend was never derived correctly for the request type in the
+      first place.</p>
+      <p><strong>Working definition to carry forward:</strong> a context
+      budget allocation is a per-request-type artifact, not a
+      per-system one — derived from a hard window limit, a reserved
+      output allowance, a fixed system-instructions cost, and a
+      profile-driven split of what's left across grounding, history, and
+      recalled memory, validated against the worst realistic case before
+      it ships, and re-derived (never silently reused) whenever a new
+      request type's content shape genuinely differs from one that
+      already has a budget.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>Allocation happens before a request is sent; diagnosis (Chapter
+        1's project) happens after a failure is already in production —
+        both use the same five-line ledger, from opposite directions.</li>
+        <li>Reserve Working Space (Line 5) and fix System Instructions
+        (Line 1) first — everything else is a split of what's actually
+        left, not a fraction of the whole window.</li>
+        <li>A budget is derived for a specific request type's real
+        content shape (conversation length, grounding volume, memory
+        volume). Reusing one request type's budget for a differently
+        shaped request type, even on the identical model and window, is
+        the exact gap that broke Talia's medication check — not a
+        missing budget, a misapplied one.</li>
+        <li>Validate every allocation against the worst realistic case
+        (the longest conversation, the fullest memory record) before
+        shipping, not the median case that happens to pass a demo.</li>
+        <li>A tight allocation on one line (Chronic Care Check-In's
+        Line 3, even after correction) is a legitimate, honest signal
+        that a line needs a real compression or eviction policy on top
+        — Module 3's subject, not a sign the allocation math was done
+        wrong.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing Limitation</h2>
+    <p>
+      Re-checked fresh this session, per this course's own standing
+      discipline: <code>curl http://localhost:11434/api/tags</code>
+      responded normally and confirmed the same installed model
+      (<code>llama3.2:latest</code>). A <code>POST /api/chat</code>
+      completion request was retried with a considerably more patient
+      timeout than Chapter 1's session used (75 seconds, versus Chapter
+      1's 20) and still did not return. This chapter has no load-bearing
+      dependency on a live model call either — every number in the
+      worked-math sections above is directly computed arithmetic against
+      stated inputs (window sizes, reserved-output sizes, profile
+      percentages), not sampled from a running model, and every exercise
+      and practice scenario below is graded the same way. Later chapters
+      that build a runnable compression, memory-retrieval, or
+      context-evaluation harness (Chapters 5, 4, and 12) still need
+      Ollama's chat endpoint working for real, and will retry with a
+      patient timeout and disclose the honest result each time, whatever
+      it is.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from Chapter 1's own citation set:</p>
+    <ol>
+      <li id="src-1">Anthropic / Claude Docs, <em>"Context windows"</em> —
+      <a href="https://platform.claude.com/docs/en/build-with-claude/context-windows" target="_blank" rel="noopener">platform.claude.com/docs/en/build-with-claude/context-windows</a>
+      (this session's fetch of the historical
+      <code>docs.claude.com/en/docs/build-with-claude/context-windows</code>
+      URL 302-redirected here, confirmed live). States that the context
+      window "holds the conversation history plus the new output"
+      generated, and that "to stay within context window limits, use the
+      token counting API to estimate token usage before sending messages"
+      — the direct source for this chapter's Step 2 (reserve output
+      first) and its overall "allocate before sending" framing.</li>
+      <li id="src-2">OpenAI, <em>Models documentation</em> —
+      <a href="https://developers.openai.com/api/docs/models" target="_blank" rel="noopener">developers.openai.com/api/docs/models</a>
+      (this session's fetch of the historical
+      <code>platform.openai.com/docs/models</code> URL 301-redirected
+      here, confirmed live). Documents that context-window size and
+      maximum output tokens are listed as distinct, per-model figures
+      (for example, a 1.05M-token context window paired with a
+      128K-token maximum output on current frontier models) — direct
+      evidence that Step 1's "fix the hard limit" and Step 2's "reserve
+      output separately" are real, model-specific numbers to look up, not
+      constants to assume.</li>
+      <li id="src-3">Anthropic / Claude Docs, <em>"Token counting"</em> —
+      <a href="https://platform.claude.com/docs/en/build-with-claude/token-counting" target="_blank" rel="noopener">platform.claude.com/docs/en/build-with-claude/token-counting</a>
+      (this session's fetch of the historical
+      <code>docs.claude.com/en/docs/build-with-claude/token-counting</code>
+      URL 302-redirected here, confirmed live). States that counting
+      tokens before sending a request lets a team "proactively manage
+      rate limits and costs" and "optimize prompts to a specific length"
+      — the direct source for this chapter's central distinction between
+      allocating a budget in advance and diagnosing one after a failure.</li>
+      <li id="src-4">Google, <em>Gemini API, "Long context"</em> —
+      <a href="https://ai.google.dev/gemini-api/docs/long-context" target="_blank" rel="noopener">ai.google.dev/gemini-api/docs/long-context</a>.
+      States that "if you don't need tokens to be passed to the model, it
+      is best to avoid passing them" and names a real cost/performance
+      tradeoff even with very large windows — direct evidence that a
+      bigger window doesn't remove the need for a deliberate, per-request-type
+      allocation, only changes the ceiling Step 1 starts from.</li>
+      <li id="src-5">OpenAI Cookbook, <em>"How to count tokens with
+      tiktoken"</em> —
+      <a href="https://developers.openai.com/cookbook/examples/how_to_count_tokens_with_tiktoken" target="_blank" rel="noopener">developers.openai.com/cookbook/examples/how_to_count_tokens_with_tiktoken</a>
+      (this session's fetch of the historical
+      <code>cookbook.openai.com/examples/how_to_count_tokens_with_tiktoken</code>
+      URL 308-redirected here, confirmed live). States that token counts
+      determine "whether the string is too long for a text model to
+      process" and "how much an OpenAI API call costs" — the direct
+      source for treating token arithmetic as a real, pre-send
+      engineering step, grounding this chapter's own worked-math sections
+      and exercises.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's allocation recipe out loud — see
+    <a href="interview-questions.html">Chapter 2 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-01-the-context-budget/lesson.html">&larr; Chapter 1</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

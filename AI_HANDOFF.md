@@ -28,13 +28,14 @@ failure mode it prevents — never presented as abstract "best
 practice." Every hands-on artifact must be real, runnable code, tested
 before it's written into a lesson.
 
-## Current state (as of 2026-08-22)
+## Current state (as of 2026-08-23)
 
 **Read `PROJECT_STATE.md` for the authoritative, up-to-date status.**
-Short version: this is the course's **first session**. Discovery, the
-curriculum map, the full repository scaffold, and Chapter 1 ("The
-Context Budget") are complete. Chapters 2-13 exist only as `.gitkeep`'d
-directories, not yet built.
+Short version: this is the course's **second session**. Session 1
+built Discovery, the curriculum map, the full repository scaffold, and
+Chapter 1 ("The Context Budget"). Session 2 built Chapter 2
+("Designing Context Window Budgets"), completing Module 1 in full.
+Chapters 3-13 exist only as `.gitkeep`'d directories, not yet built.
 
 - Directory skeleton (`.gitkeep` in every not-yet-built chapter
   directory from the start — the bootstrap bug found in prior sibling
@@ -58,6 +59,12 @@ directories, not yet built.
   whose positioning hasn't been reviewed by a human yet.
 - **Chapter 1 ("The Context Budget") is built and live** — the
   reference chapter. See `quality-audits/chapter-01-audit.md`.
+- **Chapter 2 ("Designing Context Window Budgets") is built and
+  live**, completing Module 1. See
+  `quality-audits/chapter-02-audit.md`. Uses Chapter 1's ledger as a
+  lens; its own job is proactive, per-request-type budget allocation
+  before a request is sent, contrasted with Chapter 1's after-the-fact
+  diagnosis.
 
 ## Naming conventions
 
@@ -73,13 +80,16 @@ directories, not yet built.
   deliberately.
 - Don't assume a specific model's behavior without testing it against
   the real, installed model first — same test-before-write discipline
-  as every sibling course. Ollama's `/api/chat` endpoint hung past a
-  20-second timeout on this session's single attempt; `/api/tags`
-  responded normally with `llama3.2:latest` installed. Re-check and
-  disclose honestly every session, don't assume this session's result
-  will repeat without testing — `ai-engineering-for-everyone`'s own
-  history shows this same hang eventually resolved after several
-  sessions with a more patient retry.
+  as every sibling course. Ollama's `/api/chat` endpoint has now hung
+  across two independent sessions (Session 1: 20-second timeout;
+  Session 2: a considerably more patient 75-second timeout, still no
+  response); `/api/tags` responded normally both times with
+  `llama3.2:latest` installed. Re-check and disclose honestly every
+  session, with an even more patient timeout than the last session
+  used — don't assume the hang will repeat or resolve without testing.
+  `ai-engineering-for-everyone`'s own history shows this same hang
+  eventually resolved after several sessions with a sufficiently
+  patient retry.
 - Every code example — every budget calculator, memory store,
   compression pipeline, context assembler, evaluator — must be run for
   real before being written into a lesson. A claimed number that wasn't
@@ -97,14 +107,15 @@ directories, not yet built.
   sibling TechNaom repo — structure/templates only.
 - **Do not mass-build multiple chapters in one pass** — one chapter at a
   time, validated before scaling, is this course's own standing
-  discipline, inherited from every sibling TechNaom course. This
-  session built Discovery, the scaffold, and Chapter 1 only — matching
-  exactly how `ai-engineering-for-everyone` itself started.
+  discipline, inherited from every sibling TechNaom course. Session 1
+  built Discovery, the scaffold, and Chapter 1 only; Session 2 built
+  Chapter 2 only, completing Module 1 — matching exactly how
+  `ai-engineering-for-everyone` itself progressed.
 - **Check every fictional org against the running exclusion list before
-  naming a new one** — see `quality-audits/chapter-01-audit.md` for the
-  full, current list (11 orgs this session, checked against
-  `ai-engineering-for-everyone`'s own full compiled list with zero
-  collision found) and extend it (don't restart it) for every new
+  naming a new one** — see `quality-audits/chapter-02-audit.md` for the
+  full, current list (22 orgs across Chapters 1-2 so far, checked
+  against `ai-engineering-for-everyone`'s own full compiled list with
+  zero collision found) and extend it (don't restart it) for every new
   chapter. Each new chapter's audit should reproduce the full list plus
   its own new orgs, so the next session only ever needs to read the
   latest one.
@@ -116,23 +127,30 @@ directories, not yet built.
   Chapter 1 modeled it directly in its "Why This Course Exists"
   section.
 
-## Current task: Chapter 2 — "Designing Context Window Budgets"
+## Current task: Chapter 3 — "Short-Term Conversational Memory"
 
-Completes Module 1. See `PROJECT_STATE.md`'s "Next Recommended Task"
-section for the full handoff detail: what not to re-derive from
-Chapter 1, the new-org exclusion list to check first, citation/Ollama
-re-verification discipline, and the four registration-staleness
-locations to update in the same session once `lesson.html` exists
-(`assets/chapters-data.js`, root `index.html`'s hero-stats and intro
-paragraph, `docs/curriculum/index.html`'s chapter-card status and lede
-paragraph).
+Starts Module 2 (Memory Systems). See `PROJECT_STATE.md`'s "Next
+Recommended Task" section for the full handoff detail: what not to
+re-derive from Chapters 1-2, the new-org exclusion list to check first
+(22 orgs across both chapters so far), citation/Ollama re-verification
+discipline (Ollama has now hung across two independent sessions —
+retry with an even more patient timeout than Chapter 2's 75 seconds),
+and the four registration-staleness locations to update in the same
+session once `lesson.html` exists (`assets/chapters-data.js`, root
+`index.html`'s hero-stats and intro paragraph,
+`docs/curriculum/index.html`'s chapter-card status and lede paragraph).
 
 ## Next task after that
 
-Chapter 3 ("Short-Term Conversational Memory"), starting Module 2 —
-not yet planned in detail beyond the curriculum map's own module
-outcomes; a future session should read Chapter 2's own quality audit
-before starting, not assume its scope from the curriculum map alone.
+Chapter 4 ("Long-Term and Persistent Memory Systems"), completing
+Module 2 — not yet planned in detail beyond the curriculum map's own
+module outcomes; a future session should read Chapter 3's own quality
+audit before starting, not assume its scope from the curriculum map
+alone. Also re-confirm the open L1/L2 project-ladder judgment call
+logged in Chapter 2's audit and `PROJECT_STATE.md`'s "Open Decisions"
+before assuming whether Module 2's "L2 Assisted" project ships once at
+the end of Chapter 4, or per-chapter like Module 1's two L1 projects
+did.
 
 ## Important architectural decisions (see PROJECT_STATE.md for full detail)
 

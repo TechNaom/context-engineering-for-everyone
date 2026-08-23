@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Designing Context Window Budgets Project — Context Engineering for Everyone</title>
+<meta name="description" content="L1 Guided project: design a real token budget allocation for a fictional hospital network's new post-discharge follow-up request type before it ships.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-02">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../interview-questions.html">&larr; Back to interview questions</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 2 Project &middot; L1 Guided</span>
+    <span class="reading-time">~45 min</span>
+  </div>
+  <h1>Project: Design Halveston's Post-Discharge Follow-Up Budget</h1>
+  <p>
+    Halveston Regional Health System's fictional patient-messaging
+    assistant, IntakeLine, is shipping a new request type:
+    "Post-Discharge Follow-Up," a recurring, memory-heavy conversation.
+    You're given the real spec — a fixed window, a fixed output
+    reservation, a fixed system-instructions cost, and worst-case
+    content-audit numbers per line. Your task: allocate the remaining
+    budget across three lines, validate your allocation against the
+    worst case, and plan a follow-up for anything that comes up short.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Why this project, not another diagnosis task</span>
+    Chapter 1's project tested whether you could look at an existing
+    system and correctly name what's missing. This chapter's own skill
+    is earlier in the lifecycle: given a request type that doesn't
+    exist yet, can you derive a real, defensible token budget for it
+    before a single request ships — the exact step this chapter's own
+    hook, Vantry Health Network's TriageLine, skipped for its second
+    request type.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run it</span>
+    Download <code>starter.py</code>, fill in the allocation,
+    validation, and follow-up plan, then run
+    <code>python3 starter.py</code>. Most of this project's self-check
+    is fully mechanical — it verifies your allocation sums correctly
+    and that your own surplus/deficit calls are internally consistent
+    with your own numbers. Compare against <code>solution.py</code>,
+    then self-grade against <code>RUBRIC.md</code>.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+    <a href="RUBRIC.md">RUBRIC.md</a>
+    <a href="README.md">README.md</a>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you're given</h3>
+    <p>A 48,000-token context window, a fixed 2,500-token output reservation, a fixed 1,200-token system-instructions cost, and a worst-case content audit's real token needs for Grounding Context, Conversation History, and Recalled Long-Term Memory.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you produce</h3>
+    <p>A token allocation across the three remaining lines that sums to the real remaining budget, a defended profile justification, a correct surplus/deficit classification for each line against your own numbers, and a concrete follow-up plan for anything in deficit — the same shape as the lesson's own TriageLine worked math, applied by you, to a fresh system.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Passing bar</h2>
+    <p>16/20 (80%) or higher on <code>RUBRIC.md</code>'s five criteria, with no single criterion scoring 0. <code>solution.py</code> is one complete, valid reference allocation scoring a full 20/20 — not the only correct split, since the profile choice is intentionally open-ended.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../interview-questions.html">&larr; Interview Questions</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>
