@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Long-Term and Persistent Memory Systems — Context Engineering for Everyone</title>
+<meta name="description" content="Chapter 3 kept one conversation's history inside its budget. This chapter asks a different question: what should a system remember across sessions, how does it get stored, and what real policy decides what comes back into context for a given turn?">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-04">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 4</span>
+    <span class="badge-difficulty">Intermediate</span>
+    <span class="reading-time">~32 min</span>
+  </div>
+
+  <h1>Long-Term and Persistent Memory Systems</h1>
+  <p class="lede">
+    Chapter 3 built a real policy for keeping <em>one conversation's</em>
+    history inside Line 3's budget — pinned facts, a running summary, a
+    verbatim window, none of it silently dropped. This chapter, closing
+    Module 2, asks the question Chapter 3's own boundary deliberately
+    left open: what happens when the conversation ends? What should a
+    system remember once a session is over, how does that get written
+    down, and — the part that actually is context engineering, not
+    database design — what real policy decides which of it comes back
+    into Line 4 for a specific later turn?
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. A perfect session, a forgotten fact three weeks later</a>
+    <a href="#why-this-chapter">2. Why short-term memory alone can't answer this</a>
+    <a href="#the-recipe">3. The Long-Term Memory Policy Recipe</a>
+    <a href="#approaches-compared">4. Three approaches, compared</a>
+    <a href="#worked-math">5. Worked math: HearthLine's missing Line 4</a>
+    <a href="#live-capture">6. A live-captured write-extraction example</a>
+    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
+    <a href="#recap">8. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Nightbourne Senior Living Network is a fictional operator of
+      senior-living communities. Its family-facing chat assistant,
+      HearthLine, handles a request type called "Family Care Update" —
+      a resident's family member checking in on how care is going,
+      often across many separate sessions spread over months, since no
+      single check-in call lasts more than a few dozen turns. The team
+      behind HearthLine had read this course's first three chapters
+      carefully. For this request type, they ran Chapter 2's own
+      five-step recipe and correctly derived a real Line 4 budget of
+      <strong>1,200 tokens</strong>. Inside any single session, they
+      built Chapter 3's own hybrid short-term policy exactly as
+      specified — a verbatim window, a running summary, and explicit
+      pins for anything load-bearing. Every one of this course's first
+      three chapters' lessons was applied correctly.
+    </p>
+    <p>
+      Three weeks ago, in one such session, a resident's daughter told
+      HearthLine that her father's care team had flagged an increased
+      fall risk, and that any outdoor walk from then on needed a
+      mobility aid present. HearthLine handled this exactly right,
+      in-session: the fact was pinned per Chapter 3's own recipe, and it
+      would have survived that entire conversation regardless of how
+      long it ran. The session ended normally. And — exactly as Chapter
+      3's own recipe specifies for a session boundary — Line 3 was
+      cleared. That's not a bug in Chapter 3's design; a short-term
+      memory policy is scoped to one conversation on purpose, the same
+      way this course's own practice bank uses a "fresh session, no
+      carryover" scenario as one of the cases that genuinely needs no
+      eviction policy at all.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">hearthline_session_end.py (Chapter 3's policy, working exactly as designed)</span>
+      </div>
+      <pre><code>  def end_session(session):
+      # Chapter 3's own hybrid policy handled THIS session's history
+      # correctly for its entire duration -- pins, summary, verbatim
+      # window, all working. Per that same recipe's own scope, a
+      # session boundary is where Line 3 is meant to be cleared.
+      session.line3_history.clear()
+      # Nothing else happens here. No call writes anything to a
+      # persistent store, because no persistent store exists yet.
+      # The fall-risk disclosure, pinned perfectly for the session
+      # it happened in, simply ceases to exist the moment this runs.</code></pre>
+    </div>
+    <p>
+      Three weeks later, a different family member opens a new session
+      and asks HearthLine to help plan an outdoor garden walk for this
+      Saturday. HearthLine has no memory of the fall-risk disclosure at
+      all — not because it evicted the fact under pressure the way
+      RouteLine did in Chapter 3, but because there was never anywhere
+      for it to go once its own session ended. HearthLine recommends an
+      unsupervised walk. Nothing malfunctioned, again. Chapter 3's
+      policy did exactly what it was built to do, both times: protect a
+      pinned fact for the life of one session, and correctly clear that
+      session's history when it ended. The gap is a layer Chapter 3
+      never claimed to own.
+    </p>
+    <p>
+      This is a genuinely different failure from every one of this
+      course's first three chapters. SignalDesk (Chapter 1) had no
+      budget. TriageLine (Chapter 2) had a budget shaped for the wrong
+      request type. RouteLine (Chapter 3) had a correct budget and a
+      naive eviction mechanism that dropped a fact <em>within</em> one
+      long conversation. HearthLine got Chapters 1 through 3 completely
+      right and still failed, because <strong>nothing decided what
+      should survive a session boundary at all</strong>. That decision —
+      what gets written to durable storage, and what real policy pulls
+      it back into context for a later turn — is this chapter's actual
+      subject.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>Why Short-Term Memory Alone Can't Answer This</h2>
+    <p>
+      This chapter uses Chapter 1's ledger, Chapter 2's allocation
+      recipe, and Chapter 3's short-term policy as a lens, not fresh
+      material. If pinning, verbatim windows, or running summaries
+      aren't already familiar, Chapter 3 is where that skill lives —
+      this chapter does not re-teach eviction or compression mechanics
+      inside one conversation. Chapter 4 starts exactly at the boundary
+      Chapter 3's own MemGPT citation already named: the line between
+      fast, in-conversation memory (Line 3, bounded by a single
+      session) and genuinely persistent storage that outlives any one
+      conversation. Line 4 of this course's own ledger — Recalled
+      Long-Term Memory — is this chapter's own line, the same way Line
+      3 was Chapter 3's.
+    </p>
+    <p>
+      One clarification worth stating as directly as Chapter 1's "Why
+      This Course Exists" section stated the whole course's own
+      boundary: this chapter sits closer to <code>rag-for-everyone</code>
+      than any chapter so far, because "persistent storage plus
+      retrieval" sounds retrieval-adjacent. It is not that course's
+      subject. This chapter does not design a retrieval
+      <em>architecture</em> — ranking, embeddings, and vector-store
+      mechanics belong to <code>rag-for-everyone</code>, and this
+      chapter assumes those mechanics already exist by whatever means a
+      real system chooses. What this chapter owns is upstream and
+      downstream of that architecture: the decision of what a system
+      writes to persistent storage in the first place, and the real
+      policy that decides which of it a specific turn actually pulls
+      back into Line 4. A retriever can be excellent at ranking
+      candidates and still be handed the wrong candidates to rank, if
+      nothing was ever written, or if what's retrievable is stale — that
+      gap is this chapter's.
+    </p>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Long-Term Memory Policy Recipe</h2>
+    <p>
+      A production framework's own long-term memory documentation draws
+      the same boundary this chapter starts from: short-term memory is
+      "thread-scoped" and "tracks the ongoing conversation," while
+      long-term memory "stores user-specific or application-level data
+      across sessions" and "can be recalled at any time and in any
+      thread."<sup><a href="#src-2">[2]</a></sup> Six steps, run in
+      order, for every request type whose value depends on remembering
+      something past the end of one session:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Decide the write criteria</h3>
+      <p>
+        A bounded, explicit set of fact categories that are eligible to
+        be persisted at all — not everything a session discloses. The
+        same discipline Chapter 3 established for pinning applies here,
+        one level up: if every fact can be written, nothing has
+        actually been prioritized, and the store just becomes an
+        unbounded transcript archive with a different name.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Decide the storage shape</h3>
+      <p>
+        A structured record — subject, category, value, timestamp,
+        status — not a raw transcript dump. A real memory tool
+        implementation stores persisted knowledge as discrete files or
+        records a system can "create, read, update, and delete,"
+        specifically so an agent can "build up knowledge bases over
+        time" and "maintain project state across sessions" rather than
+        re-reading an ever-growing log.<sup><a href="#src-1">[1]</a></sup>
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Decide the retrieval scope</h3>
+      <p>
+        What real policy pulls a stored memory back into Line 4 for a
+        <em>given</em> turn — scoped by subject (the specific user,
+        resident, or case) and by which categories are actually
+        relevant to this request type. "Load the entire store every
+        turn" is never the answer; a real system explicitly "fetches"
+        the subset of stored memories relevant to the current
+        interaction, not the whole history.<sup><a href="#src-4">[4]</a></sup>
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Handle staleness explicitly</h3>
+      <p>
+        Facts change. A medication dosage, a care plan, an insurance
+        tier — the value recorded last month may no longer be true.
+        When a new fact supersedes an old one, the old record must be
+        marked inactive, not left retrievable alongside its
+        replacement, and a record can also simply expire. This is the
+        step with no real Chapter 3 analog: short-term memory never had
+        to ask whether a fact was still <em>true</em>, only whether it
+        was still <em>recent</em>. Long-term memory has to ask the first
+        question directly, because "recent" stops being a useful proxy
+        the moment a session boundary is crossed.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Bound Line 4's own budget</h3>
+      <p>
+        Retrieved long-term memory is still a real line on the ledger,
+        competing for the same finite context window as every other
+        line. A retrieval policy that pulls in every eligible fact
+        without a cap just re-creates Line 3's original budget problem
+        one line down — cap how many facts, and how many tokens, a
+        single turn's retrieval is allowed to spend.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Validate against the longest realistic relationship</h3>
+      <p>
+        Replay the longest real relationship this request type
+        plausibly produces — the most sessions, the most updates, the
+        most superseded facts — and confirm retrieval never
+        re-introduces a stale or contradictory record, and that the
+        retrieved package still fits Line 4's budget. The same
+        worst-case discipline Chapters 2 and 3 already established,
+        applied here to a relationship that can span months or years
+        instead of one conversation.
+      </p>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <p>
+      As with Chapter 3's three short-term policies, most production
+      request types resolve into one of three real long-term memory
+      approaches:
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it gets wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No persistent memory needed</td>
+          <td>Nothing is written across sessions; each session starts genuinely fresh.</td>
+          <td>Request types with no real recurring relationship — a one-off support ticket, a stateless lookup.</td>
+          <td>Nothing — there's genuinely no cross-session value to capture yet.</td>
+        </tr>
+        <tr>
+          <td>Naive append-only log</td>
+          <td>Every disclosed fact, from every session, gets written and later retrieved in full.</td>
+          <td>Genuinely never in production — it either blows Line 4's budget as the relationship grows, or it silently truncates by the same recency logic Chapter 3's naive FIFO already showed doesn't work.</td>
+          <td>Staleness: a superseded fact (an old dosage, an old address) sits alongside its replacement with nothing to resolve the contradiction, and HearthLine's actual gap — nothing decides write criteria at all, so either everything or nothing gets captured.</td>
+        </tr>
+        <tr>
+          <td>Curated store: write criteria + storage shape + scoped, staleness-aware retrieval</td>
+          <td>A bounded set of categories gets written as structured records; retrieval is scoped by subject and relevant category, and superseded/expired records are excluded on purpose.</td>
+          <td>Any request type with a real recurring relationship where a fact disclosed in one session could plausibly still matter — or could plausibly change — in a later one.</td>
+          <td>Anything genuinely outside the write criteria (an accepted, bounded loss, the same tradeoff Chapter 3 accepted for summarized turns) — never a required-category fact, and never a stale record retrieved as if current.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: HearthLine's Missing Line 4</h2>
+    <p>
+      Run the actual numbers, the way a real long-term memory review
+      would — first showing what "no policy" and "naive append" each
+      would have done, then the curated fix.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What happens across HearthLine's 6 prior sessions</th>
+          <th>Result on session 7's garden-walk turn</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No persistent memory (HearthLine's actual state)</td>
+          <td>0 tokens ever written; every session's disclosures vanish at session end.</td>
+          <td>Fall-risk fact unavailable at any cost. HearthLine recommends an unsupervised walk.</td>
+        </tr>
+        <tr>
+          <td>Naive append-only log</td>
+          <td>Every disclosed fact across all 6 sessions written raw: 3,350 tokens total, no write criteria, no staleness tracking.</td>
+          <td>Retrieval either exceeds the 1,200-token Line 4 budget outright, or truncates by recency and drops the 3-week-old fall-risk fact anyway — the exact same failure shape as Chapter 3's naive FIFO, one layer up.</td>
+        </tr>
+        <tr>
+          <td>Curated store (the fix)</td>
+          <td>Only 3 facts meet the write criteria (safety-critical or care-plan changes) across all 6 sessions: <strong>260 tokens</strong> total written, each a structured record with a category and status.</td>
+          <td>Retrieval scoped to this resident + categories relevant to "outdoor activity" pulls in 2 active records — the fall-risk flag (95 tokens) and the mobility-aid preference (80 tokens) — <strong>175 tokens</strong>, 1,025 tokens of real slack inside the 1,200-token budget.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      The comparison makes the same point Chapter 3's table made about
+      RouteLine, one layer up the stack: the fix was never "capture
+      more" or "retrieve more." It was a real write policy (only 3 of
+      the sessions' many disclosed facts actually qualified) paired with
+      a real, scoped retrieval policy (2 of those 3 records were
+      relevant to this specific turn) — precise on both ends, not
+      indiscriminate on either.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>A Live-Captured Write-Extraction Example</h2>
+    <p>
+      Every exercise, practice, and project solution in this chapter
+      uses deterministic, directly computed fact records for its
+      automated self-checks, the same discipline every prior chapter
+      used, for the same reason: this repository's own
+      <code>local_check.sh</code> runs every <code>solution.py</code>
+      under a 20-second timeout, well inside some of this course's own
+      previously observed Ollama wait times. But it's worth showing what
+      a real write-extraction call — an LLM asked to help decide what's
+      write-worthy from a session transcript — actually produces,
+      captured live and unedited this session:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture -- POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>  PROMPT (compressing four turns of a HearthLine-style session into a
+  running-memory note, explicitly instructed to exclude a value that
+  should never be written to a general memory note):
+
+  "Compress the following four conversational turns into one compact
+  running-memory note under 40 words. Do not include the patient's
+  insurance ID number (it is tracked separately and must not appear in
+  the summary). Turns: (1) Patient asks Nightbourne Senior Living's
+  assistant, HearthLine, to check next week's medication refill
+  schedule. (2) Patient mentions their insurance ID number is
+  INS-88213-Q for reference. (3) Patient says they'd prefer phone
+  reminders over text messages going forward. (4) Patient asks whether
+  the Tuesday van service to the pharmacy is still running."
+
+  RESPONSE (live, unedited):
+  "Patient asked about next week's medication refill schedule,
+  requested phone reminders instead of texts, and inquired about the
+  status of the Tuesday van service to the pharmacy (no date
+  mentioned)."</code></pre>
+    </div>
+    <p>
+      This time, unlike Chapter 3's own live capture, the model followed
+      the exclusion instruction correctly — the insurance ID never
+      appears in the response. That is a genuinely different result
+      than Chapter 3 got with a structurally similar prompt, and it's
+      reported honestly rather than treated as proof that instruction-
+      following is now reliable. One successful run is one data point,
+      not a guarantee; the two sessions together show the same behavior
+      this chapter's own recipe already assumes: instruction-following
+      on any single call is not something a write policy should be
+      staked on. This chapter's Step 1 (write criteria) and Step 4
+      (staleness handling) are both deterministic, rule-based decisions
+      for exactly this reason — a category-based required-write rule
+      does not depend on whether a given LLM call happens to follow an
+      exclusion instruction on a given day, which this session's own two
+      live captures across this course (one that failed, one that
+      succeeded) are themselves evidence for, not against.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a request type correctly implements
+      every recipe this course has taught so far — a real Line 3
+      budget, a real Line 4 budget, and a correct short-term policy —
+      and still loses a safety-relevant fact the moment a session
+      boundary is crossed.</p>
+      <p><strong>Assumption being made:</strong> that a correct
+      short-term memory policy implies some cross-session memory exists
+      by default. It doesn't — Chapter 3's own recipe is explicitly
+      scoped to one session, and correctly clearing Line 3 at session
+      end is the recipe working as designed, not failing.</p>
+      <p><strong>What actually distinguishes a well-managed long-term
+      memory system:</strong> not whether a store exists, but whether
+      three separate decisions were made on purpose — what's eligible to
+      be written at all (bounded, not everything), what's eligible to
+      be retrieved for a specific turn (scoped, not everything stored),
+      and what's excluded because it's gone stale (actively tracked, not
+      assumed to stay true forever).</p>
+      <p><strong>Why this matters before Chapter 5:</strong> Chapter 5
+      asks a related but distinct question — once real content
+      (short-term history, retrieved long-term facts, or both) needs to
+      be compressed to fit a budget, how do you compress it without
+      losing what the model actually needs. This chapter deliberately
+      built only the minimum compression discipline required to decide
+      what's write-worthy (a bounded category rule, not a
+      summarization pipeline); Chapter 5 is where compression mechanics
+      themselves get full depth.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      long-term memory policy is a per-request-type artifact, derived
+      from an already-allocated Line 4 budget, that fixes a bounded set
+      of write-eligible categories, a structured storage shape, a
+      retrieval scope keyed to subject and request-type-relevant
+      category, and an explicit staleness rule that excludes any
+      non-active record from retrieval regardless of how important its
+      category is — validated against the longest realistic
+      relationship this request type produces before it ships.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>A correct short-term memory policy (Chapter 3) does not
+        imply any cross-session memory exists — HearthLine got Line 3
+        right and still lost a safety-relevant fact, because nothing
+        decided what should survive the session boundary at all.</li>
+        <li>Long-term memory is not "short-term memory with a bigger
+        budget" — it requires a genuinely new decision short-term
+        memory never had to make: whether a stored fact is still
+        <em>true</em>, not just whether it's still <em>recent</em>.</li>
+        <li>A naive append-only log fails the same way naive FIFO
+        eviction failed in Chapter 3, one layer up: it has no concept of
+        write-worthiness or staleness, only "everything, forever."</li>
+        <li>This chapter decides what a system writes and what real
+        policy retrieves it, not how a retriever ranks candidates —
+        retrieval architecture (embeddings, vector stores, ranking) is
+        <code>rag-for-everyone</code>'s subject, assumed here, not
+        re-taught.</li>
+        <li>Staleness handling has to be explicit and active: marking a
+        superseded record inactive on update, and excluding any
+        non-active record from retrieval regardless of category, or a
+        curated store just becomes a slower-growing version of the same
+        contradiction an append-only log produces.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model (<code>llama3.2:latest</code>).
+      Unlike Chapter 3, which needed several retries with increasingly
+      patient timeouts across its own session, this session's
+      <code>POST /api/chat</code> calls succeeded on the first attempt
+      both times they were made: a first call (a 150-second timeout,
+      following this course's own standing discipline of generous
+      patience) returned a real response in about 74.4 seconds, most of
+      which was the model's own cold load time in this sandbox; a
+      second, unrelated call a few minutes later, with the model already
+      warm, returned in about 21.8 seconds. This is reported honestly as
+      what actually happened this session, not rounded up into a claim
+      that the earlier hang is now "fixed" — Chapter 3's own session
+      already showed a successful warm call can still be followed by a
+      later timeout, so two consecutive successes here are one
+      additional data point about this session, not a changed
+      conclusion about the endpoint in general. Future sessions should
+      keep budgeting for retries with generous (120s+) timeouts, exactly
+      as `PROJECT_STATE.md` already instructs, rather than assuming
+      today's stability carries forward. As in Chapter 3, no graded
+      <code>solution.py</code> in this chapter depends on a live call —
+      every write/retrieval/staleness decision in the automated
+      harnesses is deterministic, rule-based data, for the same
+      20-second-timeout reason documented there. The live capture above
+      is real and unedited, used as illustrative content this chapter's
+      own argument depends on (that instruction-following varies call to
+      call, and a write policy shouldn't be staked on any single one),
+      not as something any graded script requires to pass.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying:</p>
+    <ol>
+      <li id="src-1">Claude (Anthropic), <em>"Context management on the Claude Developer Platform"</em> —
+      <a href="https://claude.com/blog/context-management" target="_blank" rel="noopener">claude.com/blog/context-management</a>.
+      This is the same URL Chapter 3 cited (re-fetched and re-read live
+      this session, not assumed still valid), but cited here for a
+      different passage — its memory-tool section, which states the
+      tool lets Claude "create, read, update, and delete files in a
+      dedicated memory directory stored in your infrastructure that
+      persists across conversations," so agents can "build up knowledge
+      bases over time, maintain project state across sessions" — direct
+      grounding for this chapter's Step 2 (structured, persistent
+      storage) rather than Chapter 3's own citation of this same page's
+      context-editing section.</li>
+      <li id="src-2">LangChain, <em>"Memory" (LangGraph concepts)</em> —
+      <a href="https://docs.langchain.com/oss/python/langgraph/memory" target="_blank" rel="noopener">docs.langchain.com/oss/python/langgraph/memory</a>.
+      States that short-term memory is "thread-scoped memory" that
+      "tracks the ongoing conversation," while long-term memory "stores
+      user-specific or application-level data across sessions and is
+      shared across conversational threads" and "can be recalled at any
+      time and in any thread" — the direct source for this chapter's own
+      Line 3 / Line 4 boundary framing, plus real "hot path" vs.
+      "background" write-timing tradeoffs and an explicit note that
+      "most LLMs still perform poorly over long contexts," motivating
+      deliberate forgetting of stale information.</li>
+      <li id="src-3">Letta, <em>"Memory Blocks"</em> (blog) —
+      <a href="https://www.letta.com/blog/memory-blocks" target="_blank" rel="noopener">letta.com/blog/memory-blocks</a>.
+      Documents that memory blocks are "individually persisted in the
+      DB" and, "unlike ephemeral memory in many LLM frameworks,"
+      maintain state between interactions, and that when a request is
+      made, "the context window is 'compiled' from existing DB state" —
+      concrete, shipped evidence for this chapter's own retrieval
+      framing: long-term memory lives outside the context window by
+      default and is deliberately compiled back in per request, never
+      resident in context by accident.</li>
+      <li id="src-4">Google Cloud, Vertex AI Agent Engine,
+      <em>"Memory Bank"</em> —
+      <a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/memory-bank/overview" target="_blank" rel="noopener">docs.cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/memory-bank/overview</a>
+      (this session's fetch of the historical
+      <code>cloud.google.com/...</code> URL 301-redirected here,
+      confirmed live). Documents storage of "long-term user preferences
+      and facts" across sessions, a "fetch" mechanism to reintegrate
+      memories into later sessions, and "memory revisions" that let a
+      team inspect how a memory changed over time — direct, real-product
+      evidence for this chapter's own Step 4 (staleness must be tracked,
+      not assumed away) and Step 3 (retrieval is a deliberate fetch, not
+      a standing presence in context).</li>
+      <li id="src-5">Amazon Web Services, <em>"Retain conversational
+      context across multiple sessions using memory"</em> (Bedrock
+      Agents documentation) —
+      <a href="https://docs.aws.amazon.com/bedrock/latest/userguide/agents-memory.html" target="_blank" rel="noopener">docs.aws.amazon.com/bedrock/latest/userguide/agents-memory.html</a>.
+      Disclosed honestly: this page documents "Amazon Bedrock Agents
+      (now Amazon Bedrock Agents Classic)," which the page itself notes
+      "is no longer open to new customers," with AWS pointing new
+      customers to a successor product instead — cited here anyway
+      because the documented mechanics are real, shipped, and directly
+      on this chapter's topic: a configurable memory retention duration
+      "between 1 and 365 days" after which "all session summaries beyond
+      this duration will be deleted" is a concrete, real-world example
+      of Step 4's staleness handling implemented as explicit expiration,
+      not an abstract idea this chapter invented.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's long-term memory policy out loud
+    — see
+    <a href="interview-questions.html">Chapter 4 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-03-short-term-conversational-memory/lesson.html">&larr; Chapter 3</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

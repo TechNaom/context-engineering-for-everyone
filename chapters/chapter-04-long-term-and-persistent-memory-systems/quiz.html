@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Long-Term and Persistent Memory Systems Quiz — Context Engineering for Everyone</title>
+<meta name="description" content="Interactive quiz for Long-Term and Persistent Memory Systems.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-04" data-chapter-id="chapter-04">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="lesson.html">&larr; Back to the lesson</a></p>
+
+  <span class="chapter-badge">Chapter 4 Quiz</span>
+  <h1>Long-Term and Persistent Memory Systems</h1>
+  <p>Fill in each blank, then check your answers. A perfect score marks this chapter complete.</p>
+
+  <div class="quiz-progress-wrap" aria-hidden="true">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+
+  <form onsubmit="return false;">
+
+    <div class="quiz-question">
+      <label for="q1"><span class="q-num">1</span> This chapter owns Line ______ of the ledger: Recalled Long-Term Memory.</label>
+      <div class="fib-row">
+        <input type="text" id="q1" class="fib-blank" data-answers="4,four" aria-label="Answer for question 1">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q2"><span class="q-num">2</span> In the lesson's hook, HearthLine's short-term policy correctly ______ Line 3 at the end of each session, exactly as Chapter 3's recipe specifies.</label>
+      <div class="fib-row">
+        <input type="text" id="q2" class="fib-blank" data-answers="cleared,clears" aria-label="Answer for question 2">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q3"><span class="q-num">3</span> Long-term memory requires a genuinely new decision short-term memory never needed: whether a stored fact is still ______, not just whether it's still recent.</label>
+      <div class="fib-row">
+        <input type="text" id="q3" class="fib-blank" data-answers="true" aria-label="Answer for question 3">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q4"><span class="q-num">4</span> When a new fact supersedes an old one, the old record must be marked ______, not left retrievable alongside its replacement.</label>
+      <div class="fib-row">
+        <input type="text" id="q4" class="fib-blank" data-answers="inactive,superseded" aria-label="Answer for question 4">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q5"><span class="q-num">5</span> The recipe's Step 3 scopes retrieval by subject and by which ______ are relevant to the current request type, never "load everything."</label>
+      <div class="fib-row">
+        <input type="text" id="q5" class="fib-blank" data-answers="categories,category" aria-label="Answer for question 5">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q6"><span class="q-num">6</span> Per the LangGraph memory docs cited in this chapter, short-term memory is described as ______-scoped memory.</label>
+      <div class="fib-row">
+        <input type="text" id="q6" class="fib-blank" data-answers="thread" aria-label="Answer for question 6">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q7"><span class="q-num">7</span> This chapter does not design retrieval ______ (ranking, embeddings, vector stores) — that is <code>rag-for-everyone</code>'s subject, assumed here.</label>
+      <div class="fib-row">
+        <input type="text" id="q7" class="fib-blank" data-answers="architecture" aria-label="Answer for question 7">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q8"><span class="q-num">8</span> A naive ______-only log has no concept of write-worthiness or staleness -- the same failure shape as Chapter 3's naive FIFO, one layer up.</label>
+      <div class="fib-row">
+        <input type="text" id="q8" class="fib-blank" data-answers="append" aria-label="Answer for question 8">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div id="check-all-wrap">
+      <button type="button" id="check-all-btn" class="check-btn">Check All Answers</button>
+      <span id="quiz-score"></span>
+    </div>
+
+    <div class="quiz-celebration" id="quiz-celebration" aria-live="polite">
+      Perfect score. Chapter complete.
+    </div>
+  </form>
+
+  <div class="chapter-nav">
+    <a href="lesson.html">&larr; Back to Lesson</a>
+    <a href="exercises/index.html">Exercises &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/quiz-engine.js"></script>
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

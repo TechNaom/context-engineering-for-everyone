@@ -7,9 +7,9 @@
   applies to a module's `examPath`: set it to null until that module's
   written exam actually exists in assessments/written-exams/.
 
-  Chapters 1-2 (Module 1, complete) and Chapter 3 (Module 2's first
-  chapter) are live as of this build -- see PROJECT_STATE.md for
-  status. Chapters 4-13 are planned, `.gitkeep`'d, not yet built.
+  Chapters 1-2 (Module 1, complete) and Chapters 3-4 (Module 2,
+  complete) are live as of this build -- see PROJECT_STATE.md for
+  status. Chapters 5-13 are planned, `.gitkeep`'d, not yet built.
 */
 
 window.CEFE_MODULES = [
@@ -50,7 +50,8 @@ window.CEFE_MODULES = [
         id: "chapter-04",
         num: 4,
         title: "Long-Term and Persistent Memory Systems",
-        description: "What a system should remember across sessions, how it's stored, and the real decision of what to retrieve back into context later."
+        description: "What a system should remember across sessions, how it's stored, and the real decision of what to retrieve back into context later.",
+        path: "chapters/chapter-04-long-term-and-persistent-memory-systems/lesson.html"
       }
     ]
   },

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Long-Term and Persistent Memory Systems Interview Questions — Context Engineering for Everyone</title>
+<meta name="description" content="Interview questions for Long-Term and Persistent Memory Systems.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-04">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="practice/index.html">&larr; Back to practice bank</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 4 Interview Questions</span>
+    <span class="reading-time">~18 min</span>
+  </div>
+  <h1>Interview Questions: Long-Term and Persistent Memory Systems</h1>
+  <p>Grouped by level — beginner, intermediate, senior, architect. Each includes a strong answer, a red flag, a follow-up, and what the question actually proves.</p>
+
+  <div class="lesson-card">
+    <h2>1. (Beginner) Why did HearthLine lose the fall-risk fact even though its short-term memory policy was built correctly?</h2>
+    <p><strong>Strong answer:</strong> Chapter 3's short-term memory policy is scoped to a single session on purpose — it protects a pinned fact for the life of one conversation, then correctly clears Line 3 when that session ends. HearthLine had no persistent store at all, so nothing wrote the fall-risk disclosure anywhere before Line 3 was cleared. The short-term policy did exactly what it was designed to do; the gap is a separate layer nobody built.</p>
+    <p><strong>Red flag:</strong> Blames the short-term memory policy itself, or claims a bigger Line 3 budget would have prevented this.</p>
+    <p><strong>Follow-up:</strong> "If HearthLine's team had simply never cleared Line 3 at session end, would that have fixed the problem?"</p>
+    <p><strong>What this proves:</strong> Understands the precise boundary between Chapter 3's subject and this chapter's.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>2. (Beginner) What's the difference between "recent" and "still true," and why does long-term memory care about the second one specifically?</h2>
+    <p><strong>Strong answer:</strong> Short-term memory only ever needed to ask whether a fact was recent enough to still matter within one conversation. Long-term memory spans real time, during which a stored fact can become false: a medication dosage changes, an insurance tier changes. A long-term memory policy has to actively track whether a stored fact is still true (active, superseded, expired), not just assume anything written down stays valid forever.</p>
+    <p><strong>Red flag:</strong> Treats "old" and "stale" as the same concept, or can't name a concrete example of a fact that goes stale without becoming "old" in a recency sense.</p>
+    <p><strong>Follow-up:</strong> "How would your system find out that a previously stored fact has become false, if the user doesn't explicitly say so?"</p>
+    <p><strong>What this proves:</strong> Understands this chapter's central new idea — staleness is a truth question, not a recency question.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>3. (Intermediate) A teammate proposes: "let's just write every fact ever disclosed to the persistent store, so we never miss anything." What's wrong with that?</h2>
+    <p><strong>Strong answer:</strong> An unbounded write policy is the naive append-only log this chapter rejects. It fails two ways: it eventually exceeds Line 4's retrieval budget as the relationship grows, and it retrieves superseded, outdated facts alongside their replacements with nothing to resolve the contradiction — writing everything doesn't just cost more tokens, it actively produces wrong answers when old and new facts disagree.</p>
+    <p><strong>Red flag:</strong> Argues that writing more is strictly safer, with no engagement with the staleness/contradiction problem specifically.</p>
+    <p><strong>Follow-up:</strong> "Your store now has an old address and a new address for the same client, both 'written.' Walk me through what your retrieval policy needs to do."</p>
+    <p><strong>What this proves:</strong> Can name the two distinct failure modes of unbounded writing.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>4. (Intermediate) How is this chapter's subject different from what `rag-for-everyone` teaches, given both involve "storing something and retrieving it later"?</h2>
+    <p><strong>Strong answer:</strong> `rag-for-everyone` owns retrieval architecture — ranking, embedding, search. This chapter assumes that architecture already exists and owns two different decisions: what gets written to persistent storage in the first place, and what real policy decides which of it gets pulled back into Line 4 for a specific turn. A system could have an excellent retriever and still fail this chapter's own subject if nothing worth retrieving was ever written, or if what's retrievable includes stale, contradictory facts.</p>
+    <p><strong>Red flag:</strong> Conflates the two courses, or can't name a concrete failure mode a great retriever wouldn't fix.</p>
+    <p><strong>Follow-up:</strong> "If your retriever's precision and recall metrics both look great, what could still be wrong with your long-term memory system?"</p>
+    <p><strong>What this proves:</strong> Can hold the boundary between adjacent courses explicitly, not just gesture at "they're different."</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>5. (Senior) You're reviewing a new request type's long-term memory design before it ships. What do you check beyond "does retrieval fit inside the budget"?</h2>
+    <p><strong>Strong answer:</strong> Check that the write criteria are a real, bounded set of categories, not a convenience list. Check that every write produces a structured record with a status field, not a raw transcript append. Check that retrieval is genuinely scoped by subject and relevant category, not "everything for this user." And specifically check the staleness mechanism: what actually happens when a new fact contradicts an old one, and confirm the old record becomes unretrievable, not just lower-priority.</p>
+    <p><strong>Red flag:</strong> Signs off purely because the token arithmetic passes, with no scrutiny of the staleness mechanism.</p>
+    <p><strong>Follow-up:</strong> "Show me the exact code path that marks an old record superseded when a new one arrives. What happens if that path is skipped?"</p>
+    <p><strong>What this proves:</strong> Understands that budget-fit is a floor, and staleness handling deserves extra scrutiny as the one step with no Chapter 3 analog.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>6. (Senior) How do you decide whether a given request type needs the full curated long-term memory approach versus none at all?</h2>
+    <p><strong>Strong answer:</strong> Look at whether the request type involves a real recurring relationship across multiple sessions, and whether a fact disclosed in one session could plausibly still matter, or plausibly change, in a later one. A genuinely one-off interaction needs no persistent memory. A real recurring relationship where facts can go stale needs the full curated approach.</p>
+    <p><strong>Red flag:</strong> Proposes building persistent memory for every request type "to be safe" without engaging with the cost of staleness upkeep.</p>
+    <p><strong>Follow-up:</strong> "What's the cheapest way to check whether a request type's relationships are actually long enough and change enough to justify this?"</p>
+    <p><strong>What this proves:</strong> Applies proportionate judgment, matching the discipline Chapter 3 required for its own hybrid-vs-nothing decision, one layer up.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>7. (Architect) Design a lightweight governance process so every long-running request type gets a real long-term memory policy, not just a correctly allocated Line 4 budget.</h2>
+    <p><strong>Strong answer:</strong> Require a standard artifact per request type: the write criteria and its justification, the storage record schema, the retrieval scope logic, and evidence that a staleness mechanism exists and was tested against a scenario with at least one superseded fact. Pair it with an automated check that flags any request type with a Line 4 allocation but no long-term policy artifact — exactly the gap HearthLine shipped with. Require worst-case validation to include at least one update scenario, not just accumulation scenarios.</p>
+    <p><strong>Red flag:</strong> A process that only checks the budget artifact exists, with no check for staleness-scenario test coverage.</p>
+    <p><strong>Follow-up:</strong> "How would you catch a request type whose staleness mechanism existed on paper but had quietly stopped firing in production?"</p>
+    <p><strong>What this proves:</strong> Architect-level judgment — connects governance across allocation, short-term, and long-term artifacts, and protects against staleness handling silently rotting.</p>
+  </div>
+
+  <div class="lesson-card">
+    <h2>8. (Architect) Leadership says: "we already solved memory in Chapter 3 — isn't long-term memory just short-term memory with a bigger, cross-session budget?" How do you explain what's actually different?</h2>
+    <p><strong>Strong answer:</strong> Short-term memory answers a question scoped to one conversation and has no concept of a fact becoming false — only becoming old within a bounded window. Long-term memory answers a structurally different question: given a relationship spanning real time and multiple sessions, what's worth persisting, and does what's persisted still describe reality by the time it's retrieved. A bigger budget doesn't solve staleness — you can have unlimited Line 4 tokens and still retrieve a contradictory, outdated fact if nothing tracks whether a record is still active.</p>
+    <p><strong>Red flag:</strong> Claims the two are the same discipline at different scales, or can't name staleness as the concrete capability short-term memory never needed.</p>
+    <p><strong>Follow-up:</strong> "If your org could only build one of the two fully this quarter, which request types would suffer most from having only the other one?"</p>
+    <p><strong>What this proves:</strong> Can articulate the precise, non-superficial difference between Chapters 3 and 4 to a non-specialist audience.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Strategy Tips</h2>
+    <ul>
+      <li>Ground every answer in HearthLine's actual failure (correct short-term policy, zero persistent memory, a fact lost at a session boundary) rather than a generic "always persist important facts" answer.</li>
+      <li>For senior/architect questions, always name the staleness mechanism specifically — it's the one piece of this chapter's recipe with no direct Chapter 3 analog.</li>
+      <li>If you're new to engineering interviews: reason out loud by naming which of this chapter's three concerns (write-worthiness, retrieval scope, staleness) a given fact falls into before proposing what happens to it.</li>
+    </ul>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="practice/index.html">&larr; Practice Bank</a>
+    <a href="project/index.html">Project &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

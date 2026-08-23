@@ -31,13 +31,14 @@ before it's written into a lesson.
 ## Current state (as of 2026-08-23)
 
 **Read `PROJECT_STATE.md` for the authoritative, up-to-date status.**
-Short version: this is the course's **third session**. Session 1 built
+Short version: this is the course's **fourth session**. Session 1 built
 Discovery, the curriculum map, the full repository scaffold, and
 Chapter 1 ("The Context Budget"). Session 2 built Chapter 2
 ("Designing Context Window Budgets"), completing Module 1 in full.
 Session 3 built Chapter 3 ("Short-Term Conversational Memory"), opening
-Module 2. Chapters 4-13 exist only as `.gitkeep`'d directories, not yet
-built.
+Module 2. Session 4 built Chapter 4 ("Long-Term and Persistent Memory
+Systems"), closing Module 2 in full. Chapters 5-13 exist only as
+`.gitkeep`'d directories, not yet built.
 
 - Directory skeleton (`.gitkeep` in every not-yet-built chapter
   directory from the start — the bootstrap bug found in prior sibling
@@ -80,6 +81,21 @@ built.
   model didn't fully follow its own prompt instructions, used directly
   as the lesson's own argument for why pinning is a deterministic
   mechanism, not something delegated to a summarization call.
+- **Chapter 4 ("Long-Term and Persistent Memory Systems") is built and
+  live**, closing Module 2 in full. See
+  `quality-audits/chapter-04-audit.md`. Uses Chapter 3's short-term
+  policy as a lens: Line 3's own eviction/compression mechanics are a
+  given, not re-derived, and this chapter's own job is what a system
+  writes to durable storage once a session ends, and the real policy
+  that decides what gets retrieved back into Line 4 for a given turn —
+  including the one genuinely new mechanic short-term memory never
+  needed: staleness handling (a stored fact can become false, not just
+  old). This chapter also finally resolved the L1/L2 project-ladder
+  question Chapters 2-3 left open twice, shipping the curriculum map's
+  literal L2 Assisted project once, solo, closing the module — see
+  "Open Decisions" in `PROJECT_STATE.md` for the confirmed convention
+  going forward (one project per module, at the ladder's own stated
+  tier).
 
 ## Naming conventions
 
@@ -103,8 +119,11 @@ built.
   even after an earlier call in the same session had already succeeded
   warm, before a third attempt succeeded in under 9 seconds. Treat this
   endpoint as *intermittently* slow/hanging, not "cold once, fast
-  forever after." `/api/tags` has responded normally in all three
-  sessions with `llama3.2:latest` installed. Re-check and disclose
+  forever after." `/api/tags` has responded normally in all four
+  sessions with `llama3.2:latest` installed. Session 4 got two
+  consecutive first-attempt successes (74.4s cold, 21.8s warm), with no
+  retries needed — reported honestly as that session's own result, not
+  evidence the intermittent pattern is resolved. Re-check and disclose
   honestly every session, budgeting for retries throughout the session
   (not just at the start), with generous timeouts (120s+) even after an
   earlier call has already succeeded.
@@ -128,16 +147,25 @@ built.
   discipline, inherited from every sibling TechNaom course. Session 1
   built Discovery, the scaffold, and Chapter 1 only; Session 2 built
   Chapter 2 only, completing Module 1; Session 3 built Chapter 3 only,
-  opening Module 2 — matching exactly how `ai-engineering-for-everyone`
-  itself progressed.
+  opening Module 2; Session 4 built Chapter 4 only, closing Module 2 —
+  matching exactly how `ai-engineering-for-everyone` itself progressed.
 - **Check every fictional org against the running exclusion list before
-  naming a new one** — see `quality-audits/chapter-03-audit.md` for the
-  full, current list (33 orgs across Chapters 1-3 so far, checked
+  naming a new one** — see `quality-audits/chapter-04-audit.md` for the
+  full, current list (44 orgs across Chapters 1-4 so far, checked
   against `ai-engineering-for-everyone`'s own full compiled list with
   zero collision found) and extend it (don't restart it) for every new
   chapter. Each new chapter's audit should reproduce the full list plus
   its own new orgs, so the next session only ever needs to read the
   latest one.
+- **One project per module, at the project ladder's own stated tier —
+  not one project per chapter.** Chapters 2-3 each shipped a second,
+  module-internal L1-tier project, logging the tension with the
+  curriculum map's own ladder as open both times; Chapter 4's session
+  finally resolved it by shipping the curriculum map's literal "L2
+  Assisted" project once, solo, closing Module 2, and confirmed this as
+  the convention going forward. Module 3 (Chapters 5-6) should ship a
+  single project once, at the end of Chapter 6 — not a project at the
+  end of each of Chapters 5 and 6.
 - **State explicitly, in each new chapter's own lesson text, what it is
   NOT re-teaching** from `rag-for-everyone`, `mcp-for-everyone`, or
   `ai-engineering-for-everyone` Chapter 3 wherever its subject sits
@@ -146,40 +174,43 @@ built.
   Chapter 1 modeled it directly in its "Why This Course Exists"
   section.
 
-## Current task: Chapter 4 — "Long-Term and Persistent Memory Systems"
+## Current task: Chapter 5 — "Context Compression and Summarization"
 
-Completes Module 2 (Memory Systems). See `PROJECT_STATE.md`'s "Next
-Recommended Task" section for the full handoff detail: what not to
-re-derive from Chapters 1-3 (including Chapter 3's own short-term
-eviction/compression mechanics — Chapter 4 starts from the boundary
-between short-term and persistent memory, it doesn't re-teach pinning
-or running summaries), the explicit boundary to state against
-`rag-for-everyone` (Chapter 4 decides what's stored and what real
-policy pulls it back into Line 4 for a given turn; it does not design
-retrieval architecture itself), the new-org exclusion list to check
-first (33 orgs across Chapters 1-3 so far), citation/Ollama
-re-verification discipline (the hang is intermittent, not "cold once,
-fast forever after" — budget for retries throughout the session), the
-still-open L1/L2 project-ladder judgment call that must finally be
-resolved this session (see `PROJECT_STATE.md`'s "Open Decisions"), and
-the four registration-staleness locations to update in the same
-session once `lesson.html` exists (`assets/chapters-data.js`, root
-`index.html`'s hero-stats and intro paragraph — note it should read "4
-of 13 chapters live" / "2 of 6 modules complete" once Chapter 4 ships,
+Opens Module 3 (Context Compression and Curation). See
+`PROJECT_STATE.md`'s "Next Recommended Task" section for the full
+handoff detail: what not to re-derive from Chapters 1-4 (including
+Chapter 3's short-term policy and Chapter 4's long-term write/retrieval
+policy — Chapter 5 starts from both as given inputs and owns the
+compression *mechanics* both of them deliberately deferred: how a real
+summarization step decides what to keep, how to bound information
+loss, and how to validate a summary preserved what a downstream
+pinning/write step depends on), the new-org exclusion list to check
+first (44 orgs across Chapters 1-4 so far), citation/Ollama
+re-verification discipline (the hang is intermittent — Chapter 4's
+session got two clean first-attempt successes, but that is one
+session's data point, not a resolved pattern; budget for retries
+throughout the session regardless), the now-confirmed one-project-per-
+module convention (Chapter 5 should NOT ship its own project — Module
+3's single project ships once, solo, at the end of Chapter 6), and the
+registration-staleness locations to update in the same session once
+`lesson.html` exists (`assets/chapters-data.js`, root `index.html`'s
+hero-stats and intro paragraph — note it should read "5 of 13 chapters
+live" once Chapter 5 ships, but "2 of 6 modules complete" stays as-is
+until Chapter 6 also ships, since Module 3 needs both chapters,
 `docs/curriculum/index.html`'s chapter-card status and lede paragraph).
 
 ## Next task after that
 
-Chapter 5 ("Context Compression and Summarization"), opening Module 3
-— not yet planned in detail beyond the curriculum map's own module
-outcomes; a future session should read Chapter 4's own quality audit
-before starting, not assume its scope from the curriculum map alone.
-Chapter 5 is where this course's own compression/summarization mechanics
-finally get full depth (Chapter 3 deliberately built only the minimum
-needed to keep short-term memory in budget, and said so directly in its
-own lesson text) — re-read Chapter 3's "Why This Chapter" section before
-scoping Chapter 5, so it doesn't either re-teach what Chapter 3 already
-covered or leave a gap between the two.
+Chapter 6 ("Avoiding Lost-in-the-Middle"), closing Module 3 — not yet
+planned in detail beyond the curriculum map's own module outcomes; a
+future session should read Chapter 5's own quality audit before
+starting, not assume its scope from the curriculum map alone. Chapter
+6 also owns Module 3's single project (per the now-confirmed
+one-project-per-module convention), and should re-verify the "Lost in
+the Middle" citation (Liu et al., 2023) against more current research
+before treating the finding as settled across all current model
+families, per the note already flagged in `PROJECT_STATE.md`'s Known
+Issues.
 
 ## Important architectural decisions (see PROJECT_STATE.md for full detail)
 
