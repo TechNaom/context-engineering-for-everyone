@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 5: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to complete TransitLine's compression-mechanics exercises, then critique its plausible-but-flawed answers -- catching an inverted retention-percentage formula, a misclassified load-bearing candidate, and a fidelity check that waves through a missing detail.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-05">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 5 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>This chapter ships no standalone project — Module 3's single joint project ships once, at the end of Chapter 6, drawing on both this chapter's compression fidelity work and Chapter 6's context ordering together (see <code>PROJECT_STATE.md</code>'s "one-project-per-module" convention). What this chapter <em>does</em> have is its own real, gradable work: the <a href="index.html">Kirkholme Public Transit Safety Board / TransitLine exercises</a>, whose <code>solution.py</code> and <code>starter.py</code> mechanically score eight tasks. That gradable harness is this page's stand-in for a rubric. You already did this work yourself in the exercises. Now the same compression-mechanics tasks get produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's answer before it ships.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same TransitLine spec <code>starter.py</code> gives you, and asks for answers to four of the eight tasks: the compression-ratio arithmetic (Exercise 3), the load-bearing candidate classification (Exercise 4), the fidelity check (Exercise 5), and the escalation decision (Exercise 8).</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Kirkholme Public Transit Safety Board's incident-intake assistant,
+TransitLine, handles Vehicle Incident Report conversations. A
+compression trigger has already fired for one conversation segment:
+the raw segment is 2,400 tokens, and the fixed compression target is
+480 tokens.
+
+TASK A (compression ratio): how many tokens must be cut to hit the
+480-token target, and what is the retention percentage (tokens kept
+as a percentage of the raw 2,400 tokens)?
+
+TASK B (candidate classification): for each of these six details from
+the raw segment, is it a load-bearing candidate that MUST be flagged
+before compressing (True), or incidental and safe to drop (False)?
+- bus_route_number_and_mechanical_symptom
+- driver_said_good_morning_to_passenger
+- exact_time_and_location_of_brake_failure_report
+- passenger_thanked_the_driver
+- specific_maintenance_bay_number_referenced
+- weather_was_sunny_during_the_incident
+
+TASK C (fidelity check): three candidates were flagged before
+compressing: {"route_38", "brake_failure_7_42am", "maintenance_bay_12"}.
+The produced summary actually contains:
+{"route_38", "maintenance_bay_12", "grinding_noise"}. Which candidates
+are missing, and does the fidelity check pass (True only if every
+candidate is present)?
+
+TASK D (escalation): if the fidelity check fails because one flagged
+candidate is missing, what's the correct next action -- ship the
+result as-is, or retry/escalate?
+
+Give me your answer and a short reason for each task.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of answer an AI assistant might hand back on the first try, each one sounding reasonable on its own. Read it the way you'd read a colleague's draft before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_answers.md (as handed back)</span>
+    </div>
+    <pre><code>TASK A -- compression ratio
+Tokens to cut: 2,400 - 480 = 1,920.
+Retention percentage: since 1,920 of the 2,400 tokens are being cut,
+that's a retention of 1920 / 2400 = 80%.
+
+TASK B -- candidate classification
+- bus_route_number_and_mechanical_symptom: True
+- driver_said_good_morning_to_passenger: False
+- exact_time_and_location_of_brake_failure_report: True
+- passenger_thanked_the_driver: False
+- specific_maintenance_bay_number_referenced: False -- this is just a
+  location detail, not evidence of the mechanical cause itself, so it's
+  safe to summarize away.
+- weather_was_sunny_during_the_incident: False
+
+TASK C -- fidelity check
+The summary keeps "route_38" and "maintenance_bay_12," and adds
+"grinding_noise," which actually describes the same brake problem in
+different words. So functionally nothing important is missing --
+fidelity check passes: True.
+
+TASK D -- escalation
+If a fidelity check ever fails, the safest move is to just retry the
+same compression call again -- summarization calls have some
+randomness, so a second attempt is likely to catch what the first one
+missed.</code></pre>
+  </div>
+
+  <p>It reads fluently, and each answer comes with a specific-sounding justification. It's also wrong in three separate, genuinely easy-to-miss ways — and running the equivalent numbers through <code>starter.py</code>'s own <code>score_exercise_3()</code>, <code>score_exercise_4()</code>, and <code>score_exercise_5()</code> would catch two of the three immediately, but the third (Task D) is a judgment call the automated harness doesn't even ask about directly, which is exactly why it's worth catching by hand first.</p>
+
+  <h2>Step 2: Where did the AI's answers lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; the retention percentage is inverted</span>
+      <p><strong>What it looks like it does:</strong> "1,920 of the 2,400 tokens are being cut, that's a retention of 1920/2400 = 80%" reads like straightforward arithmetic, and the token-cut figure (1,920) is exactly right.</p>
+      <p><strong>What it actually does:</strong> 1,920 is the number of tokens <em>cut</em>, not <em>kept</em> — dividing the cut amount by the raw total computes the <em>cut</em> percentage (80%), then mislabels it as "retention." The actual retention is what's left after cutting: 480 kept tokens out of 2,400 raw, or 480/2400 = <strong>20%</strong>, matching this chapter's own worked-math table and <code>solution.py</code>'s <code>exercise_3_retention_percentage = COMPRESSION_TARGET_TOKENS * 100 // RAW_SEGMENT_TOKENS</code>. The AI's own token-cut arithmetic (1,920) was correct — it just divided the wrong pair of numbers for the second question and never noticed the two answers it produced (80% retained, but also 1,920 of 2,400 cut) are contradictory on their face.</p>
+      <p><strong>Why it matters:</strong> <code>starter.py</code>'s own <code>score_exercise_3()</code> checks <code>exercise_3_retention_percentage</code> against the exact expected value (20) and would fail this immediately with no partial credit for the correct tokens-to-cut half. A retention percentage that's off by 4x isn't a rounding slip; it's a calculation that answered a different question than the one asked.</p>
+      <p><strong>The fix:</strong> retention percentage is always <code>kept / raw</code>, not <code>cut / raw</code> — run both numbers and check they sum to a sane total (20% retained + 80% cut = 100%) before reporting either one, rather than computing just one ratio and trusting it.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; a load-bearing candidate is waved off as "just a location"</span>
+      <p><strong>What it looks like it does:</strong> "this is just a location detail, not evidence of the mechanical cause itself" sounds like a defensible distinction — a bay number, on its own, isn't a symptom.</p>
+      <p><strong>What it actually does:</strong> in a vehicle-incident-report context, a specific maintenance bay number is exactly the kind of detail Step 2 exists to flag — it's precise, verifiable, and the kind of fact an investigator would need to correlate reports (which bay serviced this vehicle before the failure). This chapter's own <code>EXERCISE_4_DETAILS</code> classifies it <code>True</code> for the same reason <code>bus_route_number_and_mechanical_symptom</code> and <code>exact_time_and_location_of_brake_failure_report</code> are both <code>True</code>: specific, technical, or safety-relevant identifiers are load-bearing candidates precisely because they're identifiers, not because they causally explain the failure by themselves. The AI applied a plausible-sounding "does this explain the cause" test instead of the actual test ("is this specific enough that losing it would remove something an investigation depends on").</p>
+      <p><strong>Why it matters:</strong> <code>score_exercise_4()</code> checks all six answers against the key and would only credit 5/6 here — a specific, easy-to-miss single-item error hiding behind a reasonable-sounding rationale, precisely the failure mode this chapter's own lesson (Step 2) warns about: a load-bearing detail doesn't have to be individually dramatic to be worth preserving.</p>
+      <p><strong>The fix:</strong> flag identifiers and structured technical facts (IDs, timestamps, bay/route/serial numbers) as candidates by default, regardless of whether they look causally significant in isolation — that's what makes them recoverable later even if the causal story isn't clear yet at compression time.</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; the fidelity check is marked as passing when a candidate is actually missing</span>
+      <p><strong>What it looks like it does:</strong> "'grinding_noise' actually describes the same brake problem in different words, so functionally nothing important is missing" sounds like a sensible reading of paraphrase — the summary clearly is still <em>about</em> a brake problem.</p>
+      <p><strong>What it actually does:</strong> <code>CANDIDATE_DETAILS = {"route_38", "brake_failure_7_42am", "maintenance_bay_12"}</code> and <code>PRODUCED_SUMMARY_TOKENS = {"route_38", "maintenance_bay_12", "grinding_noise"}</code> — the flagged candidate is the specific timestamped fact <code>brake_failure_7_42am</code>, not a general mention of a brake problem. "grinding_noise" is a real but <em>different</em> detail; it does not satisfy the requirement that the exact flagged candidate (the failure report's specific time, 7:42am) be present. <code>exercise_5_missing_candidates = CANDIDATE_DETAILS - PRODUCED_SUMMARY_TOKENS = {"brake_failure_7_42am"}</code>, so <code>exercise_5_fidelity_check_passes</code> must be <code>False</code>, not the <code>True</code> the AI reported. This is the same "decontextualization" pattern this chapter's own lesson names in its live-captured PIN example and its live compression-vs-diagnosis demo: something related survives, but the specific flagged fact does not, and a check that accepts "close enough" instead of exact presence is exactly the kind of fidelity check this chapter's own recipe (Step 6) is designed to prevent.</p>
+      <p><strong>Why it matters:</strong> <code>score_exercise_5()</code> checks both <code>exercise_5_missing_candidates</code> and <code>exercise_5_fidelity_check_passes</code> against the exact expected set and boolean — this flaw would score 0/2 on this exercise, and worse, it's the kind of flaw that ships silently: a fidelity check that "passes" a compression it shouldn't have is more dangerous than one that visibly fails, because nothing downstream gets a chance to retry or escalate.</p>
+      <p><strong>The fix:</strong> a fidelity check is a set membership test against the exact flagged candidates, not a judgment call about whether the summary is still "about the same topic." If <code>brake_failure_7_42am</code> was flagged, only its presence (verbatim or an unambiguous equivalent naming the same time) satisfies the check — a related but different fact does not.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly computed the tokens-to-cut half of Task A (1,920), correctly classified five of the six Task B details (including both <code>False</code> incidental cases and two of the three genuine <code>True</code> candidates), and correctly reasoned about the two candidates it did keep from Task C's set. If you'd accepted the whole response uncritically, you'd have kept a mostly-correct candidate classification and a correct tokens-to-cut figure alongside an inverted retention percentage, one misclassified candidate defended with a plausible-sounding rule, and a fidelity check that quietly passed a compression it should have flagged. That mix is a more realistic picture of pairing with an AI on this chapter's own mechanics than either "trust it completely" or "distrust it completely" — and Task D's answer ("just retry the same prompt") is exactly the naive move this chapter's own Practice Scenario 8 (Talmarsh Veterinary Alliance) and Exercise 8 both test for directly: retrying an unchanged naive prompt gives it another chance to make the identical mistake, since nothing about the prompt itself changed. The correct action is <code>retry_or_escalate</code> with an actually different approach — a stronger extraction constraint, a wider target, or a human decision — not a literal identical retry.</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 3 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'Always check that a retention percentage and a cut percentage sum to 100%' or 'Treat a fidelity check as an exact set membership test, never a paraphrase judgment call'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Exercises</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

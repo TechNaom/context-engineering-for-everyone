@@ -31,7 +31,7 @@
   <div class="page-meta">
     <span class="chapter-badge">Chapter 5</span>
     <span class="badge-difficulty">Intermediate</span>
-    <span class="reading-time">~30 min</span>
+    <span class="reading-time">~38 min</span>
   </div>
 
   <h1>Context Compression and Summarization</h1>
@@ -52,11 +52,13 @@
     <a href="#hook">1. A shorter summary, a missing correlation</a>
     <a href="#why-this-chapter">2. Why Chapter 3's recipe left this open</a>
     <a href="#the-recipe">3. The Compression Fidelity Recipe</a>
-    <a href="#approaches-compared">4. Three approaches, compared</a>
-    <a href="#worked-math">5. Worked math: GridLine's dropped correlation</a>
-    <a href="#live-capture">6. A live-captured compression example</a>
-    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
-    <a href="#recap">8. Points to remember</a>
+    <a href="#recipe-as-code">4. Turning the recipe into code</a>
+    <a href="#approaches-compared">5. Three approaches, compared</a>
+    <a href="#worked-math">6. Worked math: GridLine's dropped correlation</a>
+    <a href="#live-capture">7. A live-captured compression example</a>
+    <a href="#live-demo">8. Live demo: naive vs. fidelity-checked compression, then diagnosis</a>
+    <a href="#thought-process">9. Context Engineering Builder Thought Process</a>
+    <a href="#recap">10. Points to remember</a>
   </nav>
 
   <div class="hook" id="hook">
@@ -275,6 +277,84 @@
     </div>
   </section>
 
+  <section id="recipe-as-code" class="subtopic">
+    <h2>Turning the Recipe Into Code</h2>
+    <p>
+      The six steps above are a policy, not an implementation — but
+      each one is small enough to sketch directly, and seeing them as
+      real code makes Step 2's candidate extraction and Step 6's
+      fail-closed validation concrete instead of abstract. This is
+      illustrative, the same way Chapter 4's write-criteria sketch was:
+      a deterministic pre-pass (Step 2), a strategy choice (Step 3),
+      and a validation function (Step 6) that a real compression
+      pipeline would sit behind, run here against GridLine's own hook
+      segment.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">recipe_as_code.py (illustrative sketch, actually run)</span>
+      </div>
+      <pre><code># Step 2 -- a lightweight, deterministic pre-pass: pattern-match
+# specific detail types a diagnosis could depend on, BEFORE any lossy
+# compression runs. This is what GridLine's actual pipeline never had.
+CANDIDATE_RULES = {
+    "reset_count": lambda turns: any(
+        "happened" in t and "times" in t for t in turns
+    ),
+    "furnace_timing_correlation": lambda turns: (
+        sum("furnace" in t for t in turns) >= 3
+        and sum(("reset" in t or "zero" in t or "happened" in t)
+                for t in turns) >= 2
+    ),
+    "install_date_context": lambda turns: any(
+        "installed" in t for t in turns
+    ),
+}
+
+def extract_candidates(turns_lower):
+    return {name for name, rule in CANDIDATE_RULES.items() if rule(turns_lower)}
+
+# Step 3 -- strategy choice: a cross-turn correlation needs an
+# EXTRACTIVE (verbatim-preserving) sentence, even inside an otherwise
+# abstractive summary of the surrounding narrative.
+def choose_strategy(candidates):
+    return ("extractive_for_candidates_abstractive_for_rest"
+            if candidates else "abstractive")
+
+# Step 6 -- validate: does the result actually contain every flagged
+# candidate? A naive pipeline has no candidate list to check against,
+# so it always "passes" a validation it was never given the ability to
+# run -- which is exactly the failure this function makes visible.
+def validate_fidelity(candidates, retained_candidates):
+    missing = candidates - retained_candidates
+    return {
+        "missing": missing,
+        "action": "ship_as_is" if not missing else "retry_or_escalate",
+    }</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output (actually run)</span>
+      <pre><code>Step 2 -- flagged candidates: ['furnace_timing_correlation', 'install_date_context', 'reset_count']
+Step 3 -- chosen strategy: extractive_for_candidates_abstractive_for_rest
+Step 4 -- bounded target: 480 tokens (retention 20% of 2400)
+
+Step 6 -- validation:
+  naive pipeline:      missing=['furnace_timing_correlation', 'install_date_context', 'reset_count']  action=retry_or_escalate
+  fidelity pipeline:   missing=[]                                                                       action=ship_as_is</code></pre>
+    </div>
+    <p>
+      Notice what Step 6 actually does here: it isn't a second
+      compression call, and it isn't a vibe check against the summary's
+      prose — it's a plain set difference between what was flagged in
+      Step 2 and what the result retained. A naive pipeline fails this
+      check not because it was told to fail, but because it never
+      built a candidate set in the first place, so every candidate is
+      trivially "missing." That's the entire mechanical difference
+      between the two pipelines in this chapter's own comparison table.
+    </p>
+  </section>
+
   <section id="approaches-compared" class="subtopic">
     <h2>Three Approaches, Compared</h2>
     <p>
@@ -362,6 +442,45 @@
       worked example demonstrated for write and retrieval policy, one
       layer over.
     </p>
+    <p>
+      That table's numbers were checked, not just narrated. Chapters 2
+      and 3 each ran a real verification script against their own
+      worked-math tables and each one caught a genuine pre-existing
+      arithmetic bug; Chapter 4 ran the same check and found none. This
+      table gets the identical treatment rather than being assumed
+      correct just because it looks internally consistent:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">verify_math.py -- actually executed this session</span>
+      </div>
+      <pre><code>RAW_SEGMENT_TOKENS = 2400
+TARGET_TOKENS = 480
+
+tokens_over_if_uncompressed = RAW_SEGMENT_TOKENS - TARGET_TOKENS
+retention_ratio_pct = round(TARGET_TOKENS / RAW_SEGMENT_TOKENS * 100)
+tokens_cut = RAW_SEGMENT_TOKENS - TARGET_TOKENS
+
+assert tokens_over_if_uncompressed == 1920, "MISMATCH vs lesson's 1,920 claim"
+assert retention_ratio_pct == 20, "MISMATCH vs lesson's 20% claim"
+print(f"over_budget={tokens_over_if_uncompressed} "
+      f"retention_pct={retention_ratio_pct} tokens_cut={tokens_cut}")</code></pre>
+    </div>
+    <div class="output-block">
+      <span class="output-label">Output (actually run)</span>
+      <pre><code>over_budget=1920 retention_pct=20 tokens_cut=1920</code></pre>
+    </div>
+    <p>
+      Unlike Chapters 2 and 3's own math checks, this one turned up no
+      bug — the same honest result Chapter 4 got. The 1,920-token
+      overage, the 20% retention ratio, and the 1,920-token cut all
+      match a script that was actually run, not narrated arithmetic
+      taken on faith. A verification script earns its place in this
+      course's own house style by actually running, whether or not it
+      finds something wrong — this chapter's table happened to already
+      be correct.
+    </p>
   </section>
 
   <section id="live-capture" class="subtopic">
@@ -417,6 +536,138 @@
       candidates, not only inclusion candidates — rather than trusting a
       single instruction inside the compression prompt to fully control
       what the output contains.
+    </p>
+  </section>
+
+  <section id="live-demo" class="subtopic">
+    <h2>Live Demo: Naive vs. Fidelity-Checked Compression, Then Diagnosis</h2>
+    <p>
+      The live capture above tests instruction-following on a small,
+      isolated exclusion. This chapter's actual claim is bigger: naive
+      "summarize as concisely as possible" compression can drop a
+      cross-turn correlation a diagnosis depends on, while a
+      fidelity-checked pass preserves it. That's testable directly —
+      GridLine's own eighteen-turn hook conversation (the meter resets,
+      always within minutes of the furnace kicking on) was run against
+      the locally installed model twice: once with the naive prompt,
+      once with an extraction-first prompt instructed to state any
+      cross-turn correlation explicitly before summarizing. Both were
+      then handed back to the model with the actual diagnostic question
+      a technician would ask.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture -- POST /api/chat, llama3.2:latest, this session</span>
+      </div>
+      <pre><code>NAIVE_PROMPT = "Summarize the following customer support conversation
+as concisely as possible.\n\n" + RAW_CONVERSATION
+
+FIDELITY_PROMPT = "Compress the following customer support conversation
+into a compact running-memory note. Before summarizing, first identify
+any specific recurring pattern or correlation between events mentioned
+across multiple turns (not just isolated facts) -- if one exists, it
+MUST be stated explicitly and verbatim in your summary, including any
+timing relationship. Then write the summary.\n\n" + RAW_CONVERSATION
+
+NAIVE RESPONSE (live, unedited, 54.7s):
+"Customer reports their smart meter resetting to zero every time the
+furnace kicks on, starting around 6 weeks ago when a new furnace was
+installed."
+
+FIDELITY-CHECKED RESPONSE (live, unedited, 83.4s):
+"...a recurring pattern emerges: 'furnace kicking on' is consistently
+followed by the smart meter resetting to zero... Customer's smart meter
+keeps resetting to zero four times in a row (Tuesday evening at 6:15pm,
+Wednesday morning at 7:40am, Thursday at 6:50pm, and yesterday at
+6:30pm), always shortly after the nearby furnace kicks on..."</code></pre>
+    </div>
+    <p>
+      This did not reproduce the hook's own illustrative failure. The
+      naive response, unprompted, still names the furnace/reset
+      correlation — this run's naive summarization did not drop it the
+      way GridLine's actual pipeline is written to have dropped it.
+      Reported honestly: this was re-run two more times (three naive
+      runs total), and the correlation survived in every one:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">two more naive reruns, unedited</span>
+      </div>
+      <pre><code>RUN 2 (18.9s): "Customer reports their smart meter continuously
+resetting to zero on multiple occasions, always within minutes of the
+furnace kicking on. They suspect a possible connection between the new
+furnace installation and the issue, which has happened four times..."
+
+RUN 3 (21.2s): "Customer reports their smart meter keeps resetting to
+zero, always happening within a few minutes of the furnace kicking on.
+The issue started around 6 weeks ago when they installed a new
+furnace..."</code></pre>
+    </div>
+    <p>
+      Three-for-three, the correlation survived naive compression on
+      this model, with this content. That's reported as-is, the same
+      honest-negative-result discipline every prior chapter used when a
+      demo didn't reproduce the expected effect — a hook is an
+      illustrative, worst-case construction, not a claim that every
+      naive summarization call fails identically. But look closer at
+      what both approaches got <em>wrong</em>: the raw conversation's
+      turn 15 states explicitly "it happened a <strong>fifth</strong>
+      time yesterday" — five occurrences, unambiguous in the source.
+      Run 2's naive summary says "four times." The fidelity-checked
+      summary, explicitly instructed to state the pattern verbatim,
+      also says "four times in a row" and lists only four dates,
+      quietly dropping the turn-15 fifth occurrence even while
+      preserving the qualitative correlation perfectly. An
+      extraction-first <em>instruction</em> improved what got
+      preserved qualitatively, but did not, by itself, guarantee the
+      exact count was right — which is precisely why Step 6 requires an
+      explicit post-hoc check against a candidate list (here, something
+      as simple as confirming the word "fifth" or the count "5" appears)
+      rather than trusting a well-worded prompt to get every detail
+      correct on its own.
+    </p>
+    <p>
+      The two compressed summaries were then each handed back to the
+      model with the same question a technician would actually ask:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">diagnosis prompts, live capture, unedited</span>
+      </div>
+      <pre><code>PROMPT (given each summary above as the only case note): "You are a
+technician reviewing this case note before a truck roll. Based ONLY on
+the note below, what is the single most likely cause of the meter
+resets, and what should be inspected first?"
+
+FROM THE NAIVE SUMMARY (23.9s): "Electromagnetic interference (EMI)
+from the new furnace... inspect: battery health and connection."
+
+FROM THE FIDELITY-CHECKED SUMMARY (29.7s): "...a faulty temperature
+sensor or proximity issue with the nearby furnace... inspect: the smart
+meter's temperature sensor(s) and its housing for damage, corrosion, or
+interference from the furnace."</code></pre>
+    </div>
+    <p>
+      Neither diagnosis reaches the hook's own intended root cause (a
+      wiring interaction between the meter and an undersized breaker
+      shared with the HVAC circuit) — both guess a different, unproven
+      mechanism, and the naive diagnosis's recommendation ("check
+      battery health") isn't even related to the furnace correlation it
+      just cited. This is the honest, more nuanced finding worth
+      keeping over a clean pass/fail: even when a load-bearing
+      correlation survives compression textually, and even when its
+      exact count doesn't, correctly interpreting <em>what that
+      correlation implies</em> is a separate downstream reasoning step
+      this chapter's own recipe does not claim to solve. Step 6
+      validates that a flagged detail is present — it does not, and was
+      never claimed to, validate that whatever consumes that detail
+      next reasons about it correctly. That boundary is worth stating
+      as directly as the recipe's own six steps: compression fidelity
+      is necessary for a correct downstream decision, not sufficient
+      for one.
     </p>
   </section>
 
@@ -519,6 +770,30 @@
       this chapter's own argument depends on (that partial
       instruction-following is a real, easy-to-miss fidelity risk), not
       as something any graded script requires to pass.
+    </p>
+    <p>
+      A second round of live testing, done later to produce this
+      chapter's own live-demo section above: <code>curl
+      http://localhost:11434/api/tags</code> was re-checked and again
+      responded normally. Six more <code>POST /api/chat</code> calls
+      were made in this round (a naive-condition compression, a
+      fidelity-checked compression, two diagnosis calls, and two more
+      naive-condition reruns), and every one of them succeeded on the
+      first attempt — no retries needed. Timings ranged from 18.9
+      seconds (a later, warm naive rerun) to 83.4 seconds (the
+      fidelity-checked compression call, the longest prompt of the
+      six). Reported the same way as the first round: as this session's
+      own result, not a claim the endpoint is now reliably fast, since a
+      prior session already showed a successful warm call can still be
+      followed by a later timeout within the same session. The
+      surprising result from this round — naive compression preserved
+      the hook's own load-bearing correlation across all three reruns,
+      unlike GridLine's actual (illustrative, not live-tested) pipeline
+      — is disclosed exactly as found, not smoothed over to match the
+      hook's narrative; the more robust finding this round surfaced
+      instead (both approaches undercounting the exact reset count, and
+      neither downstream diagnosis reaching the intended root cause) is
+      covered in the live-demo section itself.
     </p>
   </section>
 
