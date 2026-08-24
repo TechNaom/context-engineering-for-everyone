@@ -8,9 +8,10 @@
   written exam actually exists in assessments/written-exams/.
 
   Chapters 1-2 (Module 1, complete), Chapters 3-4 (Module 2, complete),
-  Chapters 5-6 (Module 3, complete), and Chapters 7-8 (Module 4,
-  complete) are live as of this build -- see PROJECT_STATE.md for
-  status. Chapters 9-13 are planned, `.gitkeep`'d, not yet built.
+  Chapters 5-6 (Module 3, complete), Chapters 7-8 (Module 4, complete),
+  and Chapters 9-11 (Module 5, complete) are live as of this build --
+  see PROJECT_STATE.md for status. Chapter 12 (Module 6, opening) is now
+  live too. Chapter 13 is planned, `.gitkeep`'d, not yet built.
 */
 
 window.CEFE_MODULES = [
@@ -135,7 +136,8 @@ window.CEFE_MODULES = [
         id: "chapter-12",
         num: 12,
         title: "Evaluating Context Quality",
-        description: "Measuring whether assembled context is complete, relevant, and well-ordered -- before it ever reaches the model."
+        description: "Measuring whether assembled context is complete, relevant, and well-ordered -- before it ever reaches the model, opening Module 6.",
+        path: "chapters/chapter-12-evaluating-context-quality/lesson.html"
       },
       {
         id: "chapter-13",

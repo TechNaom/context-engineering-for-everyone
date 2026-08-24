@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Evaluation Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Evaluating Context Quality.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-12">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 12 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Evaluating Context Quality</h1>
+  <p>
+    These exercises use a fresh scenario, deliberately different from the
+    lesson's Ternfield Regional Disability Benefits Review Office/ClaimLens
+    hook: <strong>Merrivale County Emergency Housing Placement
+    Network</strong>, a fictional county agency. Its placement pipeline,
+    <strong>PlacementGuard</strong>, assembles context for a Housing
+    Placement Agent from four sources — applicant intake, shelter
+    availability, medical needs flags, and prior placement notes — every
+    one of them correctly budgeted, fresh, retrieved, and isolated per
+    Chapters 1-11's own recipes. Your job is this chapter's own new
+    skill: checking the finished bundle itself for completeness, noise,
+    and positional risk, rather than trusting that a correctly-run
+    assembly pipeline guarantees a good result.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — a real
+    completeness score, a real noise ratio, a positional audit, a
+    combined quality gate, fix-simulation arithmetic, and a combined
+    classification, not just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match scenarios to evaluation approaches</h3>
+    <p>Decide which of three PlacementGuard scenarios show no evaluation, proxy-only evaluation, or the full Context Evaluation Recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the Context Evaluation Recipe</h3>
+    <p>Put the lesson's six recipe steps in the correct sequence, from defining required facts to re-running the evaluation.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Completeness score</h3>
+    <p>Compute Case MC-5521's own found/required fraction across four required facts.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Noise ratio</h3>
+    <p>Compute what fraction of the assembled bundle is unrelated material, and whether it clears a 10% threshold.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Positional audit</h3>
+    <p>Bucket three required facts' own positions in the bundle as front, middle, or back.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Combined context quality gate</h3>
+    <p>Evaluate three candidate bundles against completeness, noise, and positional rules together.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Fix-simulation arithmetic</h3>
+    <p>Compute the after-fix token total once noise is removed and a missing fact and a promoted summary are added.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Combined completeness/quality classification</h3>
+    <p>Classify four final bundles as compliant, completeness_fail, quality_fail, or both_fail.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank</a>
+    <a href="ai-paired.html">Now Pair With an AI &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

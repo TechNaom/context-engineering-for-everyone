@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluating Context Quality — Context Engineering for Everyone</title>
+<meta name="description" content="Opening Module 6: Chapters 1-11 engineered context correctly, one recipe at a time. This chapter asks a different question -- given an assembled context bundle, how do you actually measure whether it's good, complete, relevant, and correctly ordered, before it ever reaches the model, rather than diagnosing a failure after the fact.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-12">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 12</span>
+    <span class="badge-difficulty">Advanced</span>
+    <span class="reading-time">~35 min</span>
+  </div>
+
+  <h1>Evaluating Context Quality</h1>
+  <p class="lede">
+    Chapters 1 through 11 all answer the same kind of question:
+    how do you correctly <em>produce</em> a piece of context — budget
+    it, remember it, compress it, order it, assemble it, retrieve it,
+    scope it for a tool call, pipe it through a multi-step pipeline, and
+    isolate it where isolation is the right call. This chapter asks a
+    genuinely different question, for the first time since Chapter 1:
+    given a context bundle that every one of those recipes was correctly
+    followed to build, how do you actually <em>measure</em> whether it's
+    good — complete, relevant, and correctly ordered — before it ever
+    reaches the model, rather than diagnosing a bad outcome after the
+    fact the way every prior chapter's own hook does?
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. The case file that passed every recipe and still failed</a>
+    <a href="#why-this-chapter">2. What this chapter owns, and what it doesn't</a>
+    <a href="#the-recipe">3. The Context Evaluation Recipe</a>
+    <a href="#approaches-compared">4. Three approaches, compared</a>
+    <a href="#worked-math">5. Worked math: Case TF-8804's assembled bundle</a>
+    <a href="#live-capture">6. Two live-captured determinations</a>
+    <a href="#llm-checker">7. Automating completeness with an LLM checker</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Ternfield Regional Disability Benefits Review Office is a
+      fictional regional government agency. Its determination software,
+      ClaimLens, assembles context for a Determination Agent from four
+      sources, exactly per Chapter 7's own Source Assembly Recipe:
+      the application form, the applicant's medical records, their work
+      history, and any prior determination notes on file. Every one of
+      Chapters 1 through 11's own recipes was followed correctly building
+      Case TF-8804's context bundle: the budget fit (Chapter 1-2), no
+      source was stale (Chapter 3-4), nothing was over-compressed
+      (Chapter 5), the four sources were combined without contradiction
+      (Chapter 7), the medical-records source was retrieved and
+      curated correctly at a document boundary (Chapter 8), and there
+      was no tool-context or isolation bug anywhere in the pipeline
+      (Chapter 9-11).
+    </p>
+    <p>
+      Case TF-8804: the applicant's disability claim was denied 14
+      months ago on a MODERATE capacity rating. A follow-up capacity
+      exam two weeks ago found the applicant's condition had progressed
+      to SEVERE — they can no longer perform even light-duty seated
+      work, the finding that should decide this case. That exam result
+      was correctly retrieved into the medical-records source. It was
+      correctly included in the assembled bundle. And ClaimLens still
+      upheld the old MODERATE-based denial.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">claimlens_pipeline.py (assembly, before this chapter)</span>
+      </div>
+      <pre><code>  def assemble_case_context(case_id, sources):
+      # Every one of Chapters 1-11's own recipes ran correctly here:
+      # budgeted (Ch1-2), fresh (Ch3-4), not over-compressed (Ch5),
+      # four sources combined without contradiction (Ch7), retrieved
+      # and curated at a document boundary (Ch8). Chapter 6's own
+      # ordering recipe ran too -- but only at the SOURCE level (which
+      # of the four sources goes first), never down to the level of
+      # which specific FACT inside a source ends up load-bearing.
+      bundle = (
+          sources["application_form"]
+          + sources["medical_records"]      # chronological, oldest first --
+                                             # the newest, decisive exam
+                                             # ends up buried near the end
+                                             # of a long block, not flagged
+          + sources["work_history"]
+          + sources["prior_determination_notes"]
+      )
+      # No step anywhere in this pipeline ever asks: does this bundle
+      # actually CONTAIN every fact this specific case needs (not just
+      # "is the medical_records SOURCE present")? Is there noise crowding
+      # the budget? Is the one fact that actually decides this case sitting
+      # somewhere the model is statistically unlikely to weight heavily?
+      return bundle
+
+  def run_determination(case_id, sources):
+      bundle = assemble_case_context(case_id, sources)
+      return call_model(bundle, "Determine this applicant's current "
+                         "capacity rating and claim status.")</code></pre>
+    </div>
+    <p>
+      Nothing here is a Chapter 1-11 bug. The budget fit. The source
+      was fresh. Nothing overflowed, nothing leaked across an isolation
+      boundary. Every per-step check any prior chapter's own recipe
+      defines would report this pipeline clean. What never happened,
+      anywhere in this pipeline or in Chapters 1-11's own combined
+      toolkit, is a check on the <em>finished</em> bundle itself: does
+      it actually contain every fact this specific case needs, is there
+      irrelevant material crowding the budget, and is the one fact that
+      decides the case sitting somewhere the model is likely to use it.
+      That is this chapter's own job, and no prior chapter's own recipe
+      does it.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>What This Chapter Owns, and What It Doesn't</h2>
+    <p>
+      This chapter treats every recipe from Chapters 1 through 11 as a
+      given input, not fresh material: the five-line Context Budget
+      Ledger, the Budget Allocation Recipe, the Short-Term and Long-Term
+      Memory Policy Recipes, the Compression Fidelity Recipe, the
+      Context Ordering Recipe, the Source Assembly Recipe, the Retrieval
+      Integration Recipe, the Tool Context Recipe, the Pipeline/Multi-Agent
+      Context Recipe, and the Context Isolation Recipe are all
+      already-built skills this chapter assumes were followed correctly
+      and never re-teaches. What's genuinely new: every one of those
+      eleven chapters is about <em>producing</em> a context bundle
+      correctly, one concern at a time. None of them ever asks the
+      question this chapter asks about the finished bundle as a whole —
+      is it actually good, checked as a single artifact, before a single
+      token of it reaches the model. Ternfield's own hook shows why that
+      gap matters: a bundle can pass every per-step check Chapters 1-11
+      define and still fail, because no per-step check was ever built to
+      catch "the one fact this specific case needs is technically
+      present, but buried where the model is unlikely to use it."
+    </p>
+    <p>
+      One boundary worth naming as directly as every chapter since
+      Chapter 9 has named its own: this chapter evaluates <em>context</em>
+      — the input handed to the model — not the model's own generated
+      <em>output</em>. That second discipline (golden-set evaluation
+      harnesses, LLM-as-judge, human-in-the-loop review of a model's own
+      answers) is real, well-established territory this course does not
+      re-teach; it belongs to <code>ai-engineering-for-everyone</code>'s
+      own Module 3 ("Evaluation-Driven Development"), confirmed fresh
+      this session against its current curriculum map. A completeness or
+      relevance check that reads "did the context contain fact X" is
+      this chapter's job. A judge that reads "was the model's own final
+      answer correct, helpful, or safe" is that module's job — a future
+      <code>LLM Evaluation for Everyone</code> sibling course, named in
+      this course's own forward cross-link list, is the more likely home
+      for a deeper treatment of that discipline, not this chapter.
+    </p>
+    <div class="what-is">
+      <span class="label">Re-confirmed this session: all three sibling-course boundaries</span>
+      <code>/home/dell/projects/ai-engineering-for-everyone/docs/curriculum/CURRICULUM_MAP.md</code>
+      was re-read fresh this session: its own Module 3 outcomes read
+      "build a golden-set evaluation harness; use LLM-as-judge and
+      human-in-the-loop review appropriately; wire evaluation into a
+      [pipeline]" — squarely about grading a model's own generated
+      answers against a golden set, never about grading the context
+      handed to the model before it generates anything, the distinction
+      this chapter's own boundary rests on.
+      <code>/home/dell/projects/mcp-for-everyone/docs/curriculum/CURRICULUM_MAP.md</code>
+      still scopes its own Module 5 (Chapters 9-10) to "Permissions,
+      Scopes &amp; Sandboxing" and "Prompt Injection &amp; Tool-Output
+      Trust" and its own Module 6 (Chapters 11-12) to production
+      concerns (tracing, versioning, spec-compatibility) — no chapter
+      anywhere in it scores an assembled context bundle's own
+      completeness, relevance, or ordering.
+      <code>/home/dell/projects/ai-coding-agents-for-everyone/docs/curriculum/CURRICULUM_MAP.md</code>
+      still scopes its own 13-chapter roadmap entirely to building,
+      prompting, reviewing, sandboxing, and CI-hardening one coding
+      agent on one codebase — no chapter evaluates an assembled
+      context bundle as its own artifact either. All three claims hold
+      without adjustment, independently re-verified this session.
+    </div>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Context Evaluation Recipe</h2>
+    <p>
+      Six steps, run against a context bundle Chapters 1-11's own
+      recipes have already assembled, before it is sent to the model:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Define completeness at the fact level, per case</h3>
+      <p>
+        Write down the specific facts a specific request actually
+        requires — not "the medical-records source is present," which
+        is a proxy Ternfield's own pipeline already satisfied, but "the
+        most recent capacity exam's own rating is present." A
+        source-level proxy can be fully satisfied while the one fact a
+        case actually turns on is missing from it.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Score completeness against that list, not against source presence</h3>
+      <p>
+        Check the assembled bundle for each required fact from Step 1,
+        directly — a literal presence check by default, the same
+        discipline Chapter 11's own contamination and starvation probes
+        used. Completeness is the fraction of required facts actually
+        found, and a bundle missing even one high-priority fact should
+        not pass regardless of how many source categories are present.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Score relevance as a noise ratio, not a token count</h3>
+      <p>
+        Measure what fraction of the assembled bundle's own tokens
+        come from content that isn't actually relevant to this
+        request — an unrelated case's own notes pulled in by a stale
+        join, boilerplate repeated in every file, a retrieved chunk that
+        never should have cleared Chapter 8's own relevance floor. A
+        bundle can be entirely within budget and still be mostly noise,
+        crowding out the tokens that matter.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Audit where each required fact actually landed</h3>
+      <p>
+        For every fact Step 1 named, find its position in the final
+        assembled sequence and bucket it — opening, middle, or closing —
+        against the same primacy/recency shape Chapter 6's own
+        Lost-in-the-Middle findings describe. A high-priority fact
+        landing in the degraded middle zone is a flagged risk even when
+        Step 2 already confirms it's technically present.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Combine all three into one gate, run before the call</h3>
+      <p>
+        Completeness, noise ratio, and positional risk are three
+        independent signals — a bundle can pass any one of them and
+        fail another, the same way Chapter 11's own contamination and
+        starvation probes could each pass while the other failed. A
+        context-quality gate checks all three together and blocks the
+        call if any one fails, rather than shipping on a single
+        reassuring signal.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Re-run the evaluation whenever assembly changes</h3>
+      <p>
+        A bundle that passed the gate yesterday can fail it today if a
+        source's own retrieval query changes, a new source gets added,
+        or a prompt template reorders sections — the same
+        not-set-once-correct-forever discipline Chapter 5's own
+        compression policy and Chapter 11's own isolation boundary both
+        require. Evaluation is a continuous gate, not a one-time launch
+        check.
+      </p>
+    </div>
+    <p>
+      All six steps run as real code below, against Case TF-8804's own
+      assembled bundle before any fix is applied — Step 1's own required
+      facts, Step 2's completeness score, Step 3's noise ratio, Step 4's
+      positional audit, and Step 5's combined gate:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">context_evaluation_recipe.py (executed this session, real output)</span>
+      </div>
+      <pre><code>BUNDLE_TOTAL_TOKENS = 4000
+FRONT_BUCKET_END = 600      # first 15%
+BACK_BUCKET_START = 3400    # last 15%
+
+# Step 1 -- required facts for THIS case, not source categories.
+REQUIRED_FACTS = {
+    "updated_capacity_assessment": {"priority": "critical", "position": 2450, "found": True},
+    "household_income": {"priority": "standard", "position": 200, "found": True},
+    "employer_accommodation_note": {"priority": "standard", "position": None, "found": False},
+}
+NOISE_TOKENS = 500  # prior_determination_notes: an unrelated applicant's own notes, joined by a stale key
+
+def step2_completeness_score(required_facts):
+    found = sum(1 for f in required_facts.values() if f["found"])
+    return found / len(required_facts)
+
+def step3_noise_ratio(noise_tokens, total_tokens):
+    return noise_tokens / total_tokens
+
+def _bucket(position):
+    if position is None:
+        return "missing"
+    if position < FRONT_BUCKET_END:
+        return "front"
+    if position > BACK_BUCKET_START:
+        return "back"
+    return "middle"
+
+def step4_positional_audit(required_facts):
+    return {name: _bucket(f["position"]) for name, f in required_facts.items()}
+
+def step5_context_quality_gate(completeness, noise_ratio, position_audit, required_facts):
+    critical_in_middle = any(
+        position_audit[name] == "middle" and f["priority"] == "critical"
+        for name, f in required_facts.items()
+    )
+    return completeness == 1.0 and noise_ratio <= 0.10 and not critical_in_middle
+
+$ python3 context_evaluation_recipe.py
+Step 2 -- completeness score: 0.667 (2/3 required facts found)
+Step 3 -- noise ratio: 0.125 (500/4000 tokens are unrelated to this case)
+Step 4 -- positional audit: {'updated_capacity_assessment': 'middle', 'household_income': 'front', 'employer_accommodation_note': 'missing'}
+Step 5 -- context quality gate: False (completeness incomplete, noise over threshold, critical fact buried in middle)
+Gate correctly blocks this bundle from being sent to the model as-is.</code></pre>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it checks</th>
+          <th>What it misses</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No evaluation (Ternfield's own pipeline, before this chapter)</td>
+          <td>Nothing about the finished bundle — only that each of Chapters 1-11's own per-step checks passed on the way to assembling it.</td>
+          <td>Everything this chapter checks: whether the case's own required facts are actually present, whether noise is crowding the budget, and where the load-bearing fact landed.</td>
+        </tr>
+        <tr>
+          <td>Proxy-only evaluation (checks source categories, not facts)</td>
+          <td>Whether each expected source (application form, medical records, work history, prior notes) is present in the bundle at all.</td>
+          <td>A specific required fact missing from within a present source, any noise ratio at all, and positional risk entirely — a bundle can pass a full source checklist and still fail all three of this chapter's own checks.</td>
+        </tr>
+        <tr>
+          <td>The Context Evaluation Recipe (the fix)</td>
+          <td>Fact-level completeness (Step 2), a real noise ratio (Step 3), and a positional audit against Chapter 6's own findings (Step 4), combined into one pre-call gate (Step 5) and re-run whenever assembly changes (Step 6).</td>
+          <td>Requires naming required facts per case up front (Step 1) — real design work, the same category Chapter 7's own source inventory already required, now applied one layer deeper, at the fact level rather than the source level.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: Case TF-8804's Assembled Bundle</h2>
+    <p>
+      Ternfield's own 4,000-token bundle, before and after the Context
+      Evaluation Recipe's own three gate checks catch and fix its three
+      independent problems — a missing fact, a noisy source, and a
+      buried critical fact:
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>Completeness</th>
+          <th>Noise ratio</th>
+          <th>Critical fact position</th>
+          <th>Gate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>No evaluation / proxy-only</td><td>2/3 (67%)</td><td>12.5%</td><td>middle (buried)</td><td>would ship anyway</td></tr>
+        <tr><td>Context Evaluation Recipe, before fixes</td><td>2/3 (67%)</td><td>12.5%</td><td>middle (buried)</td><td><strong>FAIL — blocked</strong></td></tr>
+        <tr><td>Context Evaluation Recipe, after fixes</td><td>3/3 (100%)</td><td>0%</td><td>front (promoted)</td><td>PASS — sent to model</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Verified by executing a standalone script, the same discipline
+      every prior chapter's worked-math table has applied:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">worked_math_check.py (executed this session, real output)</span>
+      </div>
+      <pre><code>BEFORE_TOTAL, BEFORE_NOISE = 4000, 500
+BEFORE_FACTS_FOUND, BEFORE_FACTS_REQUIRED = 2, 3
+
+# The fix: retrieval corrected to add the missing accommodation note (+150
+# tokens), the noisy prior_determination_notes source trimmed from 500 to
+# 50 relevant tokens (-450 noise), and the critical fact promoted into an
+# 80-token case-summary section prepended to the front of the bundle (+80).
+AFTER_TOTAL = BEFORE_TOTAL - 450 + 150 + 80
+AFTER_NOISE = 0
+AFTER_FACTS_FOUND, AFTER_FACTS_REQUIRED = 3, 3
+
+before_completeness = BEFORE_FACTS_FOUND / BEFORE_FACTS_REQUIRED
+before_noise_ratio = BEFORE_NOISE / BEFORE_TOTAL
+after_completeness = AFTER_FACTS_FOUND / AFTER_FACTS_REQUIRED
+after_noise_ratio = AFTER_NOISE / AFTER_TOTAL
+
+$ python3 worked_math_check.py
+Before fixes -- total tokens: 4000, completeness: 0.667, noise ratio: 0.125, gate: FAIL
+After fixes  -- total tokens: 3780, completeness: 1.000, noise ratio: 0.000, gate: PASS
+All assertions passed -- the fix added the missing fact, removed the noise entirely,
+and promoted the critical fact out of the middle bucket, all three independently required.</code></pre>
+    </div>
+    <p>
+      Worth reading this table the way Chapter 11's own worked math
+      asked its reader to read Approach B's row: the before-fixes bundle
+      is comfortably inside its own token budget the entire time. This
+      was never a budget-overflow failure at any point — every problem
+      the gate catches here is a completeness, relevance, or ordering
+      problem, three failure modes Chapters 1-11's own recipes were
+      never built to catch because none of them checks the finished
+      bundle as a single artifact.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>Two Live-Captured Determinations</h2>
+    <p>
+      As in every prior chapter, this chapter's own exercises and
+      practice solutions use deterministic, hand-computed data for their
+      automated self-checks, for the same 20-second-`local_check.sh`-timeout
+      reason documented since Chapter 3. But it's worth showing what a
+      real model does on both sides of Ternfield's own actual gap —
+      captured live and unedited this session. Disclosed honestly up
+      front: several attempts this session tried to reproduce a pure
+      <em>positional</em> failure — the exam present but buried in the
+      middle of a still-short context — and llama3.2 correctly used the
+      most recent exam every time regardless of where in the prompt it
+      sat, a genuine negative result reported here rather than hidden
+      (see this chapter's own "Note on This Chapter's Live-Testing"
+      section for the full account). What <em>did</em> reproduce
+      reliably, on the first attempt, is the more central failure this
+      chapter's own recipe targets: completeness. Capture 1 removes the
+      recent exam from context entirely, the way Ternfield's own missing
+      <code>employer_accommodation_note</code> was simply absent — not
+      buried, genuinely not there:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 1 -- POST /api/chat, llama3.2:latest, this session (recent exam missing from context)</span>
+      </div>
+      <pre><code>  PROMPT: "You are the Determination Agent for Ternfield Regional
+  Disability Benefits Review Office's ClaimLens system, reviewing Case
+  TF-8804. Confirm the applicant's official capacity rating and current
+  claim status... [case file with medical records ending 3 months ago,
+  no follow-up exam present] ...PRIOR DETERMINATION NOTES (official
+  finding, 14 months ago): Capacity rating: MODERATE. Claim denied."
+
+  RESPONSE (live, unedited, 23.9s wall time):
+  "Based on the reviewed Case TF-8804, the applicant's official capacity
+  rating is currently UNDER REVIEW due to an upcoming scheduled
+  follow-up capacity exam. The previous determination, issued 14 months
+  ago, assigned a moderate capacity rating with the ability to perform
+  light-duty seated work, but this remains in effect unless overturned."</code></pre>
+    </div>
+    <p>
+      With the decisive fact simply absent from context, the model
+      correctly notices something is pending but falls back to the
+      stale MODERATE determination as still "in effect" — exactly
+      Ternfield's own real failure mode: not a reasoning error, a
+      completeness gap, producing a wrong answer for a completely
+      correct reason given what it was actually shown.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 2 -- POST /api/chat, llama3.2:latest, this session (recent exam present in context)</span>
+      </div>
+      <pre><code>  PROMPT: "You are the Determination Agent for Ternfield Regional
+  Disability Benefits Review Office's ClaimLens system, reviewing Case
+  TF-8804... [same case file, PLUS] Capacity exam, 2 weeks ago: capacity
+  rating SEVERE, condition has progressed, applicant can no longer
+  perform seated light-duty work of any kind. ...PRIOR DETERMINATION
+  NOTES (official finding, 14 months ago, currently in effect unless
+  overturned): Capacity rating: MODERATE. Claim denied. This
+  determination remains the official record of the case."
+
+  RESPONSE (live, unedited, 53.3s wall time):
+  "The applicant's official capacity rating has changed from MODERATE
+  (14 months ago) to SEVERE (follow-up capacity exam, 2 weeks ago),
+  indicating a significant decline in their ability to perform any
+  light-duty seated work. This new rating is more severe than the
+  previous rating and suggests a substantial impact on the applicant's
+  ability to work. Therefore, I recommend approving the claim due to
+  this significant change in capacity rating."</code></pre>
+    </div>
+    <p>
+      With the same fact present — even sitting after the old,
+      confidently-worded "official... currently in effect" determination
+      in this particular capture — the model correctly identifies the
+      more recent exam as superseding and reaches the right conclusion.
+      The only difference between the two captures is whether the one
+      required fact this case turns on was in context at all.
+    </p>
+  </section>
+
+  <section id="llm-checker" class="subtopic">
+    <h2>Automating Completeness with an LLM Checker</h2>
+    <p>
+      Step 2's own default is a literal, deterministic presence check —
+      the same discipline Chapter 11's own contamination and starvation
+      probes used. But an LLM can also be asked directly whether a
+      bundle contains a required fact, a genuinely automatable technique
+      worth testing honestly rather than assuming it works. This is a
+      narrower, different use of a model than <code>ai-engineering-for-everyone</code>'s
+      own LLM-as-judge: here the model is asked only whether a specific
+      fact is present in the text in front of it, never asked to judge
+      quality, correctness, or a final answer.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 3 -- POST /api/chat, llama3.2:latest, this session (LLM completeness check, fact absent)</span>
+      </div>
+      <pre><code>  PROMPT: "You are a context-completeness checker... does this case
+  file contain a capacity exam or assessment dated within the last 30
+  days? Answer strictly YES or NO... [case file ending 3 months ago, no
+  recent exam present]"
+
+  RESPONSE (live, unedited, 29.0s wall time):
+  "NO, The case file does not contain any documents with a date within
+  the last 30 days."</code></pre>
+    </div>
+    <p>
+      Correct — and disclosed honestly, the same phrasing produced a
+      false negative when the fact <em>was</em> present: asking the
+      model to reason about "within the last 30 days" against a
+      "2 weeks ago" date, twice in a row (15.3s and 4.7s), the model
+      answered NO both times despite the exam being right there in the
+      text. Rephrasing the question as a literal scan-and-quote
+      instruction — "is there a line with a date of &#39;2 weeks
+      ago&#39;? Answer YES or NO, then quote that exact line if YES" —
+      fixed it immediately:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 4 -- POST /api/chat, llama3.2:latest, this session (LLM completeness check, fact present, literal-scan phrasing)</span>
+      </div>
+      <pre><code>  PROMPT: "You are a context-completeness checker. Read the CASE FILE
+  below carefully, line by line, then answer the QUESTION at the end...
+  [case file WITH the recent exam present] ...QUESTION: Scan every line
+  above for a date. Is there a line with a date of '2 weeks ago'?
+  Answer YES or NO, then quote that exact line if YES."
+
+  RESPONSE (live, unedited, 30.5s wall time):
+  "YES.
+
+  Capacity exam, 2 weeks ago: capacity rating SEVERE, condition has
+  progressed, applicant can no longer perform seated light-duty work of
+  any kind."</code></pre>
+    </div>
+    <p>
+      A real, useful finding, not a clean success story: an LLM-based
+      completeness checker asked to reason ("is this within 30 days")
+      produced a false negative on a fact sitting in plain text, twice,
+      while the identical fact-presence question phrased as a literal
+      scan-and-quote instruction worked immediately. This mirrors Step
+      2's own design choice directly — a completeness check should ask
+      "is this literal thing present," not "reason about whether this
+      thing satisfies some derived condition." The deterministic
+      presence check from this chapter's own recipe code remains the
+      default, reliable mechanism for exactly this reason; an LLM-based
+      check is a real, automatable option only when it's scoped as
+      narrowly as that deterministic check would be.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> a context bundle that passed every
+      per-step check Chapters 1-11's own recipes define still produced a
+      wrong determination, because none of those recipes was ever built
+      to check the finished bundle as a single artifact.</p>
+      <p><strong>Assumption being made:</strong> that "every recipe that
+      built this bundle ran correctly" is the same claim as "this bundle
+      is good." Chapter 11 already showed a correctly-motivated
+      isolation boundary isn't automatically a correctly-scoped one;
+      this chapter shows the same gap one layer up — a correctly-assembled
+      bundle isn't automatically a complete, relevant, well-ordered one,
+      because correctness at each step never composes into correctness
+      of the finished result without something that actually checks the
+      result.</p>
+      <p><strong>What actually distinguishes a well-evaluated context
+      bundle:</strong> not whether every source that should be present is
+      present (Ternfield's own proxy-only check would have passed that)
+      but whether the specific facts a specific case needs are present,
+      whether noise is crowding the budget, and whether the facts that
+      matter most landed somewhere the model is likely to actually use
+      them — three independent checks, combined into one gate, run
+      before the call rather than diagnosed after a bad one.</p>
+      <p><strong>Why this opens Module 6:</strong> Chapters 1-11 spent
+      eleven chapters teaching how to build a context bundle correctly.
+      This chapter is the first to ask whether the finished bundle is
+      actually good, as its own checkable discipline — completeness,
+      relevance, and ordering, scored against real thresholds rather
+      than assumed from correct process. Chapter 13, next, closes the
+      course: designing and defending a complete context engineering
+      system that draws on every recipe from Chapter 1 through this
+      chapter's own evaluation gate as one integrated whole.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      well-evaluated context bundle names the specific facts a specific
+      request requires before assembly, scores completeness against that
+      list rather than against source presence, measures a real noise
+      ratio rather than trusting that fitting a budget means the budget
+      is well spent, audits where every required fact actually landed
+      against known positional-attention research, combines all three
+      into one pre-call gate, and re-runs that gate whenever the
+      assembly pipeline itself changes — never assumed sound just
+      because every upstream recipe that built it was followed
+      correctly.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>A context bundle can pass every per-step check Chapters 1-11's
+        own recipes define — correct budget, fresh sources, no
+        contradiction, correct retrieval, no isolation leak — and still
+        fail, because none of those checks was ever built to evaluate
+        the finished bundle as a single artifact.</li>
+        <li>The Context Evaluation Recipe checks three independent
+        things: fact-level completeness (not source presence), a real
+        noise ratio (not just staying inside budget), and where each
+        required fact actually landed (against Chapter 6's own
+        Lost-in-the-Middle findings) — combined into one pre-call gate,
+        not diagnosed after a bad answer.</li>
+        <li>This chapter's own worked math showed a bundle comfortably
+        inside its own token budget the entire time it failed the gate —
+        the same lesson Chapter 11's own worked math taught about
+        isolation: fitting a budget and being correct are independent
+        axes.</li>
+        <li>An LLM can automate a completeness check, but only when
+        scoped as a literal presence question — this chapter's own live
+        captures showed the identical fact producing a false negative
+        under a reasoning-style question and a correct answer under a
+        literal scan-and-quote question, twice reproducibly.</li>
+        <li>This chapter evaluates context, the model's own input — not
+        the model's own generated output, which remains
+        <code>ai-engineering-for-everyone</code>'s own Module 3
+        territory, confirmed fresh this session against its current
+        curriculum map.</li>
+        <li><strong>Module 6 opens here, across Chapters 12-13:</strong>
+        this chapter builds the vocabulary and checks (completeness,
+        relevance, ordering, a combined quality gate) that Chapter 13's
+        own capstone rubric will draw on directly, alongside every
+        recipe Chapters 1-11 already built, to design and defend one
+        complete context engineering system end to end.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model as every prior chapter
+      (<code>llama3.2:latest</code>). The session's very first
+      <code>POST /api/chat</code> call exceeded a 2-minute tool timeout
+      before returning — consistent with this course's standing guidance
+      to budget for a slow cold start even after eleven consecutive
+      chapters of mostly fast responses; every call after that first one
+      returned within roughly 5-65 seconds. Ten live calls were made this
+      session in total. Four attempts (15.1s, 63.5s, 48.2s, 38.2s wall
+      time across different phrasings and orderings) tried to reproduce a
+      pure positional "lost in the middle" failure — the recent exam
+      present but buried mid-bundle, an old denial stated confidently
+      last — and the model correctly identified and used the most recent
+      exam every single time, a genuine negative result disclosed
+      honestly rather than hidden: at the context lengths these prompts
+      actually reached (a few hundred to roughly a thousand words), this
+      particular model did not exhibit the positional degradation
+      Chapter 6's own re-verified research documents at much longer
+      context lengths. What reproduced reliably on the first attempt
+      instead was the more central failure this chapter's own recipe
+      targets — completeness: removing the recent exam from context
+      entirely (23.9s) produced a stale, wrong determination, and adding
+      it back (53.3s) produced the correct one, embedded above as Live
+      Captures 1 and 2. The LLM-completeness-checker technique (Live
+      Captures 3 and 4) surfaced its own genuine finding: a
+      reasoning-style question ("within the last 30 days") produced a
+      false negative on a present fact twice in a row (15.3s, then 4.7s),
+      while a literal scan-and-quote phrasing of the identical underlying
+      question answered correctly (29.0s for the true-negative case,
+      30.5s for the corrected true-positive case). As in every prior
+      chapter, no graded <code>solution.py</code> in this chapter depends
+      on a live call — every completeness, noise-ratio, and positional
+      decision in the automated harnesses is deterministic, hand-computed
+      data, for the same 20-second-timeout reason documented in Chapters
+      3 through 11. All captures above are real and unedited, used as
+      illustrative content this chapter's own argument depends on, not as
+      something any graded script requires to pass. Future sessions
+      should keep budgeting for a slow first call and generous (120s+)
+      timeouts regardless — this session's own mix of one very slow cold
+      start and nine otherwise prompt responses, plus two genuinely
+      informative negative results, is reported honestly as this
+      session's own outcome, not a claim about how the endpoint or this
+      model will behave next time.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying:</p>
+    <ol>
+      <li id="src-1">Liu, Lin, Hewitt, Paranjape, Bevilacqua, Petroni, and
+      Liang, <em>"Lost in the Middle: How Language Models Use Long
+      Contexts"</em> —
+      <a href="https://arxiv.org/abs/2307.03172" target="_blank" rel="noopener">arxiv.org/abs/2307.03172</a>.
+      Re-fetched live this session and confirmed still live and
+      unchanged since Chapter 6's own citation of it. Its own abstract
+      states directly: "performance is often highest when relevant
+      information occurs at the beginning or end of the input context,
+      and significantly degrades when models must access relevant
+      information in the middle of long contexts" — the finding this
+      chapter's own Step 4 positional audit is built to check for,
+      re-cited here specifically because this chapter turns that finding
+      into a checkable evaluation criterion rather than a design
+      principle applied once at assembly time.</li>
+      <li id="src-2">RAGAS documentation, <em>"Context Precision"</em> —
+      <a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/context_precision/" target="_blank" rel="noopener">docs.ragas.io/en/stable/concepts/metrics/available_metrics/context_precision</a>.
+      Fetched live and read this session. Defines context precision as
+      evaluating "the retriever's ability to rank relevant chunks higher
+      than irrelevant ones for a given query," with its own worked
+      example showing precision dropping from roughly 1.0 to roughly 0.5
+      when a single irrelevant chunk moves ahead of a relevant one —
+      independent, established grounding for this chapter's own Step 3
+      noise-ratio check: irrelevant material crowding a budget is a
+      real, separately-measurable failure mode in established RAG
+      evaluation practice, not a concern this chapter invented.</li>
+      <li id="src-3">RAGAS documentation, <em>"Context Recall"</em> —
+      <a href="https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/context_recall/" target="_blank" rel="noopener">docs.ragas.io/en/stable/concepts/metrics/available_metrics/context_recall</a>.
+      Fetched live and read this session. States directly that context
+      recall "measures how many of the relevant documents (or pieces of
+      information) were successfully retrieved. It focuses on not
+      missing important results" — independent grounding for this
+      chapter's own Step 1 and Step 2 completeness discipline: scoring
+      against a real fact-level requirement rather than a proxy for
+      whether "enough" was retrieved, an established metric this
+      chapter's own <code>completeness_score()</code> mirrors directly
+      at the per-case, fact level rather than RAGAS's own claim-level
+      granularity.</li>
+      <li id="src-4">`ai-engineering-for-everyone`, <code>docs/curriculum/CURRICULUM_MAP.md</code>
+      (local repository file, re-read fresh this session at
+      `/home/dell/projects/ai-engineering-for-everyone/docs/curriculum/CURRICULUM_MAP.md`,
+      not a live web fetch, disclosed honestly as a local sibling-repo
+      read). Confirms its own Module 3 ("Evaluation-Driven Development")
+      remains scoped to golden-set evaluation harnesses, LLM-as-judge,
+      and human-in-the-loop review of a model's own generated output —
+      the boundary this chapter's own "What This Chapter Owns" section
+      rests on.</li>
+      <li id="src-5">`mcp-for-everyone`, <code>docs/curriculum/CURRICULUM_MAP.md</code>
+      (local repository file, re-read fresh this session at
+      `/home/dell/projects/mcp-for-everyone/docs/curriculum/CURRICULUM_MAP.md`).
+      Re-confirms its own Module 5 (Chapters 9-10) and Module 6 (Chapters
+      11-12) remain scoped to permissions, prompt-injection trust, and
+      production server concerns, with no chapter evaluating an
+      assembled context bundle's own completeness, relevance, or
+      ordering.</li>
+      <li id="src-6">`ai-coding-agents-for-everyone`, <code>docs/curriculum/CURRICULUM_MAP.md</code>
+      (local repository file, re-read fresh this session at
+      `/home/dell/projects/ai-coding-agents-for-everyone/docs/curriculum/CURRICULUM_MAP.md`).
+      Re-confirms its 13-chapter roadmap remains scoped entirely to one
+      coding agent operating on one codebase, with no chapter evaluating
+      an assembled context bundle as its own artifact.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's Context Evaluation Recipe out loud
+    — see
+    <a href="interview-questions.html">Chapter 12 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="what-is">
+    <span class="label">A note on this chapter's own assessment</span>
+    This chapter ships no standalone L-tier project of its own — per the
+    curriculum map's own project ladder (L1 after Ch. 2, L2 after Ch. 4,
+    L3 after Ch. 8, L4 the Ch. 13 capstone), no numbered project slot
+    exists between Ch. 8 and Ch. 13. What this chapter <em>does</em> ship
+    is the Module 6 assessment the curriculum map names directly: a
+    context-evaluation exercise, in
+    <code>assessments/module-assessments/module-6-context-evaluation-exercise/</code>,
+    applying this chapter's own completeness, noise-ratio, and
+    positional-audit checks to a fresh scenario. Chapter 13's own
+    capstone rubric, the second half of Module 6's assessment, ships
+    with that chapter.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-11-context-isolation-and-scoping/lesson.html">&larr; Chapter 11</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

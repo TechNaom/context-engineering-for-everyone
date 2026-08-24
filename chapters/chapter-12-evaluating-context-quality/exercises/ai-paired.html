@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 12: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to complete PlacementGuard's Context Evaluation Recipe exercises, then critique its plausible-but-flawed answers -- catching noise waved through as acceptable because it's under budget, a missing fact excused as 'implied,' a positional bucket softened by intent instead of the actual number, and a quality failure dismissed as compliant because completeness alone looked fine.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-12">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 12 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>This chapter ships no standalone L-tier project of its own — per the curriculum map's project ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8, L4 the Ch. 13 capstone), no numbered slot exists between Ch. 8 and Ch. 13. What it does have is its own real, gradable work: the <a href="index.html">Merrivale County Emergency Housing Placement Network/PlacementGuard exercises</a>, whose <code>solution.py</code> and <code>starter.py</code> mechanically score eight tasks, plus the Module 6 context-evaluation exercise in <code>assessments/module-assessments/</code>. That gradable harness is this page's stand-in for a rubric. You already did this work yourself in the exercises. Now the same completeness, noise, positional, and gate tasks get produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's answer before it ships to a housing placement system.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same PlacementGuard spec <code>starter.py</code> gives you, and asks for answers to four of the eight tasks: noise ratio (Exercise 4), completeness with a borderline case (Exercise 3), positional audit (Exercise 5), and combined classification (Exercise 8).</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Merrivale County's PlacementGuard assembles a 2500-token bundle for a
+Housing Placement Agent. A context quality gate passes only if
+completeness == 1.0 (every required fact present), noise_ratio <= 0.10,
+and no CRITICAL fact is bucketed "middle" (front bucket is the first 15%
+of tokens, back bucket is the last 15%, everything else is middle).
+
+TASK A (noise ratio): 300 of the bundle's 2500 tokens are carried over
+from a DIFFERENT applicant's own case by a stale join. What's the noise
+ratio, and does it clear the 10% threshold?
+
+TASK B (completeness): Case MC-5521 requires four facts. Three are
+literally present as fields. The fourth, prior_no_show_flag, isn't
+present as a field, but the applicant's intake narrative mentions "this
+is the applicant's second time requesting emergency placement this
+year" -- which strongly implies a prior no-show is likely. Is this case's
+completeness score 4/4 or 3/4?
+
+TASK C (positional audit): the bundle is 2500 tokens. A CRITICAL fact
+(current_medical_accommodation_need) sits at token position 2100. Front
+bucket ends at 375, back bucket starts at 2125. What bucket is this fact
+in, and does the gate's positional check pass?
+
+TASK D (combined classification): classify this bundle as compliant,
+completeness_fail, quality_fail, or both_fail: completeness = 1.0,
+noise_ratio = 0.18, critical_fact_bucket = "middle".
+
+Give me your answer and a short reason for each task.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of answer an AI assistant might hand back on the first try, each one sounding reasonable on its own. Read it the way you'd read a colleague's draft before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_answers.md (as handed back)</span>
+    </div>
+    <pre><code>TASK A -- noise ratio
+300/2500 = 0.12, which is over the 10% threshold, but it's a pretty small
+margin (only 2 points over) and the bundle is still well under the token
+budget overall, so I'd treat this as an acceptable edge case rather than
+a hard fail -- worth flagging but not necessarily blocking the call.
+
+TASK B -- completeness
+I'd count this as 4/4. Even though prior_no_show_flag isn't a literal
+field, the intake narrative gives the model everything it needs to infer
+the answer -- a second request within the same year is a strong enough
+signal that requiring a separate literal field feels overly strict.
+
+TASK C -- positional audit
+Position 2100 is close enough to the back bucket boundary (2125) that
+I'd call this "back," not "middle" -- it's clearly trending toward the
+end of the bundle, and the intent of the positional check is to catch
+facts buried near the START of a long document, which this isn't.
+
+TASK D -- combined classification
+completeness_fail. Since completeness is 1.0 (which is good), the real
+problem here is the noise ratio and the middle-bucketed critical fact --
+but because completeness is what usually matters most for whether an
+answer is even attemptable, I'd file this under completeness_fail as the
+primary concern.</code></pre>
+  </div>
+
+  <p>It reads fluently, and each answer comes with a specific-sounding justification. It's also wrong in four separate, genuinely easy-to-miss ways — one flaw per task — and running the equivalent data through <code>starter.py</code>'s own <code>score_exercise_4()</code>, <code>score_exercise_3()</code>-style reasoning, <code>score_exercise_5()</code>, and <code>score_exercise_8()</code> would catch every one of them immediately.</p>
+
+  <h2>Step 2: Where did the AI's answers lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; a noise ratio over threshold waved through as an "acceptable edge case" because the bundle still fits its budget</span>
+      <p><strong>What it looks like it does:</strong> "only 2 points over, and still well under budget" sounds like a reasonable proportionality judgment.</p>
+      <p><strong>What it actually does:</strong> this chapter's entire worked-math table exists to show that fitting a token budget and having a clean, low-noise bundle are independent axes — Ternfield's own before-fixes bundle fit its 4,000-token budget the whole time it was failing the gate. A noise-ratio threshold is a pass/fail gate on Step 3's own measurement, not a proportional score to be rounded down because the overall bundle still has room. 12% noise is 12% noise regardless of how much spare budget sits beside it.</p>
+      <p><strong>Why it matters:</strong> this is the same reasoning error, one level more subtle, as Ternfield's own hook — using token headroom as evidence a real problem isn't a problem, when headroom was never the axis the check was measuring.</p>
+      <p><strong>The fix:</strong> a noise ratio either clears the threshold or it doesn't (Step 5's own gate is a hard pass/fail, not a proportional score) — 0.12 against a 0.10 ceiling fails, full stop, independent of how much budget is left over.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; a missing required fact excused because the surrounding text "implies" it</span>
+      <p><strong>What it looks like it does:</strong> "the narrative gives the model everything it needs to infer the answer" sounds like a reasonable, generous reading of what "complete" should mean.</p>
+      <p><strong>What it actually does:</strong> Step 2's own completeness score is a literal presence check on required facts, the same discipline Chapter 11's own contamination and starvation probes used — not a judgment call about whether a model could plausibly guess the answer from surrounding context. An inference the model MIGHT make correctly is not the same fact as a value that's actually present and checkable; treating "implied" as equivalent to "found" reintroduces exactly the ambiguity a fact-level completeness check exists to remove. The correct score is 3/4, not 4/4.</p>
+      <p><strong>Why it matters:</strong> "the model can probably infer it" is precisely the reasoning that let Ternfield's own missing accommodation note through — an unverified assumption standing in for a checked fact.</p>
+      <p><strong>The fix:</strong> completeness counts what's actually present in the bundle as a checkable field or statement, never what a model could plausibly derive from adjacent text — if it needs deriving, it isn't complete yet.</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; a positional bucket reassigned by "intent" instead of the actual number</span>
+      <p><strong>What it looks like it does:</strong> "close enough to the back boundary, and the intent of the check is about the start of a document" sounds like a sensible reading of what the positional audit is really trying to catch.</p>
+      <p><strong>What it actually does:</strong> Step 4's own positional audit is a numeric bucket check against defined boundaries (front &lt; 375, back &gt; 2125, else middle), the same structural-check discipline as every probe this course has built since Chapter 11 — 2100 is less than 2125, so it is middle, by the definition actually given, regardless of how close it sits to the boundary or which failure mode a reader assumes the check is "really" trying to catch. Chapter 6's own Lost-in-the-Middle research doesn't say the middle zone is only dangerous near the very front — it degrades across the whole non-edge span.</p>
+      <p><strong>Why it matters:</strong> a bucket boundary that gets rounded in the reader's favor whenever a position lands close to it stops being a check at all — the entire value of Step 4 is that it's a fixed, numeric rule nobody has to interpret case by case.</p>
+      <p><strong>The fix:</strong> apply the boundary numbers exactly as defined — position 2100 is middle, and the gate's positional check correctly fails for this bundle.</p>
+
+      <span class="qa-section-label flags">Flaw 4 &mdash; a bundle filed under "completeness_fail" when completeness is actually fine</span>
+      <p><strong>What it looks like it does:</strong> "completeness is what usually matters most, so file it there" sounds like a sensible priority call about which problem is more important.</p>
+      <p><strong>What it actually does:</strong> Exercise 8's own classification is a factual read of two independent boolean checks (completeness_ok, quality_ok), not a judgment about which axis is more important in general — this bundle has completeness == 1.0 (completeness_ok is True) and both a noise ratio over threshold and a critical fact in the middle bucket (quality_ok is False). That combination is <code>quality_fail</code> by the classifier's own definition, not <code>completeness_fail</code> — labeling it by which problem "feels more important" rather than which boolean is actually false misreports the bundle's own real condition to anyone relying on the classification downstream.</p>
+      <p><strong>Why it matters:</strong> a classification that gets relabeled by perceived importance instead of the actual computed booleans stops being a reliable signal — the next system consuming this label needs to know precisely which check failed, not a subjective ranking of which one mattered more.</p>
+      <p><strong>The fix:</strong> classify strictly from the two computed booleans — completeness fine, quality bad, is <code>quality_fail</code>, regardless of which failure a reader would personally prioritize fixing first.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly computed the raw noise ratio (300/2500 = 0.12) in Task A, correctly identified that three of Case MC-5521's four facts are literally present in Task B, correctly noted position 2100 is near the back boundary in Task C (the observation was right, the conclusion drawn from it wasn't), and correctly named both real problems (noise ratio and a middle-bucketed critical fact) in Task D even while filing the classification under the wrong label. If you'd accepted the whole response uncritically, you'd have kept a correct raw ratio, a mostly-right fact inventory, an accurate positional observation, and a classification that at least named the real issues — alongside a threshold treated as negotiable because of unrelated budget headroom, a literal field requirement waived because of a plausible inference, a numeric boundary bent by assumed intent, and a classification relabeled by perceived importance instead of the actual booleans. That mix is a more realistic picture of pairing with an AI on this chapter's own mechanics than either "trust it completely" or "distrust it completely" — the AI computes raw numbers and observations soundly, which is exactly what makes the places it substitutes a plausible-sounding exception (headroom as an excuse, inference as presence, closeness as re-classification, importance as re-labeling) easy to miss on a fast read.</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 4 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'A noise threshold is pass/fail, not proportional to spare budget' or 'Completeness means present and checkable, not plausibly inferable'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Exercises</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

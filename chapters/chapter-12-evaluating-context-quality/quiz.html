@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluating Context Quality Quiz — Context Engineering for Everyone</title>
+<meta name="description" content="Interactive quiz for Evaluating Context Quality.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-12" data-chapter-id="chapter-12">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="lesson.html">&larr; Back to the lesson</a></p>
+
+  <span class="chapter-badge">Chapter 12 Quiz</span>
+  <h1>Evaluating Context Quality</h1>
+  <p>Fill in each blank, then check your answers. A perfect score marks this chapter complete.</p>
+
+  <div class="quiz-progress-wrap" aria-hidden="true">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+
+  <form onsubmit="return false;">
+
+    <div class="quiz-question">
+      <label for="q1"><span class="q-num">1</span> The Context Evaluation Recipe's Step 1 defines completeness at the ______ level, per case -- not at the level of whether a source category is present.</label>
+      <div class="fib-row">
+        <input type="text" id="q1" class="fib-blank" data-answers="fact,facts,fact-level" aria-label="Answer for question 1">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q2"><span class="q-num">2</span> Step 3 scores relevance as a ______ ratio, not a token count -- what fraction of the bundle is content that isn't actually relevant to this request.</label>
+      <div class="fib-row">
+        <input type="text" id="q2" class="fib-blank" data-answers="noise" aria-label="Answer for question 2">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q3"><span class="q-num">3</span> Step 4 audits where each required fact actually ______ in the assembled sequence, against Chapter 6's own Lost-in-the-Middle findings.</label>
+      <div class="fib-row">
+        <input type="text" id="q3" class="fib-blank" data-answers="landed" aria-label="Answer for question 3">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q4"><span class="q-num">4</span> Ternfield's ClaimLens pipeline passed every one of Chapters 1-11's own per-step checks and still failed, because nothing ever evaluated the ______ bundle as a single artifact.</label>
+      <div class="fib-row">
+        <input type="text" id="q4" class="fib-blank" data-answers="assembled,finished,final" aria-label="Answer for question 4">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q5"><span class="q-num">5</span> This chapter's own worked math showed a bundle comfortably inside its own token ______ the entire time it failed the quality gate.</label>
+      <div class="fib-row">
+        <input type="text" id="q5" class="fib-blank" data-answers="budget" aria-label="Answer for question 5">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q6"><span class="q-num">6</span> This chapter's own live captures showed an LLM-based completeness checker producing a false negative when asked to ______ about a date range, but answering correctly when asked to literally scan and quote.</label>
+      <div class="fib-row">
+        <input type="text" id="q6" class="fib-blank" data-answers="reason" aria-label="Answer for question 6">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q7"><span class="q-num">7</span> This chapter evaluates context, the model's own input -- not the model's own generated ______, which remains ai-engineering-for-everyone's own Module 3 territory.</label>
+      <div class="fib-row">
+        <input type="text" id="q7" class="fib-blank" data-answers="output" aria-label="Answer for question 7">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q8"><span class="q-num">8</span> Module 6 opens with this chapter and closes with Chapter 13, the ______ that closes the entire 13-chapter course.</label>
+      <div class="fib-row">
+        <input type="text" id="q8" class="fib-blank" data-answers="capstone" aria-label="Answer for question 8">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div id="check-all-wrap">
+      <button type="button" id="check-all-btn" class="check-btn">Check All Answers</button>
+      <span id="quiz-score"></span>
+    </div>
+
+    <div class="quiz-celebration" id="quiz-celebration" aria-live="polite">
+      Perfect score. Chapter complete.
+    </div>
+  </form>
+
+  <div class="chapter-nav">
+    <a href="lesson.html">&larr; Back to Lesson</a>
+    <a href="exercises/index.html">Exercises &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/quiz-engine.js"></script>
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>
