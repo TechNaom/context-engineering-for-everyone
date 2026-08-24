@@ -7,11 +7,11 @@
   applies to a module's `examPath`: set it to null until that module's
   written exam actually exists in assessments/written-exams/.
 
-  Chapters 1-2 (Module 1, complete), Chapters 3-4 (Module 2, complete),
-  Chapters 5-6 (Module 3, complete), Chapters 7-8 (Module 4, complete),
-  and Chapters 9-11 (Module 5, complete) are live as of this build --
-  see PROJECT_STATE.md for status. Chapter 12 (Module 6, opening) is now
-  live too. Chapter 13 is planned, `.gitkeep`'d, not yet built.
+  All 13 chapters are live: Chapters 1-2 (Module 1), Chapters 3-4
+  (Module 2), Chapters 5-6 (Module 3), Chapters 7-8 (Module 4), Chapters
+  9-11 (Module 5), and Chapters 12-13 (Module 6) -- the course is
+  complete, 13 of 13 chapters, 6 of 6 modules. See PROJECT_STATE.md for
+  full build history.
 */
 
 window.CEFE_MODULES = [
@@ -143,7 +143,8 @@ window.CEFE_MODULES = [
         id: "chapter-13",
         num: 13,
         title: "Capstone: Designing a Context Engineering System",
-        description: "A Level 4 architecture challenge composing budget, memory, compression, assembly, and evaluation into one real system."
+        description: "A Level 4 architecture challenge composing budget, memory, compression, assembly, and evaluation into one real system -- closing Module 6 and the entire course.",
+        path: "chapters/chapter-13-capstone-designing-a-context-engineering-system/lesson.html"
       }
     ]
   }

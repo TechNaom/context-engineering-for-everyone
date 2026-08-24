@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capstone Quiz — Context Engineering for Everyone</title>
+<meta name="description" content="Interactive quiz for Capstone: Designing a Context Engineering System.">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-13" data-chapter-id="chapter-13">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="lesson.html">&larr; Back to the lesson</a></p>
+
+  <span class="chapter-badge">Chapter 13 Quiz</span>
+  <h1>Capstone: Designing a Context Engineering System</h1>
+  <p>Fill in each blank, then check your answers. A perfect score marks this chapter, and the course, complete.</p>
+
+  <div class="quiz-progress-wrap" aria-hidden="true">
+    <div class="quiz-progress-fill" id="quiz-progress-fill"></div>
+  </div>
+
+  <form onsubmit="return false;">
+
+    <div class="quiz-question">
+      <label for="q1"><span class="q-num">1</span> This chapter introduces no new recipe -- it ______ all eleven recipes from Chapters 1-12 in the order one real turn actually runs them.</label>
+      <div class="fib-row">
+        <input type="text" id="q1" class="fib-blank" data-answers="composes,composed" aria-label="Answer for question 1">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q2"><span class="q-num">2</span> DispatchMind's own three sub-agents are the Route Agent, the Compliance Agent, and the Customer-______ Agent.</label>
+      <div class="fib-row">
+        <input type="text" id="q2" class="fib-blank" data-answers="Comms,comms,Communications,communications" aria-label="Answer for question 2">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q3"><span class="q-num">3</span> Chapter 3's pin and Chapter 4's staleness check can reach two different, both-______ freshness verdicts on what looks like the same fact.</label>
+      <div class="fib-row">
+        <input type="text" id="q3" class="fib-blank" data-answers="correct" aria-label="Answer for question 3">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q4"><span class="q-num">4</span> Live Capture 2 found the deterministic evaluation gate's own required-fact list checked for supporting reasoning, but not for the resolved ______ itself, stated as literal text.</label>
+      <div class="fib-row">
+        <input type="text" id="q4" class="fib-blank" data-answers="decision,fact,value" aria-label="Answer for question 4">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q5"><span class="q-num">5</span> Live Capture 1 showed isolation correctness and generation ______ are separable failure surfaces -- the boundary held while the draft still echoed an unsubstituted field name.</label>
+      <div class="fib-row">
+        <input type="text" id="q5" class="fib-blank" data-answers="quality" aria-label="Answer for question 5">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q6"><span class="q-num">6</span> This chapter's own capstone assignment is the curriculum map's literal L4 Architecture ______, business/system problem only, no scaffold.</label>
+      <div class="fib-row">
+        <input type="text" id="q6" class="fib-blank" data-answers="Challenge,challenge" aria-label="Answer for question 6">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q7"><span class="q-num">7</span> The capstone's cited Architecture Decision Record source recommends a short, one-or-two-page document that preserves the ______ behind a decision, not only the outcome.</label>
+      <div class="fib-row">
+        <input type="text" id="q7" class="fib-blank" data-answers="motivation,reasoning" aria-label="Answer for question 7">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div class="quiz-question">
+      <label for="q8"><span class="q-num">8</span> Chapter 13 closes Module 6 and the entire 13-chapter, 6-module ______ -- there is no Chapter 14.</label>
+      <div class="fib-row">
+        <input type="text" id="q8" class="fib-blank" data-answers="course" aria-label="Answer for question 8">
+        <button type="button" class="check-btn">Check</button>
+        <span class="fib-feedback" aria-live="polite"></span>
+      </div>
+    </div>
+
+    <div id="check-all-wrap">
+      <button type="button" id="check-all-btn" class="check-btn">Check All Answers</button>
+      <span id="quiz-score"></span>
+    </div>
+
+    <div class="quiz-celebration" id="quiz-celebration" aria-live="polite">
+      Perfect score. Course complete.
+    </div>
+  </form>
+
+  <div class="chapter-nav">
+    <a href="lesson.html">&larr; Back to Lesson</a>
+    <a href="exercises/index.html">Exercises &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../assets/quiz-engine.js"></script>
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

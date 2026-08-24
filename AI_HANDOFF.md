@@ -31,7 +31,8 @@ before it's written into a lesson.
 ## Current state (as of 2026-08-24)
 
 **Read `PROJECT_STATE.md` for the authoritative, up-to-date status.**
-Short version: this is the course's **twelfth session**. Session 1 built
+Short version: this is the course's **thirteenth and final session — the
+course is complete.** Session 1 built
 Discovery, the curriculum map, the full repository scaffold, and
 Chapter 1 ("The Context Budget"). Session 2 built Chapter 2
 ("Designing Context Window Budgets"), completing Module 1 in full.
@@ -55,8 +56,16 @@ shipping no project of its own. Session 12 built Chapter 12 ("Evaluating
 Context Quality"), opening Module 6, shipping no standalone L-tier
 project but shipping the Module 6 assessment groundwork
 (`assessments/module-assessments/module-6-context-evaluation-exercise/`).
-Chapter 13 exists only as a `.gitkeep`'d directory, not yet built — the
-final chapter of the entire course.
+**Session 13 built Chapter 13 ("Capstone: Designing a Context
+Engineering System"), closing Module 6 and the entire course** — one
+fully worked incident (Castellan Fleet Logistics' DispatchMind dispatch
+copilot) composing all eleven recipes from Chapters 1-12, plus the L4
+Architecture Challenge capstone project
+(`chapters/chapter-13-capstone-designing-a-context-engineering-system/project/`).
+**All 13 chapters, all 6 modules, are now live and complete.** See
+`quality-audits/chapter-13-audit.md` for full detail and
+`PROJECT_STATE.md`'s "Course Status: Complete" section for genuinely
+open follow-up (maintenance) work.
 
 - Directory skeleton (`.gitkeep` in every not-yet-built chapter
   directory from the start — the bootstrap bug found in prior sibling
@@ -309,8 +318,12 @@ final chapter of the entire course.
   Session 5 built Chapter 5 only, opening Module 3; Session 6 built
   Chapter 6 only, closing Module 3 in full; Session 7 built Chapter 7
   only, opening Module 4; Session 8 built Chapter 8 only, closing Module
-  4 in full; Session 9 built Chapter 9 only, opening Module 5 —
-  matching exactly how `ai-engineering-for-everyone` itself progressed.
+  4 in full; Session 9 built Chapter 9 only, opening Module 5; Session
+  10 built Chapter 10 only, continuing Module 5; Session 11 built
+  Chapter 11 only, closing Module 5 in full; Session 12 built Chapter 12
+  only, opening Module 6; Session 13 built Chapter 13 only, closing
+  Module 6 and the entire course — matching exactly how
+  `ai-engineering-for-everyone` itself progressed.
   (Session 7's own build was interrupted partway through by a connection
   error and resumed within the same logical session, verifying
   everything already on disk before continuing — this is not an
@@ -321,13 +334,12 @@ final chapter of the entire course.
   since verifying everything already on disk before continuing is
   exactly the same discipline Session 7 applied.)
 - **Check every fictional org against the running exclusion list before
-  naming a new one** — see `quality-audits/chapter-09-audit.md` for the
-  full, current list (96 orgs across Chapters 1-9 so far, checked
+  naming a new one** — see `quality-audits/chapter-13-audit.md` for the
+  full, current, final list (127 orgs across all 13 chapters, checked
   against `ai-engineering-for-everyone`'s own full compiled list with
-  zero collision found) and extend it (don't restart it) for every new
-  chapter. Each new chapter's audit should reproduce the full list plus
-  its own new orgs, so the next session only ever needs to read the
-  latest one.
+  zero collision found). Any future work introducing new content into
+  this repo (a maintenance session, or a human-directed course-scope
+  expansion) should extend this list, not restart it.
 - **One project per module, at the project ladder's own stated tier
   where the ladder assigns one — otherwise labeled honestly as a
   module-level project with no numbered tier.** Chapters 2-3 each
@@ -373,76 +385,43 @@ final chapter of the entire course.
   Chapter 1 modeled it directly in its "Why This Course Exists"
   section.
 
-## Current task: Chapter 13 — "Capstone: Designing a Context Engineering System"
+## Current task: none — the course is complete
 
-**This is the FINAL chapter of the entire 13-chapter course**, closing
-Module 6 (Evaluation and Capstone) and the course as a whole. See
-`PROJECT_STATE.md`'s "Next Recommended Task" section for the full
-handoff detail. Because this is the last chapter, a future session's own
-scope is larger than a normal chapter build: it should include a final
-whole-course completion pass once Chapter 13 is validated — registering
-13/13 chapters and 6/6 modules everywhere this repo tracks that count
-(`assets/chapters-data.js`, root `index.html`'s hero-stats, and
-`docs/curriculum/index.html`'s chapter-card and Module 6 feature card,
-which should flip from "In Progress" to "Complete"), AND checking
-whether any course-level "complete" banner, badge, or top-level status
-element exists anywhere else in the site that should flip now that the
-course is fully built for the first time — not just the routine
-per-chapter counters every prior chapter has updated.
+**Chapter 13 ("Capstone: Designing a Context Engineering System")
+shipped in Session 13**, closing Module 6 and the entire 13-chapter,
+6-module course. All 13 chapters are live end to end; all 6 modules are
+complete; the full course-completion registration pass (13/13 chapters,
+6/6 modules, everywhere this repo tracks that count) is done and
+verified with a fresh grep for stale "of 13"/"In Progress" language
+across `index.html` and `docs/curriculum/index.html` at the end of
+Session 13. See `quality-audits/chapter-13-audit.md` for the chapter's
+own full build detail, including the L4 artifact-shape decision (the
+capstone project lives in
+`chapters/chapter-13-capstone-designing-a-context-engineering-system/project/`,
+not `assessments/architecture-challenges/`, following
+`ai-engineering-for-everyone` Chapter 13's own precedent) and the
+retroactive resolution of Module 5's own long-open "Assessment" line.
 
-Per `docs/curriculum/CURRICULUM_MAP.md`'s own "Projects" section, this
-is the L4 Architecture Challenge: "design and defend a complete context
-engineering system for a realistic multi-step/agentic system;
-business/system problem only." Per the map's own "Assessment" line,
-Chapter 13 owes the second half of Module 6's assessment — a capstone
-rubric — with Chapter 12's own half (the context-evaluation exercise)
-already built in
-`assessments/module-assessments/module-6-context-evaluation-exercise/`;
-Chapter 13's own capstone rubric is expected to land in
-`assessments/architecture-challenges/`, currently empty in this
-repository. A future session should read Chapter 12's own quality audit
-(`quality-audits/chapter-12-audit.md`) before starting, not assume its
-scope from the curriculum map alone — Chapter 13 draws directly on every
-recipe from Chapter 1's own budget ledger through Chapter 12's own
-Context Evaluation Recipe, plus Module 5's own two labs (the Chapter 9
-tool-call miniature and the Chapter 10 multi-step/multi-agent pipeline
-lab), as inputs to one integrated system design — the natural place
-every prior module's own labs and this module's own evaluation
-framework were always headed.
-
-Re-confirm all three sibling-course boundaries
-(`mcp-for-everyone`, `ai-coding-agents-for-everyone`, and
-`ai-engineering-for-everyone`) fresh this session rather than assuming
-Chapter 12's own re-confirmation is still current — Chapter 12's own
-session gave `ai-engineering-for-everyone`'s own Module 3 its first
-fully direct LLM-output-evaluation-overlap check; Chapter 13's own
-architecture-level subject should get its own fresh, direct check
-against any sibling course territory that might overlap with
-system-level design (in particular `ai-engineering-for-everyone`'s own
-forward-named future `AI Architecture for Everyone`). Also check: the
-new-org exclusion list (126 orgs across Chapters 1-12 so far, in
-`quality-audits/chapter-12-audit.md`, which also includes a live-grep
-cross-check against `ai-engineering-for-everyone`'s own compiled list —
-note Chapter 13's own likely format, one integrated system design rather
-than many short scenarios, may need meaningfully fewer new orgs than a
-typical chapter's usual 10), citation/Ollama re-verification discipline
-(Chapter 12's own session found all 3 web citations clean, but also hit
-its slowest cold start yet and a genuinely informative negative result
-reproducing a targeted failure mode on the first several attempts —
-budget for both, and disclose negative results honestly rather than
-forcing a reproduction), and the registration-staleness locations to
-update in the same session, expanded in scope for this final chapter as
-described above.
+**A future session picking up this repository should default to
+maintenance, not new-chapter construction**, unless a human explicitly
+decides to expand the course beyond its original 13-chapter roadmap.
+See `PROJECT_STATE.md`'s "Course Status: Complete" section for the
+genuinely open maintenance items found by grepping that file end-to-end
+for "deferred," "gap," "not yet," and "open" this session (GitHub Pages
+verification, a full-course cross-link consistency pass, ongoing
+citation re-verification, Chapter 5's still-preprint fifth citation, and
+the disclosed structural-only-grading simplification every chapter's own
+audit has carried forward) — none of these are chapter-building work,
+and none should be treated as blocking.
 
 ## Next task after that
 
-None — Chapter 13 is the final chapter of the entire course. Once it
-ships and the whole-course completion pass described above is done, this
-repository's own primary build work is complete. Any future session's
-task at that point would be maintenance (citation re-verification,
-dependency updates, fixing reported issues) rather than new-chapter
-construction, unless a human decides to expand the course's own scope
-beyond its original 13-chapter roadmap.
+None — the course is complete. Any future session's task is maintenance
+(citation re-verification, dependency updates, fixing reported issues,
+the specific follow-up items listed in `PROJECT_STATE.md`'s "Course
+Status: Complete" section) rather than new-chapter construction, unless
+a human decides to expand the course's own scope beyond its original
+13-chapter roadmap.
 
 ## Important architectural decisions (see PROJECT_STATE.md for full detail)
 

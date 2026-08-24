@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capstone Project — Context Engineering for Everyone</title>
+<meta name="description" content="The L4 Architecture Challenge: design and defend Castellan Fleet Logistics' complete context engineering system across DispatchMind and ComplianceLedger, business problem only, no scaffold.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-13">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../lesson.html">&larr; Back to Chapter 13</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 13 Project — L4 Architecture Challenge</span>
+    <span class="reading-time">~2-3 hours</span>
+  </div>
+  <h1>Project: Castellan Fleet Logistics — Context Engineering System Design</h1>
+  <p>
+    This is the course's Level 4 "Architecture Challenge" — the final
+    project, and a genuinely different shape from every project before
+    it. Castellan Fleet Logistics is a fictional long-haul trucking
+    company with two context-heavy components:
+    <strong>DispatchMind</strong>, the real-time, multi-agent dispatch
+    copilot the lesson's own worked example walked through in detail, and
+    <strong>ComplianceLedger</strong>, an internal, asynchronous tool that
+    turns raw ELD/HOS logs into a regulator-ready compliance-report
+    entry, reviewed by a compliance officer before filing. Business
+    problem only — no scaffold, no provided pipeline.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Why this artifact shape, not a starter.py</span>
+    A business problem with no provided pipeline has no fixture data for
+    a Python script to grade against. This project's real deliverable is
+    a written design document — closer to a real architecture-decision
+    record than a filled-in exercise file — though it still includes
+    real, mechanically-checkable arithmetic (whether each component's
+    declared Context Budget Ledger and evaluation gate are actually
+    valid). See <code>../../quality-audits/chapter-13-audit.md</code>'s
+    "L4 artifact-shape decision" section for the full reasoning.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to do this project</span>
+    Copy <code>DESIGN_DOCUMENT_TEMPLATE.md</code> to your own file and
+    fill in every section for both components, keeping the
+    <code>python</code> code blocks' structure intact. Run
+    <code>python3 self_check.py your_file.md</code> to confirm every
+    section is present and your ledger/evaluation-gate arithmetic is
+    correct. Compare against
+    <code>solution/SOLUTION_DESIGN_DOCUMENT.md</code>, then self-grade
+    against <code>RUBRIC.md</code>.
+  </div>
+
+  <div class="download-links">
+    <a href="DESIGN_DOCUMENT_TEMPLATE.md">DESIGN_DOCUMENT_TEMPLATE.md</a>
+    <a href="self_check.py">self_check.py</a>
+    <a href="solution/SOLUTION_DESIGN_DOCUMENT.md">solution/SOLUTION_DESIGN_DOCUMENT.md (reference)</a>
+    <a href="RUBRIC.md">RUBRIC.md</a>
+    <a href="README.md">README.md</a>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you're given</h3>
+    <p>One business problem, two components with genuinely different real profiles (real-time/multi-agent/user-facing vs. asynchronous/single-agent/internal), a required design-document structure, and a mechanical structural self-check for the objectively-checkable parts (section completeness, and whether each component's Context Budget Ledger and evaluation gate are arithmetically valid).</p>
+  </div>
+
+  <div class="lesson-card">
+    <h3>What you produce</h3>
+    <p>A complete, defended design document: for both components, a real Context Budget Ledger (Ch. 1-2) and real short-term memory (Ch. 3), long-term memory (Ch. 4), compression/ordering (Ch. 5-6), source-assembly/retrieval (Ch. 7-8), tool/multi-agent/isolation (Ch. 9-11), and evaluation-gate (Ch. 12) plans at the depth each component's own real shape calls for — plus a cross-component synthesis naming why the two diverge, what would change each profile, and a real shared-infrastructure risk.</p>
+  </div>
+
+  <div class="points-to-remember">
+    <h2>Passing bar</h2>
+    <p>24/30 (80%) or higher on <code>RUBRIC.md</code>'s six criteria, with no single criterion scoring 0. <code>solution/SOLUTION_DESIGN_DOCUMENT.md</code> is one complete, valid reference response scoring a full 30/30 — not the only correct response, since most of this document's reasoning is intentionally open-ended.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../interview-questions.html">&larr; Interview Questions</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

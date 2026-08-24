@@ -1,18 +1,24 @@
 # PROJECT_STATE.md — Context Engineering for Everyone
 
-Last updated: 2026-08-24 (Session 11 — Chapter 11, "Context Isolation
-and Scoping," complete, closing Module 5 (Chapters 9-11) in full and
-shipping no project of its own, per the curriculum map's own project
-ladder. Session 10 built Chapter 10, continuing Module 5, also shipping
-no project of its own. Session 9 built Chapter 9, opening Module 5, also
-shipping no project of its own.
-Session 8 built Chapter 8, closing Module 4 in full and shipping Module 4's
-single L3 Independent project, the curriculum map's own literal L3 tier.
-Session 7 built Chapter 7, opening Module 4, shipping no project of its
-own. Session 6 built Chapter 6, closing Module 3 in full and shipping
-Module 3's single joint project. Session 5 built Chapter 5, opening
-Module 3. Session 4 built Chapter 4, closing Module 2 in full. Session 3
-built Chapter 3, opening Module 2. Session 2 built Chapter 2, completing
+Last updated: 2026-08-24 (Session 13 — Chapter 13, "Capstone: Designing
+a Context Engineering System," complete, closing Module 6 (Chapters
+12-13) and the entire 13-chapter, 6-module course, shipping the L4
+Architecture Challenge capstone project. **The course is now complete —
+see the "Course Status: Complete" section near the end of this file for
+what a future session should do instead of building a next chapter,
+since there is no next chapter.** Session 12 built Chapter 12, opening
+Module 6, shipping the Module 6 assessment groundwork. Session 11 built
+Chapter 11, closing Module 5 (Chapters 9-11) in full, shipping no
+project of its own. Session 10 built Chapter 10, continuing Module 5,
+also shipping no project of its own. Session 9 built Chapter 9, opening
+Module 5, also shipping no project of its own. Session 8 built Chapter
+8, closing Module 4 in full and shipping Module 4's single L3
+Independent project, the curriculum map's own literal L3 tier. Session 7
+built Chapter 7, opening Module 4, shipping no project of its own.
+Session 6 built Chapter 6, closing Module 3 in full and shipping Module
+3's single joint project. Session 5 built Chapter 5, opening Module 3.
+Session 4 built Chapter 4, closing Module 2 in full. Session 3 built
+Chapter 3, opening Module 2. Session 2 built Chapter 2, completing
 Module 1. Session 1 built Discovery, the curriculum map, the full
 repository scaffold, and Chapter 1.)
 
@@ -1088,26 +1094,116 @@ only).
       lede paragraph extended, AND Module 6's feature card flipped from
       unmarked/not-yet-started to "In Progress" — the same wording
       convention Chapter 9's own session used opening Module 5).
+- [x] **Chapter 13: Capstone: Designing a Context Engineering System**
+      (closing Module 6 and the entire 13-chapter, 6-module course) —
+      built `lesson.html`, exercises (`index.html`, `README.md`,
+      `starter.py`, `solution.py`), practice bank (`index.html`,
+      `README.md`, `starter.py`, `solution.py`), `quiz.html`, and
+      `interview-questions.md`/`.html` around Castellan Fleet
+      Logistics/DispatchMind — one fully worked incident (an I-80
+      closure forcing a route replan, an HOS compliance check, and a
+      customer-notify decision) composing all eleven recipes from
+      Chapters 1-12, in the order a real turn actually runs them, with
+      10 pipeline steps' worth of real executed Python output plus 2
+      live Ollama captures (12 real code/output blocks total). This
+      chapter introduces no twelfth recipe — its own job is composition,
+      not new mechanics — and the composition itself surfaced two
+      genuine findings: Chapter 3's pin and Chapter 4's staleness check
+      reaching two different, both-correct freshness verdicts on the
+      same waiver fact, and a live LLM completeness check finding a real
+      gap in Chapter 12's own deterministic gate (a resolved compliance
+      decision stated only as supporting reasoning, never as literal
+      text) even after that gate passed at 100%. 2 live-verified
+      external sources this session, both new to this repository:
+      Nygard's "Documenting Architecture Decisions" (grounds the
+      capstone's own design-document structure) and Anthropic's
+      "Building Effective Agents" (grounds the chapter's own restraint
+      argument and the capstone rubric's "mechanical copy" criterion).
+      5 exercises and 4 practice scenarios (both roughly half a typical
+      chapter's own size, a deliberate scope decision given this
+      chapter's own heavier project component) across a single new
+      fictional org (Castellan Fleet Logistics, reused with fresh
+      load/case numbers throughout, confirming the task's own prediction
+      that a one-integrated-system chapter needs far fewer new orgs than
+      the usual 10), and 8 interview questions across all 4 levels.
+      **Ships the L4 Architecture Challenge capstone project**
+      (`chapters/chapter-13-capstone-designing-a-context-engineering-system/project/`,
+      with its own `README.md`, `DESIGN_DOCUMENT_TEMPLATE.md`,
+      `self_check.py`, `solution.py`, `solution/SOLUTION_DESIGN_DOCUMENT.md`,
+      and `RUBRIC.md`) — a fresh, unscaffolded business problem (two
+      Castellan components, DispatchMind and a newly-introduced
+      ComplianceLedger, with genuinely different real-time/traffic/
+      reversibility profiles) requiring a real Context Budget Ledger and
+      evaluation-gate spec per component (mechanically self-checked) plus
+      qualitative eleven-recipe treatment plans (rubric-graded), landing
+      in the chapter's own `project/` directory rather than
+      `assessments/architecture-challenges/`, following
+      `ai-engineering-for-everyone` Chapter 13's own precedent directly.
+- [x] **Quality audit** (`quality-audits/chapter-13-audit.md`) — honest
+      self-critique, the L4 artifact-shape decision explained in full,
+      the exercises/practice-bank scope decision explained explicitly,
+      a fictional-org exclusion check extending Chapters 1-12's list
+      with 1 new org (127 total in this repo), confirmation that both
+      externally-fetched web citations were verified live this session,
+      and the retroactive resolution of Module 5's own long-open
+      "Assessment" line (satisfied by this chapter's own capstone
+      project requiring real Ch. 9-11 treatment plans, the same pattern
+      Chapter 8's own audit already established for Module 4).
+- [x] **Step 5: Validation (Chapter 13)** — `scripts/local_check.sh` run
+      at the end of this session; passed clean (folder structure,
+      placeholder-text scan, Python syntax, every `solution.py` executed
+      for real including the capstone project's own `solution.py`, JS
+      syntax and chapter-path validation, secret scan).
+- [x] **Full course-completion registration pass (Chapter 13)**:
+      `assets/chapters-data.js` (Chapter 13's `path` added, header
+      comment updated to describe the complete course), root
+      `index.html` (hero-stats now "13 of 13 chapters live" AND "6 of 6
+      modules complete" — the final count change this course will ever
+      need; `hero-eyebrow` flipped from "in progress" to "complete";
+      `section-kicker` flipped from "in progress" to "complete"; the
+      "All Chapters" intro paragraph rewritten to describe the finished
+      course), `docs/curriculum/index.html` (Chapter 13's chapter-card
+      now "Live" with a working link, Module 6's feature card flipped
+      from "In Progress" to "Complete", and the page's own closing lede
+      paragraph rewritten to describe the finished course), and
+      `README.md` (its own long-stale "Chapter 1 of 13 is live" status
+      line, never updated across any of the prior twelve sessions,
+      corrected to describe the complete course). Grepped both
+      `index.html` and `docs/curriculum/index.html` for "of 13" and "In
+      Progress" after editing to confirm no stale occurrence remained.
+      `docs/curriculum/CURRICULUM_MAP.md` re-checked and confirmed to
+      carry no inline status language needing an update, as every prior
+      session also found.
 
 ## Pending / Not Started
 
-- Chapter 13 (the Level 4 capstone, closing Module 6 and the entire
-  course) — scaffolded with `.gitkeep` only, no content. Per this
-  ecosystem's standing discipline, it is the last chapter built before a
-  final whole-course completion pass — see "Next Recommended Task"
-  below.
+- **Nothing chapter-level remains pending.** Chapter 13 (the Level 4
+  capstone, closing Module 6 and the entire course) is now built in
+  full — see `quality-audits/chapter-13-audit.md`. All 13 chapters, all
+  6 modules, are complete.
 - `assessments/module-assessments/module-6-context-evaluation-exercise/`
-  is now built (Chapter 12's own half of the Module 6 assessment).
-  `assessments/architecture-challenges/` remains empty — Chapter 13's
-  own capstone rubric is expected to land there. `assessments/quizzes/`,
-  `assessments/written-exams/`, `assessments/answer-keys/`, and
-  `assessments/interview-questions/` remain empty (`.gitkeep` only) —
-  no chapter in this repo has used those four subdirectories yet.
-- This repo is now pushed to GitHub (`github.com/TechNaom/context-engineering-for-everyone`,
-  `origin/main`) as of this session's own commit — the "no GitHub
-  remote, local-only" note that appeared in this section in earlier
-  session snapshots no longer holds and should not be treated as
-  current guidance by a future session.
+  is built (Chapter 12's own half of the Module 6 assessment). Chapter
+  13's own capstone project — the L4 Architecture Challenge — landed in
+  `chapters/chapter-13-capstone-designing-a-context-engineering-system/project/`,
+  following `ai-engineering-for-everyone` Chapter 13's own precedent
+  directly, **not** `assessments/architecture-challenges/`, which
+  remains empty (`.gitkeep` only) by that same precedent — see
+  `quality-audits/chapter-13-audit.md`'s "L4 artifact-shape decision"
+  section. `assessments/quizzes/`, `assessments/written-exams/`,
+  `assessments/answer-keys/`, and `assessments/interview-questions/`
+  remain empty (`.gitkeep` only) — no chapter in this repo has used
+  those four subdirectories; this does not appear to be an oversight
+  (each module's own curriculum-map "Assessment" line has, in every
+  case checked so far, been satisfied by that module's own project or
+  chapter-level exercises rather than a separate written-exam artifact
+  — see `quality-audits/chapter-13-audit.md`'s "Module 5's own
+  'Assessment' line, resolved retroactively" section for the one case
+  that needed explicit resolution this session).
+- This repo is pushed to GitHub (`github.com/TechNaom/context-engineering-for-everyone`,
+  `origin/main`) — confirmed current as of this session's own commit,
+  which also pushed. GitHub Pages itself is still not confirmed enabled
+  (see `README.md`'s own note) — worth a live check in a future
+  maintenance session now that the full site is complete.
 
 ## Known Issues
 
@@ -1148,7 +1244,14 @@ only).
   captures (65.7s cold / 22.8s warm, both re-verified as internally
   consistent rather than re-run); this session's own fresh check
   confirmed `/api/tags` still responds normally with the same installed
-  model. Future sessions should keep budgeting for retries with generous
+  model. Session 13 (Chapter 13, the final chapter) also got two
+  consecutive first-attempt successes with no retries needed (100.3s
+  cold, 47.5s warm) — a cleaner session than Session 12's own (whose
+  first call exceeded a 2-minute tool timeout before returning at all).
+  This is the last session this note will be updated for under normal
+  chapter-building work, since no further chapters remain — any future
+  session doing maintenance work involving a live call should still
+  re-check `/api/tags` fresh and budget for retries with generous
   (120s+) timeouts regardless.
 - **RESOLVED in Session 6 (Chapter 6).** The "Lost in the Middle"
   citation (Liu et al., 2023) was flagged since Chapter 1 as the
@@ -1276,143 +1379,74 @@ session, and a running fictional-org exclusion list maintained and
 extended (not restarted) in each chapter's own quality audit.
 
 
-## Next Recommended Task
+## Course Status: Complete
 
-**Chapter 13 — "Capstone: Designing a Context Engineering System," closing Module 6 and the entire 13-chapter course.**
+**The course is done.** Chapter 13 — "Capstone: Designing a Context
+Engineering System" — shipped in Session 13, closing Module 6 and the
+entire 13-chapter, 6-module course. All 13 chapters are live end to end
+(lesson, quiz, exercises, practice bank, interview prep), all 6 modules
+are complete, and every registration location this repo tracks (
+`assets/chapters-data.js`, root `index.html`'s hero-stats and intro
+copy, `docs/curriculum/index.html`'s chapter-card and Module 6 feature
+card, `README.md`) reads "13 of 13" / "6 of 6" with no stale
+"in progress"/"planned" language remaining anywhere in any of those
+files — grepped for both "of 13" and "In Progress" across `index.html`
+and `docs/curriculum/index.html` at the end of Session 13 to confirm.
+See `quality-audits/chapter-13-audit.md` for Chapter 13's own full
+build detail, including the L4 artifact-shape decision (the capstone
+project lives in
+`chapters/chapter-13-capstone-designing-a-context-engineering-system/project/`,
+not `assessments/architecture-challenges/`, following
+`ai-engineering-for-everyone` Chapter 13's own precedent) and the
+retroactive resolution of Module 5's own long-open "Assessment" line.
 
-This is the FINAL chapter of the whole course. A future session's own
-scope is larger than a normal single-chapter build: in addition to
-building Chapter 13 itself, it should include a final whole-course
-completion pass once Chapter 13 is validated — registering 13/13
-chapters and 6/6 modules everywhere this repo tracks that count
-(`assets/chapters-data.js`, root `index.html`'s hero-stats, and
-`docs/curriculum/index.html`), AND checking whether any course-level
-"complete" banner, badge, or top-level status element exists anywhere
-else in the site (root `index.html`'s own hero section beyond the
-hero-stats numbers, the footer, `docs/curriculum/index.html`'s own page
-header) that should flip to reflect the course being fully built for the
-first time. Do not assume this is a normal per-chapter registration
-pass — re-check the whole site for course-completion messaging that has
-never needed to exist before now.
+There is no more chapter-building work to do in this repository absent
+a human decision to expand the course beyond its original 13-chapter
+roadmap (see `AI_HANDOFF.md`'s own cross-link list for possible future
+courses this one feeds — `LLM Evaluation for Everyone`, `Observability
+for Everyone`, an expanded `Agentic AI for Everyone`, `AI Architecture
+for Everyone` — none of which are this repository's own scope). A
+future session picking this repo up should default to **maintenance**,
+not new construction. Genuinely open maintenance items, found by
+grepping this file end-to-end for "deferred," "gap," "not yet," and
+"open" rather than assuming the tail of the file captures everything:
 
-Per `docs/curriculum/CURRICULUM_MAP.md`: Chapter 13, difficulty
-Architect, closes Module 6 (Evaluation and Capstone). Module 6's own
-"Projects" line names this chapter directly: "**L4 Architecture
-Challenge** — Design and defend a complete context engineering system
-for a realistic multi-step/agentic system; business/system problem
-only." This is the course's own L4 tier, the final rung of the L1
-(after Ch. 2) / L2 (after Ch. 4) / L3 (after Ch. 8) / L4 (Ch. 13) project
-ladder. Module 6's own "Assessment" line names Chapter 13's own half
-directly too: "capstone rubric (Ch. 13, architecture challenge, Level
-4)" — Chapter 12's own half (the context-evaluation exercise) is already
-built, in `assessments/module-assessments/module-6-context-evaluation-exercise/`;
-Chapter 13's own capstone rubric is expected to land in
-`assessments/architecture-challenges/`, currently empty in this
-repository.
-
-Read `quality-audits/chapter-12-audit.md` before starting, not just this
-file or the curriculum map — per this course's own standing instruction
-(carried forward from every prior chapter's own handoff), it may surface
-scope notes this file doesn't fully capture, including the "Module 6
-assessment groundwork decision" section explaining exactly why Chapter
-12's own half of the assessment was scoped the way it was, and what that
-implies Chapter 13's own capstone rubric still owes.
-
-**What Chapter 13 draws on, as given inputs, not fresh material:** every
-recipe built across this entire course — the five-line Context Budget
-Ledger and five-step Budget Allocation Recipe (Ch. 1-2), the Short-Term
-and Long-Term Memory Policy Recipes (Ch. 3-4), the Compression Fidelity
-Recipe (Ch. 5), the Context Ordering Recipe (Ch. 6), the Source Assembly
-Recipe (Ch. 7), the Retrieval Integration Recipe (Ch. 8), the Tool
-Context Recipe (Ch. 9), the Pipeline/Multi-Agent Context Recipe (Ch.
-10), the Context Isolation Recipe (Ch. 11), and the Context Evaluation
-Recipe (Ch. 12) — plus Module 5's own two labs (the Chapter 9 tool-call
-miniature and the Chapter 10 multi-step/multi-agent pipeline lab), which
-`PROJECT_STATE.md` and multiple chapters' own handoffs have said all
-along fold into this capstone rather than shipping as their own
-per-chapter projects. Chapter 13's own job is a genuinely different kind
-of exercise than any prior chapter: not teaching one more recipe, but
-requiring the reader to design and defend one integrated system that
-correctly applies all eleven recipes together against a single,
-realistic multi-step/agentic business problem — the natural place every
-prior module's own labs and this module's own evaluation framework were
-always headed, per `AI_HANDOFF.md`'s own long-standing "Next task after
-that" note (now superseded by this section as the current task).
-
-**Re-confirm the `mcp-for-everyone`, `ai-coding-agents-for-everyone`, and
-`ai-engineering-for-everyone` boundaries fresh this session, do not
-assume Chapter 12's own re-confirmation still holds unchanged.** Chapter
-12's session independently re-read all three sibling curriculum maps,
-including the first fully direct check of `ai-engineering-for-everyone`'s
-own Module 3 (Evaluation-Driven Development) for LLM-output-evaluation
-overlap. Chapter 13's own subject (architecture-level system design)
-should get its own fresh, direct check against whatever sibling course
-territory might overlap with "designing a complete system" — in
-particular, re-verify whether any sibling course (especially
-`ai-engineering-for-everyone`, whose own forward cross-link list names a
-future `AI Architecture for Everyone`) already covers system-level
-architecture design in a way Chapter 13 needs to explicitly scope
-around, the same direct-verification discipline every chapter since
-Chapter 9 has applied to its own new subject.
-
-New-org exclusion list: read `quality-audits/chapter-12-audit.md`'s full
-running list (Chapters 1-11's combined 116 orgs plus Chapter 12's 10 new
-orgs — Ternfield Regional Disability Benefits Review Office, Merrivale
-County Emergency Housing Placement Network, Ossbrook Regional Grain
-Futures Clearinghouse, Colton Regional Home Inspection Licensing Board,
-Bramfield Regional Wildfire Evacuation Coordination Center, Grendale
-Regional Court Interpreter Certification Board, Delmoore Regional
-Pension Fund Audit Office, Sennwick Regional Livestock Export Health
-Certification Bureau, Bexmoor Regional Building Code Variance Board,
-Warrenfield Regional Small Business Disaster Loan Review Panel — 126
-total in this repo) plus `ai-engineering-for-everyone`'s own full
-compiled list (present locally in this sandbox at
-`/home/dell/projects/ai-engineering-for-everyone/quality-audits/chapter-13-audit.md`
-— do a live grep against it directly, the same discipline every chapter
-since Chapter 10 has applied, rather than relying only on the
-verbatim-reproduced root-word list) before naming any new fictional org
-for Chapter 13, and extend — don't restart — the list in
-`quality-audits/chapter-13-audit.md`. Given Chapter 13's own likely
-scope (one realistic multi-step/agentic business problem, defended as a
-system design rather than illustrated across many short scenarios the
-way a normal exercises/practice buildout would), it may need meaningfully
-fewer new orgs than a typical chapter — confirm the actual count needed
-once the capstone's own format is decided, rather than assuming the
-usual 10-org pattern applies unchanged to a fundamentally different
-chapter shape.
-
-Citation/Ollama re-verification discipline: do not assume Chapter 12's
-own citations are still live — re-fetch and re-read anything reused
-(especially the Lost-in-the-Middle paper, cited fresh in both Chapter 6
-and Chapter 12 for different purposes), and treat all-new sources as the
-default. Chapter 12's own session found all 3 web citations clean with
-zero corrections needed, following Chapters 3, 7, 9, 10, and 11's own
-clean sessions — do not assume Chapter 13's own session will be equally
-clean. Also re-check Ollama's `/api/tags` and `/api/chat` fresh at the
-start of the session — Chapter 12's own session hit its slowest cold
-start yet (the first call exceeded a 2-minute tool timeout before
-returning at all) despite Chapter 11's own six mostly-fast calls, and
-also hit a genuinely informative negative result reproducing a targeted
-failure mode on the first several attempts (see
-`quality-audits/chapter-12-audit.md`'s own "Ollama re-verification, done
-honestly" section) — budget for both slow cold starts and failed
-first-attempt reproductions throughout the session, disclosing negative
-results honestly rather than forcing a reproduction, the same standard
-Chapters 10, 11, and 12 have all now held.
-
-Registration-staleness check reminders, larger in scope than a normal
-chapter this time: once Chapter 13's `lesson.html` exists, update
-`assets/chapters-data.js` (add its `path`), the root `index.html`
-(`hero-stats` counts — it should read "13 of 13 chapters live" AND "6 of
-6 modules complete" — the final count change this course will ever need
-— plus the "All Chapters" intro paragraph), and `docs/curriculum/index.html`
-(its own chapter-card status and lede paragraph, AND Module 6's own
-feature card, which should flip from "In Progress" to "Complete" — the
-same wording convention every prior module's own closing chapter used).
-Additionally, per this section's own opening note, check the whole site
-for a course-level completion signal that may not exist yet and might
-need adding, not just the routine per-chapter counters every prior
-chapter has updated.
+1. **GitHub Pages verification.** `README.md` has carried a "GitHub
+   Pages not yet enabled" note across every session so far; this was
+   never in scope for a content-building session but is now worth an
+   actual live check now that the full site exists end to end.
+2. **A final full-course link/consistency pass.** No session has yet
+   done a dedicated read-through of every chapter's own cross-chapter
+   links (the "Chapter N ← / → Chapter N+1" nav, the sidebar's own
+   chapter list, the roadmap's own chapter-card links) now that all 13
+   exist simultaneously for the first time — worth one pass checking
+   nothing points at a chapter that was renamed or restructured along
+   the way. `scripts/local_check.sh`'s own JS/chapter-path validation
+   step covers `assets/chapters-data.js`'s own paths but not every
+   in-lesson cross-link.
+3. **Citation re-verification, ongoing.** This course's own standing
+   discipline (re-verify every external citation live, every session,
+   never trust a prior fetch) has no natural end point now that new
+   chapters aren't being built — a future maintenance session should
+   still periodically re-check the most citation-dense chapters (6, 12,
+   13 in particular, all of which cite the Lost-in-the-Middle research
+   lineage or closely related work) rather than treating "verified once"
+   as permanent.
+4. **Chapter 5's fifth citation** (`arxiv.org/abs/2606.29251`) is still
+   an arXiv preprint, flagged since Chapter 5's own session as worth a
+   future check for whether it's since been published, revised, or
+   superseded — never revisited since.
+5. **Structural-only grading gaps**, flagged honestly across many prior
+   chapters' own audits and never claimed resolved: fuzzy real-world
+   problems (staleness *detection* vs. policy, unit-of-work boundary
+   detection, contamination detection, automatic fact/noise labeling in
+   unstructured text) remain simplified away by every chapter's own
+   deterministic, hand-labeled harness, for the same 20-second-timeout
+   reason documented since Chapter 3. This is a known, disclosed
+   property of the course's own exercise format, not a bug to fix
+   chapter-by-chapter — but a future revision pass could reasonably
+   pick one or two of these and build a genuinely harder, real-text
+   version as a bonus/advanced exercise.
 
 Local validation, done at the end of every session:
 
@@ -1420,12 +1454,11 @@ Local validation, done at the end of every session:
 $ bash scripts/local_check.sh
 ```
 
-Passed clean at the end of this session (Chapter 12) — folder
-structure, placeholder-text scan, Python syntax, every `solution.py`
-executed for real (including the new Module 6 assessment groundwork's
-own `solution.py`, run manually and confirmed passing since
-`local_check.sh`'s own glob covers `chapters/*/exercises`,
-`chapters/*/project`, and `chapters/*/practice` only, not
-`assessments/`), JS syntax and chapter-path validation, secret scan.
-See this session's own commit message / `AI_HANDOFF.md` for the exact
-result recorded.
+Passed clean at the end of this session (Chapter 13, the final chapter)
+— folder structure, placeholder-text scan, Python syntax, every
+`solution.py` executed for real (including
+`chapters/chapter-13-capstone-designing-a-context-engineering-system/project/solution.py`,
+which runs the capstone's own structural self-check against the
+reference design document and confirms it passes), JS syntax and
+chapter-path validation, secret scan. See this session's own commit
+message / `AI_HANDOFF.md` for the exact result recorded.

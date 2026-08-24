@@ -94,12 +94,12 @@ context-engineering-for-everyone/
 
 ## Current status
 
-**Chapter 1 of 13 is live** — "The Context Budget," the reference
-chapter the rest of the course's structure and depth will be built to
-match. Module 1 (The Context Budget Mental Model) is started; Modules
-2-6 and Chapters 2-13 are scaffolded (`.gitkeep`'d directories) and
-planned per the curriculum map, not yet built. See `PROJECT_STATE.md`
-for the full, current status and the next recommended session's task.
+**All 13 chapters are live — the course is complete.** All 6 modules
+(The Context Budget Mental Model; Memory Systems; Context Compression
+and Curation; Multi-Source Context Assembly; Context Engineering for
+Agentic Systems; Evaluation and Capstone) are built in full, closing
+with Chapter 13's Level 4 Architecture Challenge capstone. See
+`PROJECT_STATE.md` for full build history and any open follow-up work.
 
 ## Projects
 

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capstone: Designing a Context Engineering System — Context Engineering for Everyone</title>
+<meta name="description" content="The final chapter, closing Module 6 and the entire course: one worked, end-to-end walkthrough applying every recipe from Chapters 1-12 -- budget, memory, compression, ordering, source assembly, retrieval, tool use, multi-agent isolation, and evaluation -- to a single realistic incident inside one agentic system.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-13">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 13 — Final Chapter</span>
+    <span class="badge-difficulty">Architect</span>
+    <span class="reading-time">~40 min</span>
+  </div>
+
+  <h1>Capstone: Designing a Context Engineering System</h1>
+  <p class="lede">
+    Every chapter before this one taught exactly one recipe: a budget
+    ledger, a memory policy, a compression check, an ordering rule, a
+    source-assembly step, a retrieval-integration step, a tool-context
+    rule, a pipeline contract, an isolation boundary, an evaluation gate.
+    This chapter teaches none of them — it is not a twelfth recipe. It is
+    the thing every prior chapter's own recipe was always headed toward:
+    one worked, end-to-end walkthrough showing all eleven recipes applied
+    together, in the order they actually run, against a single realistic
+    turn inside one agentic system. The chapter's own assignment — the L4
+    Architecture Challenge — then asks you to do the same composition
+    yourself, on a fresh business problem, with no scaffold.
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. The scenario: one incident, one system</a>
+    <a href="#why-this-chapter">2. What this chapter owns, and what it doesn't</a>
+    <a href="#the-stack">3. The full recipe stack, in run order</a>
+    <a href="#worked-pipeline">4. Worked pipeline: ten steps, real output</a>
+    <a href="#live-capture">5. Two live-captured checks on the final bundle</a>
+    <a href="#composing">6. What composing eleven recipes teaches that no single one does</a>
+    <a href="#the-capstone">7. The capstone assignment</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Castellan Fleet Logistics is a fictional long-haul trucking
+      company operating across the western United States. Its dispatch
+      copilot, DispatchMind, is embedded in both the dispatcher console
+      and the driver's own in-cab app. It is a genuinely agentic,
+      multi-step system: a live route-planning agent, a compliance-check
+      agent that reasons over Hours-of-Service (HOS) regulation, and a
+      customer-communications agent that drafts delay notices — three
+      sub-agents, one shared incident, deliberate isolation between two
+      of them.
+    </p>
+    <p>
+      Unit 4471, driver R. Okafor, is running load CFL-88231 from Denver
+      to Salt Lake City. Ten minutes ago, I-80 closed in both directions
+      near Rock Springs, Wyoming after a multi-vehicle accident.
+      DispatchMind has to do four things inside one turn: replan the
+      route, confirm the replanned route still keeps the driver
+      HOS-compliant, decide whether the customer's own service-level
+      agreement requires a delay notice, and draft that notice if it
+      does — without leaking the compliance agent's own internal
+      regulatory reasoning into a message a customer will read. This is
+      not a toy prompt. It is a full pass through this course's own
+      recipe stack, once, for one real turn.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>What This Chapter Owns, and What It Doesn't</h2>
+    <p>
+      This chapter does not introduce a twelfth technique. Every
+      mechanism used below already exists in Chapters 1-12, each cited
+      by name at the step that uses it. What this chapter owns is the
+      thing no single-recipe chapter could show: <strong>the order eleven
+      recipes actually run in in one real turn, and the handoffs between
+      them</strong> — Chapter 2's ledger reserving room before Chapter 9's
+      tool call ever executes; Chapter 5's compressed summary and Chapter
+      4's recalled memory both becoming inputs Chapter 6's ordering
+      recipe has to rank; Chapter 7's resolved sources and Chapter 8's
+      retrieved chunks both becoming inputs Chapter 9's curated tool
+      result sits alongside; Chapter 10's per-agent context contracts and
+      Chapter 11's isolation boundary deciding exactly what crosses from
+      the compliance agent to the customer-comms agent; and Chapter 12's
+      evaluation gate running on the <em>finished</em> bundle before any
+      of it reaches a model. No chapter before this one ever had to show
+      all eleven running together, because showing it well requires one
+      scenario complex enough to need every recipe — which is exactly why
+      it's the last chapter, not an earlier one.
+    </p>
+    <p>
+      This chapter also does not re-teach system architecture generally.
+      `ai-engineering-for-everyone`'s own Chapter 13 capstone
+      ("Architecting and Shipping a Production LLM System") already
+      teaches the plain-prompt/RAG/fine-tune/agent architecture decision
+      and the cost/latency/reliability/deployment/observability
+      composition around it — this chapter assumes that decision is
+      already made (DispatchMind is already a multi-agent system by the
+      time this chapter's own scenario opens) and owns only the
+      <em>context</em> composition inside it. `mcp-for-everyone`'s own
+      capstone ("Enterprise MCP Platform Architecture") owns
+      protocol-level multi-tenant server design, not which content
+      belongs in a given call's context. `ai-coding-agents-for-everyone`'s
+      own capstone ("Design an Agent Workflow for a Real Team") owns one
+      coding agent's own workflow design for one codebase, not
+      cross-domain context composition. Re-checked directly against all
+      three siblings' current curriculum maps this session — none of the
+      three owns "compose budget, memory, compression, assembly,
+      retrieval, tool/agent, and evaluation recipes into one context
+      engineering system," which is this chapter's own, unclaimed
+      territory.
+    </p>
+  </section>
+
+  <section id="the-stack" class="subtopic">
+    <h2>The Full Recipe Stack, In Run Order</h2>
+    <p>
+      Ten steps, each owned by a chapter already built, run in the order
+      a real DispatchMind turn actually executes them — not the order the
+      chapters were taught in, which is nearly the same order but not
+      quite (Chapter 7's Source Assembly Recipe and Chapter 8's Retrieval
+      Integration Recipe both feed Chapter 9's tool-context step here,
+      rather than running strictly before it):
+    </p>
+    <table class="comparison-table">
+      <thead><tr><th>#</th><th>Step</th><th>Owning chapter</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Fix the hard limit, reserve Working Space first, allocate the rest by request type</td><td>Ch. 1-2 — Context Budget Ledger / Budget Allocation Recipe</td></tr>
+        <tr><td>2</td><td>Apply the verbatim window + bounded pinning to the live conversation</td><td>Ch. 3 — Short-Term Memory Policy Recipe</td></tr>
+        <tr><td>3</td><td>Retrieve scoped long-term memory, flag anything stale</td><td>Ch. 4 — Long-Term Memory Policy Recipe</td></tr>
+        <tr><td>4</td><td>Compress what fell out of the window, validate fidelity</td><td>Ch. 5 — Compression Fidelity Recipe</td></tr>
+        <tr><td>5</td><td>Rank, anchor, and reorder the assembled items; query last</td><td>Ch. 6 — Context Ordering Recipe</td></tr>
+        <tr><td>6</td><td>Inventory sources, rank authority, resolve contradictions</td><td>Ch. 7 — Source Assembly Recipe</td></tr>
+        <tr><td>7</td><td>Apply a relevance floor, fit retrieved chunks to budget, preserve provenance</td><td>Ch. 8 — Retrieval Integration Recipe</td></tr>
+        <tr><td>8</td><td>Curate a raw tool result to only the fields this request needs</td><td>Ch. 9 — Tool Context Recipe</td></tr>
+        <tr><td>9</td><td>Scope each sub-agent's own context; isolate the compliance boundary</td><td>Ch. 10-11 — Pipeline/Multi-Agent Recipe + Context Isolation Recipe</td></tr>
+        <tr><td>10</td><td>Gate the finished bundle on completeness, noise, and position before generation</td><td>Ch. 12 — Context Evaluation Recipe</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="worked-pipeline" class="subtopic">
+    <h2>Worked Pipeline: Ten Steps, Real Output</h2>
+    <p>
+      Every block below is real, executed Python (word-count token proxy,
+      the same convention every prior chapter in this course has used),
+      run once for this incident and quoted verbatim — not illustrative
+      pseudocode. The full script is 260 lines; each block is one
+      function plus its own real output.
+    </p>
+
+    <h3>Step 1 — Context Budget Ledger (Ch. 1-2)</h3>
+    <p>
+      DispatchMind's own <code>incident_replan</code> request type gets
+      its own budget profile: heavier on Line 2 (live grounding — GPS,
+      weather, HOS chunks, manifest) than a routine check-in, because an
+      incident pulls in sources a routine turn never needs.
+    </p>
+    <pre><code>def build_budget_ledger(hard_limit, request_type):
+    limit = hard_limit
+    line5_working_space = 1400          # Step 2: reserve FIRST
+    line1_system = 380                  # Step 3: small, fixed
+    remaining = limit - line5_working_space - line1_system
+    weights = {"line2_grounding": 0.55, "line3_history": 0.20, "line4_memory": 0.25}
+    line2 = math.floor(remaining * weights["line2_grounding"])
+    line3 = math.floor(remaining * weights["line3_history"])
+    line4 = remaining - line2 - line3   # remainder, no rounding loss
+    ...
+    validated = line2 >= worst_case_line2_floor   # Step 5: worst case, not median
+
+=== STEP 1: Context Budget Ledger (Ch 1-2) ===
+  line1_system: 380 tokens
+  line2_grounding: 2321 tokens
+  line3_history: 844 tokens
+  line4_memory: 1055 tokens
+  line5_working_space: 1400 tokens
+  TOTAL: 6000 / 6000 tokens (spare: 0)
+  Validated against worst-case Line 2 floor (480 tok): True</code></pre>
+
+    <h3>Step 2 — Short-Term Memory Policy Recipe (Ch. 3)</h3>
+    <pre><code>=== STEP 2: Short-Term Memory Policy Recipe (Ch 3) ===
+  Verbatim window (newest-first, 300 tok used of 350): ['t6', 't7']
+  Pinned outside window (kept anyway): ['t5']
+  Marked for compression: ['t1', 't2', 't3', 't4']</code></pre>
+    <p>
+      <code>t7</code> is the closure alert itself — the newest and most
+      decisive fact this turn. <code>t5</code>, a one-time HOS extension
+      waiver granted earlier this shift, falls outside the 350-token
+      verbatim window on token cost alone, but Chapter 3's own bounded,
+      explicit pinning keeps it in context anyway, because a dispatcher
+      manually pinned it when it was granted — exactly the deterministic
+      mechanism Chapter 3's own live-tested finding argued for over
+      trusting a summarization call to remember it unprompted.
+    </p>
+
+    <h3>Step 3 — Long-Term Memory Policy Recipe (Ch. 4)</h3>
+    <pre><code>=== STEP 3: Long-Term Memory Policy Recipe (Ch 4) ===
+  [fresh] Prior HOS violation flag cleared after Q2 review
+  [fresh] Cold-chain endorsement current
+  [STALE -- do not treat as still active] Standing 30-min HOS extension waiver, single-use, logged this shift</code></pre>
+    <p>
+      This is the first genuinely load-bearing moment in the whole
+      pipeline. The pinned waiver from Step 2 (<code>t5</code>, this
+      shift's live conversation) and the long-term memory record above
+      describe the <em>same</em> waiver — but Chapter 4's staleness rule
+      correctly flags the long-term copy as stale (it was logged
+      single-use, and this is a second incident on the same shift),
+      while Chapter 3's pin correctly keeps the live, still-valid
+      instance. Two recipes, two different freshness verdicts on
+      what looks like the same fact — this is exactly why Chapter 4's
+      staleness handling exists as its own mechanic, distinct from
+      Chapter 3's eviction/pinning: a fact can survive short-term memory
+      correctly and still be wrong by the time long-term memory recalls
+      it.
+    </p>
+
+    <h3>Step 4 — Compression Fidelity Recipe (Ch. 5)</h3>
+    <pre><code>=== STEP 4: Compression Fidelity Recipe (Ch 5) ===
+  Compressed summary (26 tok): "load CFL-88231 pickup confirmed on schedule; WY border
+  crossing logged, no delay; weigh station cleared, no citation; routine fuel stop,
+  12 min, within HOS drive window"
+  Fits target budget (<=60 tok): True
+  Fidelity check -- all load-bearing facts survived: True</code></pre>
+
+    <h3>Step 5 — Context Ordering Recipe (Ch. 6)</h3>
+    <pre><code>=== STEP 5: Context Ordering Recipe (Ch 6) ===
+  Naive (arrival) order:
+    - pinned_hos_waiver (t5)
+    - compressed_routine_summary
+    - i80_closure_alert (t7, newest+decisive)
+    - customer_sla_doc
+    - dispatcher_query: replan + notify customer?
+  Recipe-ordered (closure alert anchored front, query last):
+    - i80_closure_alert (t7, newest+decisive)
+    - pinned_hos_waiver (t5)
+    - customer_sla_doc
+    - compressed_routine_summary
+    - dispatcher_query: replan + notify customer?</code></pre>
+    <p>
+      The naive, arrival-order bundle buries the single most decisive
+      fact — the closure alert — third from the front, behind a routine
+      waiver record and ahead of nothing but a low-weight compressed
+      summary. Chapter 6's own re-verified Lost-in-the-Middle research
+      is exactly the risk this reorders against: the recipe anchors the
+      highest-weight item at the front, keeps the live query last,
+      closest to generation, and moves the low-weight compressed summary
+      into the middle where it belongs.
+    </p>
+
+    <h3>Step 6 — Source Assembly Recipe (Ch. 7)</h3>
+    <pre><code>=== STEP 6: Source Assembly Recipe (Ch 7) ===
+  CONFLICT on 'eta_slc': [('gps_telematics', 'delayed +95 min (live closure reroute)'),
+  ('load_manifest', 'on-time (manifest, filed before closure)')]
+  -> resolved to ('gps_telematics', 'delayed +95 min (live closure reroute)') (higher authority)
+  3 resolved sources handed to Ch 6's ordering recipe.</code></pre>
+    <p>
+      The load manifest, filed before the closure existed, still claims
+      an on-time ETA. Chapter 7's authority ranking — live telematics
+      outranks a static manifest for a live ETA claim, for this request
+      type — resolves the contradiction before it ever reaches the
+      model, rather than handing the model two contradicting ETAs and
+      hoping it picks correctly.
+    </p>
+
+    <h3>Step 7 — Retrieval Integration Recipe (Ch. 8)</h3>
+    <pre><code>=== STEP 7: Retrieval Integration Recipe (Ch 8) ===
+  KEPT [49CFR395.1(b)(1)] score=0.91: Adverse driving conditions extend the driving
+  window by up to 2 hours.
+  KEPT [49CFR395.3(a)(2)] score=0.77: 14-hour on-duty window is not extended by
+  adverse conditions.
+  75/100 budget tokens used; provenance ids preserved for citation in the response.</code></pre>
+    <p>
+      A third, low-relevance regulation chunk (a bare definitions
+      section, score 0.22) is dropped by the relevance floor before it
+      ever competes for budget — Chapter 8's own Step 1, applied before
+      Chapter 7's inventory step ever runs on the result.
+    </p>
+
+    <h3>Step 8 — Tool Context Recipe (Ch. 9)</h3>
+    <pre><code>=== STEP 8: Tool Context Recipe (Ch 9) ===
+  Curated tool result (17 tok, 4/7 raw fields kept):
+    route_id: R-88231-B
+    eta_slc: +95 min vs plan
+    alternate_via: US-30 detour through Green River
+    fuel_stop_recommendation: Little America travel plaza, mile marker 68</code></pre>
+    <p>
+      The raw route-planning tool result includes a 200-token raw
+      telemetry dump and a toll-delta field this request type never
+      uses. Chapter 9's field-boundary curation keeps four of seven raw
+      fields and drops the rest — 17 tokens of curated result instead of
+      several hundred tokens of raw JSON the model would otherwise have
+      had to parse itself, on every single tool call.
+    </p>
+
+    <h3>Step 9 — Pipeline/Multi-Agent Recipe + Isolation Recipe (Ch. 10-11)</h3>
+    <pre><code>=== STEP 9: Pipeline/Multi-Agent + Isolation Recipe (Ch 10-11) ===
+  Route Agent's own scoped context: ['closure_alert', 'curated_route_result']
+  Compliance Agent's own scoped context: ['hos_chunks', 'long_term_waiver', 'route_agent_decision']
+  Curated hand-off crossing the isolation boundary:
+    {'compliant': True,
+     'basis': '49CFR395.1(b)(1) adverse-conditions extension covers the added drive
+               time; stale waiver NOT relied upon',
+     'earliest_redispatch_ok': True}
+  Customer-Comms Agent's own scoped context (isolated from HOS/waiver detail):
+    ['compliance_cleared', 'eta_delay_min', 'sla_notify_threshold_min']
+  Notify customer (delay True): True</code></pre>
+    <p>
+      This is the step where Chapter 10 and Chapter 11 do genuinely
+      different jobs. Chapter 10's own recipe gives each of the three
+      sub-agents its own scoped context contract — the Route Agent never
+      sees HOS regulation text, the Compliance Agent never sees customer
+      SLA terms. Chapter 11's own isolation recipe governs the one
+      boundary that matters most here: the Compliance Agent's own raw
+      reasoning (which regulation clause applies, and the explicit
+      decision <em>not</em> to rely on the stale waiver) never crosses
+      into the Customer-Comms Agent's context at all — only the resolved
+      <code>compliant: True</code> fact does, through an explicit curated
+      hand-off contract, exactly Chapter 11's Step 4. A customer-facing
+      message drafted with visibility into an internal regulatory dispute
+      would be both a professionalism risk and, per Chapter 11's own
+      isolation-goal naming (Step 1), simply the wrong content for that
+      agent's job.
+    </p>
+
+    <h3>Step 10 — Context Evaluation Recipe (Ch. 12)</h3>
+    <pre><code>=== STEP 10: Context Evaluation Recipe (Ch 12) ===
+  Completeness: 100.0%
+  Noise ratio: 8.7%
+  High-weight facts buried in the middle bucket: []
+  GATE: PASS -- send to Customer-Comms generation</code></pre>
+    <p>
+      Every required fact for this case (closure location, reroute
+      decision, new ETA, compliance status, notify decision) is present,
+      noise sits well under Chapter 12's own 15% ceiling, and nothing
+      high-weight landed in the buried middle bucket. The gate passes —
+      but Section 5 below shows this deterministic gate passing is not
+      the end of the story.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>Two Live-Captured Checks on the Final Bundle</h2>
+    <p>
+      Chapter 12's own evaluation gate above is a deterministic,
+      hand-labeled check — the same category every prior chapter's
+      graded harness uses, for the same 20-second-timeout reason. Real
+      systems also need to know whether an actual model, given the
+      actual isolated bundle, produces something usable. Both calls
+      below are real, live <code>POST /api/chat</code> calls against
+      Ollama's local endpoint (<code>llama3.2:latest</code>), captured
+      fresh this session, quoted verbatim including their imperfections.
+    </p>
+
+    <h3>Live Capture 1 — a starvation-and-contamination probe (Ch. 11 Step 6)</h3>
+    <p>
+      Chapter 11's own Step 6 tests an isolation boundary with two
+      probes: does the isolated agent still have everything it actually
+      needs (starvation probe), and does nothing that should have stayed
+      out leak in (contamination probe)? This prompt hands the model
+      <em>only</em> the Customer-Comms Agent's own isolated bundle from
+      Step 9 above and asks it to draft the customer message.
+    </p>
+    <pre><code>PROMPT: "You are the Customer-Comms Agent for Castellan Fleet Logistics'
+  DispatchMind system. You only see the following scoped context -- you do
+  not have access to any Hours-of-Service regulation text, any compliance
+  officer's internal reasoning, or any waiver records. Draft a short,
+  professional delay notification to send to the customer, using ONLY the
+  facts below. If you are missing information you would need, say so
+  explicitly instead of guessing.
+
+  CONTEXT: eta_delay_min: 95, sla_notify_threshold_min: 60,
+  compliance_cleared: true, load_id: CFL-88231, cause: unplanned highway
+  closure, route being replanned now."
+
+RESPONSE (100.3s, cold call):
+  "Subject: Delay Notification for Load CFL-88231
+
+  Dear [Customer Name],
+
+  We are writing to inform you that there will be a delay in the delivery
+  of your load, CFL-88231. Our current estimated time of arrival (ETA) has
+  been affected by an unplanned highway closure on our route, which is
+  causing us to replan the delivery.
+
+  Our system indicates that the new ETA for delivery will be at least
+  [eta_delay_min] minutes later than originally expected. We apologize for
+  any inconvenience this may cause and appreciate your patience as we work
+  to resolve the issue. [...]"</code></pre>
+    <p>
+      The contamination probe passes cleanly: nothing about HOS
+      regulation, the waiver, or the Compliance Agent's own internal
+      reasoning appears anywhere in the message — the isolation boundary
+      held. The starvation probe is more interesting: the model did
+      <em>not</em> report missing information (it had everything it
+      needed), but it also didn't substitute the actual number — it
+      echoed the literal field name <code>[eta_delay_min]</code> instead
+      of "95," rather than performing the substitution itself. This is a
+      genuine, disclosed imperfection, not a scripted success: isolation
+      worked exactly as designed, and a real production system would
+      still need either a stricter prompt template or a deterministic
+      substitution step before this draft reaches a customer — evidence
+      for treating the isolation boundary and the generation quality on
+      either side of it as two separate things to verify, not one.
+    </p>
+
+    <h3>Live Capture 2 — a literal-scan completeness check on the final bundle (Ch. 12 Step 2)</h3>
+    <p>
+      Chapter 12's own audit found a reasoning-phrased completeness
+      question produces false negatives, while a literal scan-and-quote
+      phrasing works. This capture re-applies that exact lesson to this
+      chapter's own bundle, one more time, at capstone scale.
+    </p>
+    <pre><code>PROMPT: "You are a context-completeness checker. Read the CONTEXT BUNDLE
+  below and answer ONLY by scanning for literal text matches -- do not
+  reason or infer. For each required fact, quote the exact substring [...]
+  or write NOT FOUND.
+
+  CONTEXT BUNDLE: 'I-80 closed both directions, Rock Springs, WY (posted
+  this turn). Reroute decision: via US-30 detour through Green River. New
+  ETA delay: +95 minutes vs plan. Compliance basis: 49CFR395.1(b)(1)
+  adverse-conditions extension covers the added drive time; stale
+  single-use waiver NOT relied upon. Customer SLA notify threshold: delay
+  > 60 minutes. Fuel stop recommendation: Little America travel plaza,
+  mile marker 68.'
+
+  REQUIRED FACTS: 1) closed road/location, 2) reroute decision, 3) new ETA
+  delay in minutes, 4) whether the driver is HOS-compliant, 5) whether the
+  customer should be notified (explicit yes/no)."
+
+RESPONSE (47.5s, warm call):
+  1. I-80 closed both directions, Rock Springs, WY
+  2. via US-30 detour through Green River
+  3. +95 minutes
+  4. NOT FOUND
+  5. YES</code></pre>
+    <p>
+      This is a genuinely useful negative result, not a clean pass.
+      Item 4 correctly returns <code>NOT FOUND</code>: the bundle states
+      the <em>regulatory basis</em> for compliance ("adverse-conditions
+      extension covers the added drive time") but never states the
+      resolved <code>compliant: True</code> flag itself as literal text
+      — the exact gap Chapter 12's own Step 1 warns about, one layer
+      deeper than that chapter's own example: supporting reasoning is not
+      the same as the fact it supports being stated explicitly. Item 5's
+      answer is more interesting still: nothing in the bundle states a
+      literal yes/no notify decision either, yet the model answered
+      "YES" anyway — inferring it from the 95-vs-60-minute threshold
+      despite being explicitly instructed to scan only, not reason. The
+      honest reading of both results together: literal-scan phrasing
+      sharply reduces inferential slippage (as Chapter 12 found) but does
+      not eliminate it, and the deterministic gate in Step 10 above
+      already had this exact gap — its own hand-labeled
+      <code>required</code> list checked for the underlying facts, not
+      for whether the bundle states each fact's <em>resolved value</em>
+      as literal text a downstream reader (human or model) can actually
+      find. The fix that follows from this, applied directly: any
+      context-evaluation gate's own required-fact list should include
+      the resolved decision itself, stated explicitly, not only the
+      reasoning that produced it — one more concrete instance of Chapter
+      12's own general warning, caught here by testing the finished
+      capstone bundle against a real model rather than trusting the
+      deterministic gate alone.
+    </p>
+  </section>
+
+  <section id="composing" class="subtopic">
+    <h2>What Composing Eleven Recipes Teaches That No Single One Does</h2>
+    <p>
+      Three things only become visible once every recipe runs together
+      on one real scenario, not visible from any single chapter alone:
+    </p>
+    <ol>
+      <li><strong>The same fact can get two different, both-correct
+      freshness verdicts from two different recipes.</strong> Step 3's
+      long-term memory correctly flags the waiver stale; Step 2's
+      short-term pin correctly keeps a live instance of the same fact.
+      Neither recipe is wrong — they answer different questions
+      (has this record's own stated validity expired? vs. did a human
+      pin this into the live conversation?) and a system that only ran
+      one of them would either wrongly trust a stale record or wrongly
+      drop a still-valid pin.</li>
+      <li><strong>A deterministic evaluation gate passing is necessary,
+      not sufficient.</strong> Step 10's gate passed cleanly — 100%
+      completeness by its own hand-labeled required-fact list. Live
+      Capture 2 still found a real gap in what "complete" meant: the
+      resolved compliance decision itself was never stated as literal
+      text, only its supporting reasoning was. A hand-labeled gate is
+      only as good as the required-fact list a human wrote for it.</li>
+      <li><strong>Isolation and generation quality are separable
+      failure surfaces.</strong> Live Capture 1's isolation boundary held
+      perfectly — zero contamination — while the generation on the
+      isolated side still produced a real, separate defect (an
+      unsubstituted placeholder). Chapter 11 already taught this in
+      principle (a correctly-drawn boundary isn't automatically a
+      well-served one); this is what it looks like against a real
+      model's real output, not just the isolation boundary itself.</li>
+    </ol>
+  </section>
+
+  <section id="the-capstone" class="subtopic">
+    <h2>The Capstone Assignment</h2>
+    <p>
+      This chapter's own worked walkthrough is illustrative — DispatchMind
+      is already fully designed above, every recipe already correctly
+      applied, in a specific order, on your behalf. The actual L4
+      Architecture Challenge does not do that for you. It hands you a
+      second, related business problem at the same fictional company —
+      two components this time, with genuinely different traffic,
+      real-time, and reversibility profiles — and no scaffold: no
+      starter script, no provided pipeline, no filled-in ledger. You
+      design the full context engineering treatment for both components,
+      across all eleven recipes, and defend it in a written design
+      document, self-checked for structural completeness and budget
+      arithmetic, then graded qualitatively against a six-criteria
+      rubric.
+    </p>
+    <p>
+      <a href="project/index.html"><strong>Start the capstone project
+      &rarr;</strong></a> (<code>project/README.md</code> for the raw
+      business problem, <code>project/DESIGN_DOCUMENT_TEMPLATE.md</code>
+      to fill in, <code>project/RUBRIC.md</code> to self-grade against.)
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <div class="thought-process">
+      <h2>Context Engineering Builder Thought Process</h2>
+      <p><strong>What almost went wrong:</strong> the first draft of this
+      chapter's own pipeline treated Chapter 4's staleness check and
+      Chapter 3's pinning as redundant — "the waiver is already pinned in
+      Step 2, why check it again in Step 3?" Running both for real on the
+      same underlying fact showed they answer genuinely different
+      questions and can disagree correctly, which became Section 6's
+      first point rather than a bug to fix.</p>
+      <p><strong>Assumption being made:</strong> that a deterministic
+      evaluation gate passing (Step 10) means the bundle is actually
+      ready. Live Capture 2, run specifically to stress-test that
+      assumption rather than to illustrate a clean success, found a real
+      gap the hand-labeled gate missed — disclosed honestly rather than
+      cut from the chapter for spoiling a clean narrative.</p>
+      <p><strong>Why compose on one scenario instead of eleven short
+      ones:</strong> a scenario complex enough to need all eleven
+      recipes is also complex enough to show recipes interacting, not
+      just running in sequence — the staleness/pinning disagreement and
+      the isolation/generation-quality split above only exist because two
+      or more recipes touched the same fact from different angles.
+      Eleven short, single-recipe scenarios would each look clean and
+      would never surface either finding.</p>
+      <p><strong>Why this closes the course:</strong> Chapter 1 opened
+      with a single mental model — every token competes for a limited,
+      costed budget. Twelve chapters later, that budget is still Line 1
+      of Step 1's own ledger above; nothing about it changed. What
+      changed is everything built on top of it: memory, compression,
+      ordering, assembly, retrieval, tool use, multi-agent isolation, and
+      evaluation, each engineered once, each still running, unmodified,
+      inside one real turn of one real system.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>This chapter introduces no new recipe — it composes all
+        eleven from Chapters 1-12, in the order a real multi-step,
+        multi-agent turn actually runs them, on one realistic incident.</li>
+        <li>The same underlying fact can receive two different,
+        independently correct freshness verdicts from Chapter 3's
+        pinning and Chapter 4's staleness handling — they check different
+        things, and a system that only ran one would fail in a way the
+        other recipe exists specifically to prevent.</li>
+        <li>Chapter 12's deterministic evaluation gate passing is a
+        necessary floor, not a guarantee — this chapter's own live
+        capture found a real completeness gap (a resolved decision stated
+        only as supporting reasoning, never as an explicit fact) that the
+        hand-labeled gate's own required-fact list missed.</li>
+        <li>Isolation correctness (Ch. 11) and generation quality on the
+        isolated side are separable failure surfaces — a boundary can
+        hold perfectly while the agent on the isolated side still
+        produces a real, separate defect.</li>
+        <li>The capstone assignment is the L4 Architecture Challenge:
+        a fresh business problem, two components, no scaffold, self-checked
+        structurally and graded qualitatively against a rubric — see
+        <a href="project/index.html">the project</a>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model as every prior chapter
+      (<code>llama3.2:latest</code>). Two live <code>POST /api/chat</code>
+      calls were made this session, both embedded above as Live Captures
+      1 and 2. The first call (the starvation/contamination probe) ran
+      100.3 seconds cold; the second (the literal-scan completeness
+      check) ran 47.5 seconds warm — both well inside this course's
+      standing 120-second-plus timeout guidance, and no retry was needed
+      on either call, a cleaner session than Chapter 12's own (which hit
+      a call exceeding a 2-minute timeout before its first response
+      returned at all). Both captures are quoted verbatim including their
+      own imperfections — the unsubstituted <code>[eta_delay_min]</code>
+      placeholder in Capture 1 and the inferential "YES" on item 5 in
+      Capture 2 despite an explicit literal-scan-only instruction — rather
+      than edited for a cleaner narrative, the same disclosure discipline
+      every chapter since Chapter 3 has held. As in every prior chapter,
+      no graded file in this chapter's own <code>exercises/</code>,
+      <code>practice/</code>, or <code>project/</code> depends on a live
+      model call — <code>self_check.py</code> and every
+      <code>solution.py</code> in this chapter check deterministic,
+      hand-computed data only, for the same 20-second-timeout reason
+      documented since Chapter 3.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Both externally-cited sources below were fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set:</p>
+    <ol>
+      <li id="src-1">Nygard, <em>"Documenting Architecture Decisions"</em> —
+      <a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions" target="_blank" rel="noopener">cognitect.com/blog/2011/11/15/documenting-architecture-decisions</a>.
+      Fetched live this session. Defines an Architecture Decision Record
+      as a short, one-or-two-page document with a fixed structure
+      (title, context, decision, status, consequences) that preserves
+      "the motivation behind previous decisions" so a later reader
+      understands the reasoning, not only the outcome. This chapter's
+      own capstone <code>DESIGN_DOCUMENT_TEMPLATE.md</code> borrows this
+      structure directly: a stated context (the business problem and the
+      profile facts that describe it), an explicit decision (the recipe
+      depth and treatment chosen for each of the eleven recipes), and
+      stated consequences (what breaks if the profile changes) — the same
+      shape a real architecture review actually produces, not a format
+      invented for this course.</li>
+      <li id="src-2">Anthropic, <em>"Building Effective Agents"</em> —
+      <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">anthropic.com/engineering/building-effective-agents</a>.
+      Fetched live this session. States directly that composing multiple
+      simple patterns should happen deliberately, adding complexity
+      "only when it demonstrably improves outcomes," and that "success in
+      the LLM space isn't about building the most sophisticated system.
+      It's about building the <em>right</em> system for your needs."
+      This grounds Section 6's own restraint: DispatchMind's three
+      sub-agents and eleven composed recipes exist because this
+      scenario's own genuine complexity (three sub-agents, one shared
+      incident, one deliberate isolation boundary, contradicting
+      sources, a stale-vs-fresh conflict) demonstrably needs them, not
+      because more composition is inherently better — the same warning
+      this course's own capstone rubric applies to a learner's own
+      design (see <code>project/RUBRIC.md</code>'s treatment-depth
+      criteria).</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining how the full recipe stack composes, out loud —
+    see
+    <a href="interview-questions.html">Chapter 13 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="what-is">
+    <span class="label">This chapter closes the course</span>
+    Chapter 13 closes Module 6 (Evaluation and Capstone) and the entire
+    13-chapter, 6-module course. There is no Chapter 14. The capstone
+    project in <code>project/</code> is this course's own final,
+    graded deliverable — the curriculum map's literal L4 Architecture
+    Challenge.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-12-evaluating-context-quality/lesson.html">&larr; Chapter 12</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>
