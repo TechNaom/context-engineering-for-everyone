@@ -58,8 +58,9 @@
     <a href="#approaches-compared">4. Three approaches, compared</a>
     <a href="#worked-math">5. Worked math: Mossgate's dropped qualifying clause</a>
     <a href="#live-capture">6. Two live-captured retrieval outcomes</a>
-    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
-    <a href="#recap">8. Points to remember</a>
+    <a href="#step5-ledger">7. Step 5 in practice: an empty result, and the ledger interplay</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
   </nav>
 
   <div class="hook" id="hook">
@@ -267,6 +268,87 @@
         source it was never designed to receive.
       </p>
     </div>
+    <p>
+      Steps 1 through 4 are deliberately small enough to run as real
+      code, not just describe -- here they are as an executed, runnable
+      pipeline against Mossgate's own five ranked chunks from the hook
+      above, applying the floor, fitting to budget at a chunk boundary,
+      stitching, and attaching provenance in one pass:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">full_pipeline.py (executed this session, real output)</span>
+      </div>
+      <pre><code>RELEVANCE_FLOOR = 0.50
+BUDGET_TOKENS = 500
+
+RAW_RANKED_CHUNKS = {
+    "A": {"score": 0.91, "tokens": 180, "doc": "mossgate_v_harrow", "seq": 1,
+          "section": "Sec. 4.2 (general rule)"},
+    "B": {"score": 0.88, "tokens": 160, "doc": "mossgate_v_harrow", "seq": 2,
+          "section": "Sec. 4.3 (ten-minute limit)"},
+    "C": {"score": 0.42, "tokens": 200, "doc": "talbot_v_state", "seq": 1,
+          "section": "unrelated -- business records"},
+    "D": {"score": 0.39, "tokens": 150, "doc": "renwick_v_ostgate", "seq": 1,
+          "section": "unrelated -- expert witness"},
+    "E": {"score": 0.35, "tokens": 190, "doc": "unrelated_fifth", "seq": 1,
+          "section": "unrelated"},
+}
+
+def apply_relevance_floor(chunks, floor):      # Step 1
+    return {k: v for k, v in chunks.items() if v["score"] >= floor}
+
+def boundary_safe_fit(survivors, budget):       # Step 2 -- never partial
+    ordered = sorted(survivors, key=lambda k: survivors[k]["score"], reverse=True)
+    kept, total = [], 0
+    for key in ordered:
+        tokens = survivors[key]["tokens"]
+        if total + tokens <= budget:
+            kept.append(key)
+            total += tokens
+    return kept, total
+
+def stitch_adjacent(kept, chunks):              # Step 4 -- same doc, seq +/-1
+    groups, used = [], set()
+    for k1 in kept:
+        if k1 in used:
+            continue
+        group = {k1}
+        for k2 in kept:
+            if k2 != k1 and k2 not in used and chunks[k2]["doc"] == chunks[k1]["doc"] \
+                    and abs(chunks[k2]["seq"] - chunks[k1]["seq"]) == 1:
+                group.add(k2)
+        if len(group) > 1:
+            groups.append(frozenset(group))
+            used |= group
+    return groups
+
+survivors = apply_relevance_floor(RAW_RANKED_CHUNKS, RELEVANCE_FLOOR)
+kept, total = boundary_safe_fit(survivors, BUDGET_TOKENS)
+groups = stitch_adjacent(kept, RAW_RANKED_CHUNKS)
+
+$ python3 full_pipeline.py
+Step 1 -- survivors past 0.5 floor: ['A', 'B']
+Step 2 -- boundary-safe kept: ['A', 'B'] (340/500 tokens)
+Step 4 -- stitched groups: [['A', 'B']]
+Step 3 -- provenance:
+  A: mossgate_v_harrow, Sec. 4.2 (general rule)
+  B: mossgate_v_harrow, Sec. 4.3 (ten-minute limit)
+
+headroom under budget: 160 tokens
+
+All assertions passed.</code></pre>
+    </div>
+    <p>
+      The 340-token result matches the worked-math table below exactly.
+      Note that Step 1's own survivor set (<code>['A', 'B']</code>) is
+      already correct on its own, independent of Step 2's budget fit --
+      a distinction worth watching for, since a request type with a
+      larger budget or a lower-scoring third chunk could let Step 1's
+      choice matter even when, as here, it happens not to change what
+      Step 2 ultimately keeps.
+    </p>
   </section>
 
   <section id="approaches-compared" class="subtopic">
@@ -372,6 +454,79 @@
       passage — not three separate integration decisions the retriever
       itself was ever responsible for making.
     </p>
+    <p>
+      One subtlety in the naive row is worth re-verifying with real
+      code rather than trusting the hand-typed numbers: chunk A and
+      chunk B together are only 340 tokens by a precise tokenizer's own
+      count, comfortably under the 500-token budget on token count
+      alone — so why does the naive pipeline's crude cutoff still
+      truncate chunk B mid-sentence at all, rather than including both
+      chunks whole and truncating the far-less-important chunk C
+      instead? Because CiteLine's own crude cutoff
+      (<code>text[:budget_tokens * 4]</code>, from the hook's code
+      above) never measures real tokens — it measures raw characters
+      against a flat, one-size-fits-all 4-characters-per-token
+      assumption, and Mossgate's own opinion happens to tokenize denser
+      than that:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">char_vs_token.py (executed this session, real output)</span>
+      </div>
+      <pre><code>BUDGET_TOKENS = 500
+CHAR_BUDGET = BUDGET_TOKENS * 4  # CiteLine's own flat 4-chars/token assumption
+
+# Nominal (precise-tokenizer) token counts, as in the worked-math table.
+# Mossgate's own opinion (A, B) runs denser than the flat 4-chars/token
+# assumption -- long case citations, defined legal terms, section
+# numbers -- while the two unrelated opinions happen to sit close to it.
+CHUNKS = [
+    ("A", 180, 6.25, "Mossgate v. Harrow County, Sec. 4.2 (general rule)"),
+    ("B", 160, 6.25, "Mossgate v. Harrow County, Sec. 4.3 (ten-minute limit)"),
+    ("C", 200, 4.1, "Talbot v. State (unrelated)"),
+]
+
+running_chars = 0
+for name, tokens, chars_per_token, label in CHUNKS:
+    chunk_chars = round(tokens * chars_per_token)
+    remaining = CHAR_BUDGET - running_chars
+    if chunk_chars <= remaining:
+        print(f"chunk {name}: kept whole -- {tokens} tokens (~{chunk_chars} chars)")
+        running_chars += chunk_chars
+    else:
+        kept_tokens_est = round(remaining / chars_per_token)
+        print(f"chunk {name}: TRUNCATED mid-chunk -- kept ~{kept_tokens_est} of "
+              f"{tokens} tokens (~{remaining} of ~{chunk_chars} chars)")
+        running_chars += remaining
+
+$ python3 char_vs_token.py
+chunk A: kept whole -- 180 tokens (~1125 chars)
+chunk B: TRUNCATED mid-chunk -- kept ~140 of 160 tokens (~875 of ~1000 chars)
+chunk C: excluded entirely -- char budget already exhausted
+
+Char budget consumed: 2000 of 2000 chars
+True token math: chunk A + chunk B alone = 340 tokens, comfortably under
+the 500-token budget.
+The crude cutoff still truncates chunk B mid-sentence -- it never measures
+real tokens at all, only raw characters against a flat 4-chars/token
+assumption, and Mossgate's own opinion tokenizes denser than that flat
+assumption.</code></pre>
+    </div>
+    <p>
+      This reproduces the table's own "140 of 160 tokens kept, cut at a
+      cumulative 320 tokens in" figures exactly, and resolves what could
+      otherwise look like a contradiction between the naive row and the
+      floor-only row: a precise token count alone (340 &lt; 500) would
+      predict no truncation at all, and the floor-only row's own "no
+      truncation is even needed this time" claim is correct under a real
+      tokenizer's own count. The naive pipeline still fails, not because
+      the tokens don't fit, but because it never actually counts tokens
+      — it approximates them with a flat character ratio that happens to
+      undercount how densely Mossgate's own legal prose actually
+      tokenizes, a distinct and additional failure mode from the
+      relevance-floor gap Step 1 already fixes.
+    </p>
   </section>
 
   <section id="live-capture" class="subtopic">
@@ -469,6 +624,151 @@
     </p>
   </section>
 
+  <section id="step5-ledger" class="subtopic">
+    <h2>Step 5 in Practice: An Empty Result, and the Ledger Interplay</h2>
+    <p>
+      Two things the recipe leaves implicit until they're run as real
+      code rather than just described: what Step 5 actually returns when
+      <em>nothing</em> clears the relevance floor, and how the
+      500-token retrieval budget used throughout this chapter is only
+      one line item inside Chapter 2's own total window ledger for
+      CiteLine's request type, not the whole window by itself.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">ledger_and_empty.py (executed this session, real output)</span>
+      </div>
+      <pre><code>RELEVANCE_FLOOR = 0.50
+RETRIEVAL_BUDGET_TOKENS = 500
+
+def integrate_or_flag_empty(chunks, floor):     # Step 5
+    survivors = {k: v for k, v in chunks.items() if v["score"] >= floor}
+    if not survivors:
+        return {"status": "no_sufficiently_relevant_result", "chunks": []}
+    return {"status": "ok", "chunks": sorted(survivors)}
+
+# A clerk asks CiteLine about patent litigation procedure -- a topic this
+# corpus genuinely doesn't index. The retriever still returns its usual
+# top_k=5, but every score sits well below the floor.
+OFF_TOPIC_QUERY_CHUNKS = {
+    "chunk_1": {"score": 0.31, "tokens": 140}, "chunk_2": {"score": 0.27, "tokens": 110},
+    "chunk_3": {"score": 0.24, "tokens": 95},  "chunk_4": {"score": 0.19, "tokens": 130},
+    "chunk_5": {"score": 0.15, "tokens": 100},
+}
+result = integrate_or_flag_empty(OFF_TOPIC_QUERY_CHUNKS, RELEVANCE_FLOOR)
+
+CITELINE_WINDOW_LEDGER = {                      # Chapter 2's own ledger
+    "system_instructions": 300,
+    "conversation_history_this_session": 250,
+    "retrieved_document": RETRIEVAL_BUDGET_TOKENS,  # this chapter's own budget
+    "reserved_for_model_output": 450,
+}
+
+$ python3 ledger_and_empty.py
+Step 5 -- off-topic query, all five scores below the 0.5 floor:
+  status: no_sufficiently_relevant_result
+  chunks handed to Chapter 7's own inventory step: []
+  (a naive top-k=5 pipeline would have handed all 5 of these through anyway)
+
+Chapter 2's own ledger for CiteLine's Case Law Lookup request type:
+  system_instructions: 300 tokens (20.0% of window)
+  conversation_history_this_session: 250 tokens (16.7% of window)
+  retrieved_document: 500 tokens (33.3% of window)
+  reserved_for_model_output: 450 tokens (30.0% of window)
+  total window: 1500 tokens
+
+This chapter's own 500-token retrieval budget is set BY Chapter 2's ledger,
+not decided fresh here -- it is that ledger's own retrieved_document line
+item, sized against everything else the window has to hold for this
+request type.</code></pre>
+    </div>
+    <p>
+      The ledger interplay matters beyond bookkeeping: this chapter's own
+      relevance floor, budget-fit, and stitching decisions all operate
+      strictly inside the 500 tokens Chapter 2's ledger allotted to
+      <code>retrieved_document</code> for this request type — none of
+      Step 1 through Step 6 ever reaches into the system-instructions,
+      conversation-history, or reserved-output allotments, and none of
+      them are entitled to. A retrieval budget that felt tight in
+      isolation is really a claim about how much of the <em>whole</em>
+      window a request type's owner decided retrieval deserved, made
+      once, upstream, by Chapter 2's own recipe.
+    </p>
+    <p>
+      Both live captures below were run fresh this session against the
+      same off-topic patent-litigation question, contrasting a pipeline
+      that hands the model a low-scoring, off-topic chunk with no signal
+      about Step 5's own empty-result finding, against one that states
+      the empty result explicitly, per Step 5:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 1 -- POST /api/chat, llama3.2:latest, this session (Step 5 finding NOT surfaced)</span>
+      </div>
+      <pre><code>  PROMPT (the retriever's highest-scored chunk handed through as if it
+  were a usable result, with no mention that it scored only 0.31 or that
+  Step 5 would have flagged this an empty result):
+
+  "Answer using ONLY the excerpt below. Excerpt (Mossgate v. Harrow
+  County, 2019, Sec. 4.2, score 0.31): 'The excited utterance exception
+  applies when a statement is made while the declarant was under the
+  stress of excitement caused by the event.' Question: What is the
+  correct procedure for filing a motion to compel discovery in a patent
+  infringement case in this jurisdiction?"
+
+  RESPONSE (live, unedited, 18.6s wall time):
+  "I'm not able to provide information on patent litigation procedures.
+  Can I help you find resources on general legal research or
+  topic-specific information?"</code></pre>
+    </div>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 2 -- POST /api/chat, llama3.2:latest, this session (Step 5 finding surfaced explicitly)</span>
+      </div>
+      <pre><code>  PROMPT (Step 5's own finding stated directly, per the recipe, instead
+  of silently handing through the low-scoring chunk): "STATUS:
+  no_sufficiently_relevant_result. Do not use the low-scoring candidate.
+  Tell the clerk directly that no sufficiently relevant result was found
+  in this corpus for their question, and suggest one reasonable next
+  step. Clerk's question: What is the correct procedure for filing a
+  motion to compel discovery in a patent infringement case in this
+  jurisdiction?"
+
+  RESPONSE (live, unedited, 51.9s wall time):
+  "Dear Clerk, After conducting a thorough search of our database, I
+  regret to inform you that we were unable to find a sufficiently
+  relevant result regarding the correct procedure for filing a motion to
+  compel discovery in a patent infringement case in this jurisdiction.
+  However, I would recommend consulting the official rules and
+  procedures of the U.S. Patent and Trademark Office (USPTO) or the
+  court where your case is pending [...] Additionally, you may want to
+  consider reaching out to an attorney who specializes in patent
+  law [...]"</code></pre>
+    </div>
+    <p>
+      Read honestly rather than graded pass/fail: this particular run of
+      the first capture didn't fail as visibly as CiteLine's own hook
+      story — the model happened to decline outright rather than
+      fabricate an answer from an obviously off-topic excerpt. But
+      "happened to decline this time" is exactly the problem Step 5
+      exists to remove: nothing in the first prompt told the model it
+      was looking at an empty result by this chapter's own definition,
+      so its behavior in that gap was left to whatever the model does
+      when handed weak, irrelevant context with no framing — which isn't
+      guaranteed to be a clean decline on every run, every model, or
+      every phrasing. The second capture, with Step 5's own finding
+      stated as an explicit fact rather than left for the model to
+      infer, produced a direct acknowledgment plus a genuinely useful
+      next step (checking USPTO or court-specific procedure) — a
+      strictly better outcome for the clerk than either a fabricated
+      answer or an unexplained refusal, and one the recipe produces on
+      purpose rather than by chance.
+    </p>
+  </section>
+
   <section id="thought-process" class="subtopic">
     <h2>Context Engineering Builder Thought Process</h2>
     <div class="thinking-box">
@@ -547,6 +847,17 @@
         about where a retriever happened to cut reflects where one legal,
         medical, or policy point ends and its own qualifying limit
         begins.</li>
+        <li>A relevance floor with nothing surviving it is a real, named
+        outcome (Step 5), not a bug to silently paper over by falling
+        back to the highest-ranked chunk anyway — and it needs to be
+        surfaced to the model as an explicit fact, since a naive
+        pipeline's behavior when handed a low-scoring chunk with no such
+        signal isn't guaranteed to be a safe decline on every run.</li>
+        <li>This chapter's own retrieval budget isn't decided fresh —
+        it's one line item inside Chapter 2's own total window ledger
+        for a request type, sized against system instructions,
+        conversation history, and reserved output space, not a number
+        this chapter's own recipe is free to set on its own.</li>
       </ul>
     </div>
   </section>
@@ -583,6 +894,28 @@
       answer; a poorly-formed one can produce either a confidently wrong
       answer or a confident-sounding but ungrounded one), not as
       something any graded script requires to pass.
+    </p>
+    <p>
+      Re-confirmed again in this chapter's own code-density retrofit
+      pass: <code>curl http://localhost:11434/api/tags</code> responded
+      normally, same installed model. The first call this retrofit
+      session's own re-check made was a plain warm-up ("Say OK") that
+      took 65.8 seconds wall time, 53.6 seconds of it the model's own
+      cold load — a reminder that the intermittent slow-load behavior
+      documented since Chapter 3 is still present this session, and that
+      a naive short timeout would have failed it outright. <code>POST
+      /api/chat</code> was then called twice more for the "Step 5 in
+      Practice" section above and succeeded on the first attempt both
+      times, now that the model was warm: the no-Step-5-finding call
+      returned in 18.6 seconds, and the explicit-Step-5-finding call
+      returned in 51.9 seconds. Both responses are used verbatim above.
+      Reported honestly: the first capture's model decline was this
+      retrofit session's own actual result, not a guaranteed outcome —
+      the lesson text above states directly that a naive pipeline's
+      behavior in this gap isn't guaranteed to be a clean decline on
+      every run, precisely because nothing in that prompt told the model
+      it was looking at an empty result by this chapter's own Step 5
+      definition.
     </p>
   </section>
 

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 4 Project: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to design Quartzfield Regional Public Defender Consortium's BriefLine retrieval-integration + source-assembly pipeline, then critique its plausible-but-flawed design -- catching a self-decided relevance floor, a skipped stitch, and a fully-dropped source that should have stayed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-08">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the project</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Module 4 Project &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>This is Module 4's own closing L3 Independent project, drawing on <strong>both</strong> chapters this module built: Chapter 8's own Retrieval Integration Recipe (Part 1) and Chapter 7's Source Assembly Recipe (Part 2) — see <a href="README.md">the project README</a> and <a href="RUBRIC.md">RUBRIC.md</a>'s seven graded criteria. You already designed Quartzfield Regional Public Defender Consortium's BriefLine pipeline yourself in <code>starter.py</code>. Now the same two-part design gets produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's design before it ships to production.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same <code>RAW_RANKED_CHUNKS</code> and <code>CANDIDATE_SOURCES</code> spec <code>starter.py</code> gives you, and asks for a complete Part 1 + Part 2 design plus a budget check.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Quartzfield Regional Public Defender Consortium's pre-hearing brief
+assistant, BriefLine, needs a retrieval-integration + source-assembly
+design.
+
+PART 1 (retrieval integration): the retriever returned five ranked,
+scored chunks. Relevance floor is 0.55, retrieval budget is 380 tokens.
+
+- chunk_guideline_base_range: score 0.94, 160 tokens, doc guideline_7B,
+  seq 3
+- chunk_guideline_departure_clause: score 0.89, 130 tokens, doc
+  guideline_7B, seq 4 (the paragraph immediately after the base range)
+- chunk_prior_case_precedent: score 0.62, 120 tokens, doc
+  case_precedent_501, seq 1
+- chunk_unrelated_procedural_note: score 0.41, 90 tokens, doc
+  admin_manual_2, seq 9
+- chunk_unrelated_fee_schedule: score 0.28, 70 tokens, doc
+  admin_manual_2, seq 12
+
+Tell me: which chunks survive the relevance floor, which are kept once
+fit to the 380-token budget at a chunk boundary (never partially
+include one), which should be stitched together, and the provenance for
+each kept chunk.
+
+PART 2 (source assembly): Part 1's own resolved output becomes one of
+four candidate sources for the same request, alongside a live
+docket-status check that CONTRADICTS it on whether a sentencing
+departure exception currently applies (the retrieved guideline
+commentary says it applies; the live check says it was superseded by
+statute last month), a conversation-history source, and a
+system-instructions source. Authority ranking: system_instructions=4,
+live_tool_output=3, conversation_history=2, retrieved_document=1.
+Window budget is 500 tokens.
+
+Tell me: is there a genuine contradiction, which source wins it, which
+sources should remain in the final assembled window, and whether the
+result fits the 500-token budget.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of answer an AI assistant might hand back on the first try, each choice sounding reasonable on its own. Read it the way you'd read a colleague's design before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_design.md (as handed back)</span>
+    </div>
+    <pre><code>PART 1 -- retrieval integration
+
+Relevance floor: the two guideline chunks (0.94, 0.89) are clearly the
+core of this request, and 0.62 for the precedent chunk is a meaningful
+step down in relevance from those two -- I'd treat 0.7 as the
+practical floor here rather than the stated 0.55, so only the two
+guideline chunks survive. The 0.62 precedent chunk doesn't add enough
+to be worth carrying alongside the other two.
+
+Boundary-safe fit: with only the two guideline chunks as candidates,
+both fit easily under 380 tokens (160 + 130 = 290), no truncation
+needed.
+
+Stitching: not necessary here -- both chunks are already going to be
+kept together in the same result set in score order, so they'll read
+as one continuous block by construction. Explicit stitching would be
+redundant with the ordering.
+
+Provenance: chunk_guideline_base_range -> guideline_7B, Sec. 3 (base
+range). chunk_guideline_departure_clause -> guideline_7B, Sec. 4
+(departure clause).
+
+PART 2 -- source assembly
+
+Yes, a genuine contradiction: the retrieved guideline commentary says
+the departure exception applies; the live docket-status check says it
+was superseded last month. Per the authority ranking, live_tool_output
+(rank 3) outranks retrieved_document (rank 1), so the live check wins.
+
+Since the retrieved document lost the authority contest on its central
+claim, I'd drop it from the final assembled window entirely and keep
+the other three sources: live_docket_status_check (45 tokens),
+conversation_history_this_session (80 tokens), and
+office_practice_standard (60 tokens).
+
+Budget check: 45 + 80 + 60 = 185 tokens, well within the 500-token
+window budget, with 315 tokens of headroom to spare.</code></pre>
+  </div>
+
+  <p>It reads fluently, and each choice comes with a specific-sounding justification. It's also wrong in three separate, genuinely easy-to-miss ways — and running the equivalent values through <code>starter.py</code>'s own <code>check_part1_floor()</code>, <code>check_part1_stitch()</code>, and <code>check_part2_budget()</code> would catch all three immediately, precisely because those checks compare against the given floor and given claim-resolution rule rather than trusting a design's own prose.</p>
+
+  <h2>Step 2: Where did the AI's design lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; the AI quietly re-decides the relevance floor instead of applying the one it was given</span>
+      <p><strong>What it looks like it does:</strong> "0.62 ... is a meaningful step down in relevance from those two -- I'd treat 0.7 as the practical floor here rather than the stated 0.55" sounds like a reasonable, experienced judgment call about where relevance really drops off.</p>
+      <p><strong>What it actually does:</strong> Step 1 of the Retrieval Integration Recipe is "apply a relevance floor before selecting anything" — a floor decided once per request type, and 0.55 was given as that decision, not left open for a fresh opinion at selection time. <code>chunk_prior_case_precedent</code> scores 0.62, which clears the given 0.55 floor cleanly; substituting a private 0.7 floor excludes a chunk the recipe says should survive Step 1, even though — as Flaw 1's own downstream effect shows — it happens not to change which chunks are ultimately kept once Step 2's budget fit runs (0.62's 120 tokens still wouldn't fit after the two guideline chunks' 290 tokens, since 290 + 120 = 410 exceeds the 380-token budget). That makes this flaw easy to wave off as harmless, but Step 1 and Step 2 are separate steps for a reason: a future request type with a larger budget, or a different set of chunks where the precedent chunk would have fit, would have silently and permanently dropped a chunk the recipe's own given floor says belongs in the survivor set.</p>
+      <p><strong>Why it matters:</strong> <code>check_part1_floor()</code> compares <code>PART1_SURVIVORS</code> directly against every chunk scoring at or above <code>RELEVANCE_FLOOR</code> (0.55) and reports an error for any mismatch — this flaw fails RUBRIC.md's criterion 1 outright (0-2 points instead of 4), independent of whether the final kept-chunk list happens to end up the same.</p>
+      <p><strong>The fix:</strong> a given relevance floor is exactly that — given. Step 1's job is applying it, not opining on whether it feels right for a particular chunk; if 0.55 genuinely seems wrong for this request type, that's a conversation to have with whoever owns the request-type configuration, not a silent substitution made mid-pipeline.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; stitching gets skipped because "they're already together in the result set"</span>
+      <p><strong>What it looks like it does:</strong> "not necessary here -- both chunks are already going to be kept together in the same result set in score order... explicit stitching would be redundant with the ordering" sounds like a reasonable efficiency argument — why do extra work if the outcome looks the same either way?</p>
+      <p><strong>What it actually does:</strong> this conflates two different things — sitting adjacent to each other in a list, and being represented as one contiguous, provenance-tagged passage. Step 4 exists specifically because <code>chunk_guideline_base_range</code> (seq 3) and <code>chunk_guideline_departure_clause</code> (seq 4) are the same paragraph and the one immediately following it in <code>guideline_7B</code> — two fragments of one continuous passage, not two independent chunks that merely happen to be adjacent in a result list. "Kept in the same order" says nothing about whether a downstream reader (or Chapter 7's own Step 1 inventory) understands them as one continuous excerpt versus two separately-scored, separately-citable fragments — exactly the distinction Chapter 8's own hook story turns on with Mossgate's general rule and its qualifying clause.</p>
+      <p><strong>Why it matters:</strong> <code>check_part1_stitch()</code> checks explicitly for <code>frozenset({"chunk_guideline_base_range", "chunk_guideline_departure_clause"})</code> in <code>PART1_STITCHED_GROUPS</code> and reports an error if it's missing — this flaw fails RUBRIC.md's criterion 3 outright (0-2 points instead of 4, since provenance is still present in this design). It's a quiet failure precisely because "they'll be next to each other anyway" sounds true and is beside the point.</p>
+      <p><strong>The fix:</strong> stitching is a data-structure decision, not a display-order decision — two chunks belong in one merged, jointly-cited passage exactly when they're consecutive fragments of the same source document, regardless of what order the result list happens to present them in.</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; a source that lost one contested claim gets dropped from the window entirely</span>
+      <p><strong>What it looks like it does:</strong> "since the retrieved document lost the authority contest on its central claim, I'd drop it from the final assembled window entirely" sounds like a clean, decisive resolution — the loser of the contest doesn't make the cut.</p>
+      <p><strong>What it actually does:</strong> the retrieved document isn't a single claim — it's a stitched, provenance-tagged passage carrying both the sentencing base range (uncontested, still valid) and the departure-clause commentary (the specific claim that lost the authority contest). Chapter 7's own Step 5/6 resolves a <em>contested claim</em>, not an entire source, when only one of a source's claims is actually in dispute; the base-range content was never contradicted by anything and remains exactly as valid and citable as it was before the docket-status check ever ran. Dropping the whole source treats "this source lost one specific factual claim" as if it meant "this source is now untrustworthy," which is a different and much stronger conclusion than the authority ranking actually supports.</p>
+      <p><strong>Why it matters:</strong> <code>check_part2_budget()</code> checks that <code>PART2_SOURCES_RETAINED</code> includes every key in <code>CANDIDATE_SOURCES</code> (no source needs dropping outright here) and reports exactly which ones are missing — this flaw fails RUBRIC.md's criterion 6 outright (0 points, since a retained set that incorrectly drops a source that should stay is the rubric's explicit 0-point case), and it also understates the assembled budget (185 of 500 tokens reported, versus the correct 475 of 500) in a way that looks conservative and safe but is actually just wrong — the missing ~290 tokens are the retrieved document's own still-valid base-range content, silently dropped from the brief.</p>
+      <p><strong>The fix:</strong> resolve the claim, not the source. When only one specific claim inside a multi-claim source is contested and loses, the resolution is "treat that specific claim as superseded" — the rest of the source's content, untouched by the contradiction, stays exactly as valid as it was, and the source itself stays in the assembled window.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly identified that both guideline chunks fit the 380-token budget without any truncation, correctly attached accurate provenance to both kept chunks, correctly detected the genuine contradiction between the retrieved document and the live docket-status check, and correctly resolved that contradiction in favor of the live tool output using the given authority ranking (rank 3 over rank 1) — the single hardest judgment call in the whole design. If you'd accepted the whole design uncritically, you'd have shipped a pipeline that gets the budget fit and the authority resolution itself right, while quietly narrowing the relevance floor on its own authority, skipping an explicit stitch it talked itself out of needing, and discarding an entire source's worth of still-valid content over one superseded claim. That mix — the hardest reasoning step done correctly, the three "should be mechanical" steps each done wrong in a different, plausible-sounding way — is a more realistic picture of pairing with an AI on this project's own two-part design than either "trust it completely" or "distrust it completely."</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 3 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'A given relevance floor or authority ranking is a decision to apply, not re-litigate' or 'Resolve the contested claim, not the whole source it came from'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Project</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>
