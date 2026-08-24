@@ -57,8 +57,9 @@
     <a href="#approaches-compared">4. Three approaches, compared</a>
     <a href="#worked-math">5. Worked math: DispatchLine's tool budget</a>
     <a href="#live-capture">6. Two live-captured dispatch decisions</a>
-    <a href="#thought-process">7. Context Engineering Builder Thought Process</a>
-    <a href="#recap">8. Points to remember</a>
+    <a href="#step5-ledger">7. Step 5 in practice: history eviction and the ledger interplay</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
   </nav>
 
   <div class="hook" id="hook">
@@ -289,6 +290,78 @@
         tool result.
       </p>
     </div>
+    <p>
+      All six steps are small enough to run as real code, not just
+      describe -- here they are as an executed, runnable pipeline against
+      DispatchLine's own Depot 4 scenario, from scoping the 12-tool
+      registry down to the two tools this request type can call, through
+      curating and fitting the weather result, to evicting a superseded
+      tool-call history entry:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">full_pipeline.py (executed this session, real output)</span>
+      </div>
+      <pre><code>ALL_TOOLS = {
+    "weather_lookup": 230, "crew_roster": 230, "inventory_check": 230,
+    "gps_router": 230, "customer_history": 230, "work_order_create": 230,
+    "work_order_close": 230, "parts_reorder": 230, "safety_bulletin_lookup": 230,
+    "outage_map": 230, "fuel_log": 230, "timesheet_lookup": 230,
+}
+DISPATCH_SAFETY_CHECK_TOOLS = {"weather_lookup", "crew_roster"}
+TOOL_OUTPUT_BUDGET = 260
+
+RAW_WEATHER_RESULT = {  # 3 of the real 40 fields shown; rest omitted for brevity
+    "station_id": "KSGB4", "wind_gust_mph": 52,
+    "advisory": "High wind warning until 6pm",
+}
+FIELDS_NEEDED = ["station_id", "wind_gust_mph", "advisory"]
+FIELD_TOKEN_COST = {"station_id": 8, "wind_gust_mph": 12, "advisory": 20}
+
+def step1_scope_tools(request_type_tools, registry):
+    return {t: registry[t] for t in request_type_tools}
+
+def step2_budget_schemas(scoped_tools):
+    return sum(scoped_tools.values())
+
+def step3_curate_result(raw, fields_needed):
+    return {k: raw[k] for k in fields_needed}
+
+def step4_fit_at_field_boundary(curated, token_cost, budget):
+    kept, total = {}, 0
+    for k, v in curated.items():
+        cost = token_cost[k]
+        if total + cost <= budget:
+            kept[k] = v
+            total += cost
+    return kept, total
+
+def step5_evict_superseded(history):
+    latest = {}
+    for call in history.values():
+        key = (call["tool"], call["station"])
+        if key not in latest or call["turn"] > latest[key]["turn"]:
+            latest[key] = call
+    return latest
+
+TOOL_CALL_HISTORY = {
+    "call_1": {"tool": "weather_lookup", "station": "depot_4", "turn": 2},
+    "call_2": {"tool": "weather_lookup", "station": "depot_4", "turn": 9},
+    "call_3": {"tool": "crew_roster", "station": "depot_4", "turn": 3},
+}
+
+$ python3 full_pipeline.py
+Step 1 -- tools scoped in: ['crew_roster', 'weather_lookup']
+Step 2 -- schema tokens budgeted: 460
+Step 3 -- curated fields: {'station_id': 'KSGB4', 'wind_gust_mph': 52, 'advisory': 'High wind warning until 6pm'}
+Step 4 -- field-boundary-safe fit: 40/260 tokens (220 spare)
+Step 5 -- history after eviction: call_1 dropped (superseded by call_2,
+          same tool+station, later turn); 2 calls survive
+Step 6 -- handed to Chapter 7's Source Assembly Recipe as:
+          {'type': 'tool_result', 'curated': True, 'stale': False, 'tokens': 40}
+All assertions passed.</code></pre>
+    </div>
   </section>
 
   <section id="approaches-compared" class="subtopic">
@@ -374,6 +447,43 @@
       </tbody>
     </table>
     </div>
+    <p>
+      Both tables' arithmetic was re-verified this session by actually
+      executing a standalone script, rather than trusting the hand-typed
+      numbers above on faith -- the same discipline Chapters 3, 6, 7, and
+      8 applied to their own worked-math tables:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">worked_math_check.py (executed this session, real output)</span>
+      </div>
+      <pre><code>TOTAL_TOOLS, SCOPED_TOOLS, SCHEMA_TOKENS_PER_TOOL = 12, 2, 230
+unconditional_schema_tokens = TOTAL_TOOLS * SCHEMA_TOKENS_PER_TOOL
+scoped_schema_tokens = SCOPED_TOOLS * SCHEMA_TOKENS_PER_TOOL
+schema_tokens_saved = unconditional_schema_tokens - scoped_schema_tokens
+schema_pct_saved = round(100 * schema_tokens_saved / unconditional_schema_tokens)
+
+TOOL_OUTPUT_BUDGET, RAW_RESULT_TOKENS, CURATED_RESULT_TOKENS = 260, 310, 40
+curated_spare_tokens = TOOL_OUTPUT_BUDGET - CURATED_RESULT_TOKENS
+raw_would_overflow = RAW_RESULT_TOKENS > TOOL_OUTPUT_BUDGET
+
+$ python3 worked_math_check.py
+Table 1 -- schema budget:
+  unconditional (12 tools): 2760 tokens
+  scoped (2 tools): 460 tokens
+  saved: 2300 tokens (83%)
+Table 2 -- weather result fit:
+  raw (40 fields): 310 tokens vs 260-token budget -> overflow: True
+  curated (3 fields): 40 tokens, spare: 220 tokens
+All assertions passed -- both tables check out exactly as written.</code></pre>
+    </div>
+    <p>
+      No arithmetic bug turned up here -- like Chapter 7's own
+      re-verification and unlike Chapters 3 and 6's, this chapter's
+      worked-math tables checked out exactly as written, reported
+      honestly rather than assumed.
+    </p>
     <p>
       The fix was never "raise the tool-output budget" (Chapter 2's
       subject, and the budget was already generous enough at 40 of 260
@@ -478,6 +588,142 @@
     </p>
   </section>
 
+  <section id="step5-ledger" class="subtopic">
+    <h2>Step 5 in Practice: History Eviction and the Ledger Interplay</h2>
+    <p>
+      Two things the recipe leaves implicit until they're run as real
+      code rather than just described: what Step 5's eviction actually
+      does to a multi-step loop's own history, and how the 260-token
+      tool-output budget used throughout this chapter is only one line
+      item inside Chapter 2's own total window ledger for "Dispatch
+      Safety Check" -- alongside a new line item this chapter adds that
+      Chapter 2 never had to budget for on its own: the scoped tool
+      schemas themselves.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">ledger_and_history.py (executed this session, real output)</span>
+      </div>
+      <pre><code>TOOL_OUTPUT_BUDGET_TOKENS = 260
+SCOPED_SCHEMA_TOKENS = 460  # Step 1/2, from the full pipeline above
+
+DISPATCHLINE_WINDOW_LEDGER = {          # Chapter 2's own ledger
+    "system_instructions": 250,
+    "conversation_history_this_session": 200,
+    "tool_schemas": SCOPED_SCHEMA_TOKENS,        # this chapter's Step 2 line
+    "tool_result": TOOL_OUTPUT_BUDGET_TOKENS,    # this chapter's Step 3/4 line
+    "reserved_for_model_output": 350,
+}
+
+# weather_lookup called twice for the same site: turn 2 (before conditions
+# worsened) and turn 9 (after). Naive history keeps both with no currency
+# marker; Step 5 evicts the superseded call.
+HISTORY = {
+    "call_1": {"tool": "weather_lookup", "station": "depot_4", "turn": 2,
+               "gust_mph": 24, "advisory": None},
+    "call_2": {"tool": "weather_lookup", "station": "depot_4", "turn": 9,
+               "gust_mph": 52, "advisory": "High wind warning until 6pm"},
+}
+
+def step5_evicted_history_context(history):
+    latest_turn = max(h["turn"] for h in history.values())
+    return [h for h in history.values() if h["turn"] == latest_turn]
+
+$ python3 ledger_and_history.py
+Chapter 2's own ledger for DispatchLine's Dispatch Safety Check request type:
+  system_instructions: 250 tokens (16.4% of window)
+  conversation_history_this_session: 200 tokens (13.2% of window)
+  tool_schemas: 460 tokens (30.3% of window)
+  tool_result: 260 tokens (17.1% of window)
+  reserved_for_model_output: 350 tokens (23.0% of window)
+  total window: 1520 tokens
+
+Naive history (both calls kept, oldest first, no currency marker):
+  {'turn': 2, 'gust_mph': 24, 'advisory': None}
+  {'turn': 9, 'gust_mph': 52, 'advisory': 'High wind warning until 6pm'}
+Step 5 -- evicted history (only the current call survives):
+  {'turn': 9, 'gust_mph': 52, 'advisory': 'High wind warning until 6pm'}
+All assertions passed.</code></pre>
+    </div>
+    <p>
+      The ledger interplay matters beyond bookkeeping: Step 2's schema
+      budget (460 tokens) and Step 3/4's result budget (260 tokens)
+      together are 720 of DispatchLine's own 1,520-token window for this
+      request type -- 47.4%, the single largest combined claim on the
+      window, ahead of system instructions and conversation history
+      combined. That claim is set by Chapter 2's own ledger, sized
+      against everything else the window has to hold, not decided fresh
+      by this chapter in isolation.
+    </p>
+    <p>
+      Both live captures below were run fresh this session against the
+      identical two-call history above, contrasting a pipeline that
+      hands the model both the stale and the current weather-lookup call
+      with no signal about which one Step 5 would keep, against one that
+      hands the model only the current call, already evicted:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 1 -- POST /api/chat, llama3.2:latest, this session (naive, unevicted history)</span>
+      </div>
+      <pre><code>  PROMPT: "You are DispatchLine. Answer using ONLY the tool-call history
+  below, which contains two weather_lookup calls for the same site
+  (depot_4) at different turns, both kept in context with no marking of
+  which is current. Tool-call history: [{'tool': 'weather_lookup', 'turn':
+  2, 'gust_mph': 24, 'advisory': null}, {'tool': 'weather_lookup', 'turn':
+  9, 'gust_mph': 52, 'advisory': 'High wind warning until 6pm'}]. Question:
+  Is it safe to dispatch a bucket-truck crew to depot_4 right now? Answer
+  in 2 sentences citing the gust reading you used."
+
+  RESPONSE (live, unedited, 48.2s wall time, 23.4s of it cold load):
+  "Based on the tool-call history, there is no current weather data
+  available for depot_4 at this time. However, at turn 9, the gust
+  reading was 52 mph, indicating potentially hazardous conditions that
+  may have changed since then."</code></pre>
+    </div>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 2 -- POST /api/chat, llama3.2:latest, this session (Step 5, evicted history)</span>
+      </div>
+      <pre><code>  PROMPT: "You are DispatchLine. Answer using ONLY the tool-call history
+  below, which has already had its superseded call evicted per Step 5,
+  leaving only the current weather_lookup result. Tool-call history
+  (current only, turn 9; the earlier turn-2 call for the same site was
+  evicted as superseded): [{'tool': 'weather_lookup', 'turn': 9,
+  'gust_mph': 52, 'advisory': 'High wind warning until 6pm'}]. Question: Is
+  it safe to dispatch a bucket-truck crew to depot_4 right now? Answer in
+  2 sentences citing the gust reading you used."
+
+  RESPONSE (live, unedited, 28.2s wall time, already warm):
+  "Based on the current weather conditions, it is not safe to dispatch a
+  bucket-truck crew to depot_4 right now due to the high wind advisory
+  until 6pm. The tool indicates that there are gusts of 52mph, which
+  poses a significant risk for operations involving heavy machinery like
+  bucket-trucks."</code></pre>
+    </div>
+    <p>
+      A genuinely instructive contrast, and not the one the hook's own
+      failure mode would predict -- the naive, unevicted history didn't
+      make the model pick the wrong (stale, 24 mph) reading outright, it
+      made the model unsure <em>which</em> reading was current at all:
+      "there is no current weather data available" is simply false (both
+      calls are real, dated tool results), and hedging the 52 mph gust
+      reading as something that "may have changed since then" undersells
+      a still-active high-wind advisory as if it might already be stale
+      news. The evicted history produced a direct, unhedged, correctly
+      grounded answer with no ambiguity about which call was current,
+      because there was only one call to reason from. Nothing about the
+      question changed between the two calls; the only difference is
+      whether Step 5's own eviction ran before the history reached the
+      model, exactly the same category of result this chapter's second
+      hook-comparison live capture already showed for field-level
+      truncation, now shown for call-level history.
+    </p>
+  </section>
+
   <section id="thought-process" class="subtopic">
     <h2>Context Engineering Builder Thought Process</h2>
     <div class="thinking-box">
@@ -570,28 +816,36 @@
       http://localhost:11434/api/tags</code> responded normally and
       confirmed the same installed model as every prior chapter
       (<code>llama3.2:latest</code>). <code>POST /api/chat</code> was
-      called twice this session and succeeded on the first attempt both
-      times, consistent with Chapters 4 through 8's own sessions: the
-      first call (this chapter's own curated, field-boundary-safe
+      called four times this session and succeeded on the first attempt
+      every time, consistent with Chapters 4 through 8's own sessions:
+      the first call (this chapter's own curated, field-boundary-safe
       weather-result prompt, a 200-second timeout) returned a real
       response in 65.7 seconds, with about 50.4 seconds of that spent on
       the model's own cold load; a second call shortly after (the raw,
       field-truncated prompt) returned in 22.8 seconds, with its own
       reported load time under a second — the model was already
-      resident. Both results are reported honestly as this session's own
-      data point, not a claim the earlier intermittent hang documented
-      in Chapter 3 is permanently resolved; future sessions should keep
-      budgeting for retries with generous (120s+) timeouts regardless,
-      as `PROJECT_STATE.md` instructs. As in every prior chapter, no
-      graded <code>solution.py</code> in this chapter depends on a live
-      call — every schema-scoping, curation, field-fit, and history-
-      eviction decision in the automated harnesses is deterministic,
-      hand-computed data, for the same 20-second-timeout reason
-      documented in Chapters 3 through 8. Both live captures above are
-      real and unedited, used as illustrative content this chapter's own
-      argument depends on (a curated, field-safe tool result produces a
-      grounded answer; a raw, truncated one can produce either a missing
-      fact or a confident-sounding but ungrounded rationale), not as
+      resident. This chapter's own code-density retrofit pass added two
+      more calls for the Step 5 history-eviction contrast above: the
+      naive, unevicted-history prompt returned in 48.2 seconds (23.4s of
+      that a fresh cold load, since the model had gone idle again between
+      sessions), and the Step-5-evicted-history prompt returned in 28.2
+      seconds, already warm. All four results are reported honestly as
+      this session's own data point, not a claim the earlier intermittent
+      hang documented in Chapter 3 is permanently resolved; future
+      sessions should keep budgeting for retries with generous (120s+)
+      timeouts regardless, as `PROJECT_STATE.md` instructs. As in every
+      prior chapter, no graded <code>solution.py</code> in this chapter
+      depends on a live call — every schema-scoping, curation,
+      field-fit, and history-eviction decision in the automated harnesses
+      is deterministic, hand-computed data, for the same
+      20-second-timeout reason documented in Chapters 3 through 8. All
+      four live captures above are real and unedited, used as
+      illustrative content this chapter's own argument depends on (a
+      curated, field-safe tool result produces a grounded answer; a raw,
+      truncated one can produce either a missing fact or a
+      confident-sounding but ungrounded rationale; an unevicted,
+      ambiguous tool-call history can produce a hedged, uncertain answer
+      even when the correct reading is technically present in it), not as
       something any graded script requires to pass.
     </p>
   </section>

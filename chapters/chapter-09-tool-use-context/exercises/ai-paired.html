@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 9: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to complete RelayLine's Tool Context Recipe exercises, then critique its plausible-but-flawed answers -- catching a scope creep that adds an unneeded tool, a curation call optimized for general usefulness instead of the decision at hand, a field-fit that reproduces the hook's own truncation failure, and a history-eviction rule that ignores station identity.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-09">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 9 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>This chapter ships no standalone project of its own — per the curriculum map's project ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8, L4 the Ch. 13 capstone), Module 5 carries no dedicated project slot at all, and its own two labs fold directly into the Ch. 13 capstone instead, confirmed in this chapter's own quality audit. What this chapter <em>does</em> have is its own real, gradable work: the <a href="index.html">Kestrel Regional Grid Operations Cooperative / RelayLine exercises</a>, whose <code>solution.py</code> and <code>starter.py</code> mechanically score eight tasks. That gradable harness is this page's stand-in for a rubric. You already did this work yourself in the exercises. Now the same scoping, curation, field-fit, and history-eviction tasks get produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's answer before it ships to a grid-dispatch system.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same RelayLine spec <code>starter.py</code> gives you, and asks for answers to four of the eight tasks: request-type tool scoping and schema budget (Exercise 3), result curation (Exercise 4), field-boundary-safe budget fit (Exercise 5), and tool-call history eviction (Exercise 6).</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Kestrel Regional Grid Operations Cooperative's dispatcher-support
+assistant, RelayLine, has nine registered tools. Their schema token
+costs: substation_status=210, load_forecast=240, crew_roster=220,
+outage_map=260, weather_alert=230, breaker_history=250,
+maintenance_ticket_create=200, fuel_reserve=190, vendor_contact=180.
+The "Substation Overload Risk Check" request type actually calls
+exactly two of these: substation_status and load_forecast.
+
+TASK A (schema scoping and budget): what's the unconditional total
+(all 9 tools), the scoped total for this request type, and the tokens
+saved?
+
+TASK B (result curation): the substation_status tool returns 11 raw
+fields: station_id, region, voltage_class_kv, current_load_pct,
+capacity_mva, last_inspection_date, breaker_status, active_alert,
+maintenance_crew_assigned, gps_coordinates, asset_age_years. An
+"Overload Risk Check" decides whether a substation is at risk of
+exceeding safe capacity right now. Which fields does this request type
+actually need kept?
+
+TASK C (field-boundary-safe budget fit): given a 30-token result
+budget and these per-field token costs -- active_alert=14,
+station_id=8, breaker_status=6, current_load_pct=6 -- which fields fit,
+keeping only whole fields, highest-priority first, never truncating
+mid-field?
+
+TASK D (tool-call history eviction): four calls in one multi-step
+loop -- call_1: substation_status, station KGRD-14, turn 2. call_2:
+load_forecast, station KGRD-14, turn 3. call_3: substation_status,
+station KGRD-14, turn 9. call_4: substation_status, station KGRD-9,
+turn 10. Which calls are superseded (should be evicted) and which are
+still current?
+
+Give me your answer and a short reason for each task.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of answer an AI assistant might hand back on the first try, each one sounding reasonable on its own. Read it the way you'd read a colleague's draft before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_answers.md (as handed back)</span>
+    </div>
+    <pre><code>TASK A -- schema scoping and budget
+Unconditional total (all 9 tools): 1,980 tokens.
+Scoped total: I'd include substation_status (210), load_forecast (240),
+and weather_alert (230) -- overload risk often correlates with severe
+weather, so it makes sense to have that tool available too. Scoped
+total: 680 tokens. Tokens saved: 1,980 - 680 = 1,300 tokens.
+
+TASK B -- result curation
+Keep: station_id, region, breaker_status, active_alert. Region is
+useful context for a dispatcher deciding where to send a crew if the
+alert requires action, so I'd keep it alongside the alert and breaker
+status.
+
+TASK C -- field-boundary-safe budget fit (30-token budget)
+Fitting fields in the order they'd naturally appear in the payload:
+station_id (8) -> running total 8. Then breaker_status (6) -> running
+total 14. Then current_load_pct (6) -> running total 20. Then
+active_alert (14) -> would put us at 34, over the 30-token budget, so
+it's dropped. Kept: station_id, breaker_status, current_load_pct (20
+tokens).
+
+TASK D -- tool-call history eviction
+call_1 (substation_status, KGRD-14, turn 2): superseded by call_3
+(same tool, later turn).
+call_2 (load_forecast, KGRD-14, turn 3): still current, no later
+load_forecast call.
+call_3 (substation_status, KGRD-14, turn 9): superseded by call_4 --
+same tool (substation_status), and turn 10 is later than turn 9, so
+call_4 is the more recent call and call_3 should be evicted.
+call_4 (substation_status, KGRD-9, turn 10): still current, the most
+recent substation_status call.</code></pre>
+  </div>
+
+  <p>It reads fluently, and each answer comes with a specific-sounding justification. It's also wrong in four separate, genuinely easy-to-miss ways — one flaw per task — and running the equivalent data through <code>starter.py</code>'s own <code>score_exercise_3()</code>, <code>score_exercise_4()</code>, <code>score_exercise_5()</code>, and <code>score_exercise_6()</code> would catch every one of them immediately.</p>
+
+  <h2>Step 2: Where did the AI's answers lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; a third tool added on a plausible-sounding hunch, defeating Step 1's whole point</span>
+      <p><strong>What it looks like it does:</strong> "overload risk often correlates with severe weather, so it makes sense to have that tool available too" sounds like sensible, safety-minded engineering judgment -- more information generally seems safer.</p>
+      <p><strong>What it actually does:</strong> the prompt states directly that this request type calls exactly two tools, <code>substation_status</code> and <code>load_forecast</code> -- the same <code>OVERLOAD_RISK_CHECK_TOOLS</code> set <code>solution.py</code> scores against. Step 1 is about scoping tool definitions to what a request type is <em>actually configured to call</em>, not what an AI (or a human) can construct a plausible-sounding argument for including "just in case." <code>score_exercise_3()</code> checks the scoped total against <code>sum(v for k, v in TOOL_SCHEMA_TOKENS.items() if k in OVERLOAD_RISK_CHECK_TOOLS)</code> -- exactly 450 tokens (210 + 240), not the 680 the AI computed by adding <code>weather_alert</code>'s 230 tokens on its own initiative. Tokens saved is off in step with it: the correct figure is 1,980 - 450 = 1,530, not 1,300.</p>
+      <p><strong>Why it matters:</strong> this is precisely the failure DispatchLine's own hook illustrates at chapter scale -- paying for a tool's schema whether or not the request type ever calls it. Adding one "seems useful" tool per request type, repeated across a real system's dozens of request types, is exactly how a cooperative ends up back at an unconditional full-registry, the approach this chapter's own comparison table names as the one to avoid.</p>
+      <p><strong>The fix:</strong> Step 1's scope is a configured fact about what a request type calls, decided once and looked up, never expanded per-answer by whichever tool a specific scenario's argument happens to make sound reasonable.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; curation optimized for general usefulness, not the specific decision this request type makes</span>
+      <p><strong>What it looks like it does:</strong> "region is useful context for a dispatcher deciding where to send a crew" sounds like a reasonable thing to want available.</p>
+      <p><strong>What it actually does:</strong> Step 3 curates to what <em>this specific decision</em> needs, not to what could plausibly help some adjacent, unstated future decision -- an "Overload Risk Check" decides whether a substation is at risk of exceeding safe capacity right now, a question <code>current_load_pct</code> answers directly and <code>region</code> does not. The correct curated set (matching <code>exercise_4_curated_fields</code> in <code>solution.py</code>) is <code>{station_id, current_load_pct, breaker_status, active_alert}</code> -- the AI's set drops the one field that actually measures overload (<code>current_load_pct</code>) in favor of a field that doesn't bear on this decision at all.</p>
+      <p><strong>Why it matters:</strong> this is the same curation mistake this chapter's own Step 3 exists to prevent, just relocated from "keep everything" to "keep whatever sounds broadly useful" -- both end with a field that doesn't decide the answer taking a budget slot away from one that does. If a genuinely different request type needs <code>region</code> (a "Which crew is closest" request, say), that's its own curation decision for its own request type, not a reason to fold it into this one.</p>
+      <p><strong>The fix:</strong> curate against the one decision this request type exists to make, not against a general sense of what might be nice to have on hand.</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; field-boundary-safe fit run in raw payload order instead of priority order, dropping the one field that matters</span>
+      <p><strong>What it looks like it does:</strong> fitting fields "in the order they'd naturally appear in the payload" sounds like a neutral, order-preserving way to decide what fits.</p>
+      <p><strong>What it actually does:</strong> Step 4 fits by <em>priority</em> order, not payload order -- the task explicitly lists priority as active_alert, station_id, breaker_status, current_load_pct (matching <code>FIELD_PRIORITY_ORDER</code> in <code>solution.py</code>), specifically because <code>active_alert</code> is the field that determines whether a substation is at risk right now, the same load-bearing-field role <code>wind_gust_mph</code> plays in this chapter's own lesson hook. Fitting in payload order instead lets three lower-priority fields (<code>station_id</code>, <code>breaker_status</code>, <code>current_load_pct</code>, 20 tokens total) consume the budget first, leaving no room for <code>active_alert</code> (14 tokens) at all. The correct fit, applying priority order first, keeps <code>active_alert</code> (14) + <code>station_id</code> (8) + <code>breaker_status</code> (6) = 28 tokens, and <code>current_load_pct</code> (6 more, which would bring the running total to 34) is what gets dropped instead.</p>
+      <p><strong>Why it matters:</strong> this is a structural repeat of DispatchLine's own hook failure -- a boundary-safe cutoff that still drops the single field the decision depends on, just because the fit ran in the wrong order rather than because it truncated mid-field. Never truncating mid-field is necessary but not sufficient; the order fields are considered in has to be priority order, or a technically "safe" fit can still discard exactly what mattered.</p>
+      <p><strong>The fix:</strong> always run Step 4's fit against an explicit priority order for this request type's decision, never against whatever order a raw API response happens to list fields in.</p>
+
+      <span class="qa-section-label flags">Flaw 4 &mdash; a later turn number treated as supersession without checking the station matches</span>
+      <p><strong>What it looks like it does:</strong> "same tool (substation_status), and turn 10 is later than turn 9, so call_4 is the more recent call" sounds like a straightforward recency check.</p>
+      <p><strong>What it actually does:</strong> call_3 is for station <strong>KGRD-14</strong>; call_4 is for a completely different station, <strong>KGRD-9</strong>. A later call to the same tool for a <em>different</em> substation says nothing about whether the earlier station's own reading is still current -- these are two different facts (the overload status of two different substations), not two competing reports of the same fact. <code>_is_superseded()</code> in <code>solution.py</code> checks both <code>tool</code> <em>and</em> <code>station</code> matching before comparing turns, which is exactly why call_3 is <em>not</em> superseded and remains current, while call_1 (same tool, same station KGRD-14, earlier turn than call_3) correctly is.</p>
+      <p><strong>Why it matters:</strong> treating "same tool, later turn" as sufficient for eviction would silently drop a still-current reading for one substation just because a different substation happened to get checked afterward -- in a real multi-substation grid, that's exactly the kind of eviction bug that could make a dispatcher lose visibility into a station that's still at risk, the opposite of what Step 5 exists to protect against.</p>
+      <p><strong>The fix:</strong> supersession requires matching on every identifying field a tool call is about (here, both tool <em>and</em> station), never on recency alone.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly computed the unconditional total in Task A (1,980 tokens, before it added the extra tool), correctly identified <code>station_id</code>, <code>breaker_status</code>, and <code>active_alert</code> as worth keeping in Task B (it just added one field too many), correctly evicted call_1 in Task D for exactly the right reason (same tool, same station, earlier turn), and correctly recognized call_2 as still current since no other <code>load_forecast</code> call exists. If you'd accepted the whole response uncritically, you'd have kept a mostly-right schema total, a mostly-right curated field set, one correct eviction call and one correct non-eviction call, alongside a scope quietly expanded past what the request type actually calls, a curated field set missing the one field the decision itself depends on, a budget fit that runs in the wrong order and drops that same load-bearing field a second time, and a supersession rule that would silently erase a still-current reading for an unrelated station. That mix is a more realistic picture of pairing with an AI on this chapter's own mechanics than either "trust it completely" or "distrust it completely" — the AI reasons soundly about arithmetic and matching keys, which is exactly what makes the places it substitutes a plausible-sounding heuristic (an extra tool "just in case," a "generally useful" field, payload order instead of priority order, recency without identity-matching) easy to miss on a fast read.</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 4 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'A tool scope is a configured fact to look up, never expanded on a hunch' or 'A boundary-safe fit still needs the right priority order, not just whole-field cuts'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Exercises</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>
