@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Isolation Exercises — Context Engineering for Everyone</title>
+<meta name="description" content="Hands-on exercises for Context Isolation and Scoping.">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-11">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../quiz.html">&larr; Back to the quiz</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 11 Exercises</span>
+    <span class="reading-time">~45 min, hands-on</span>
+  </div>
+  <h1>Exercises: Context Isolation and Scoping</h1>
+  <p>
+    These exercises use a fresh scenario, deliberately different from the
+    lesson's Vesteroak Regional Appeals Review Board/AppealLine hook:
+    <strong>Calloway County Child Welfare Case Review Network</strong>, a
+    fictional county child-welfare agency. Its case pipeline,
+    <strong>CaseShield</strong>, has two stages: a Primary Caseworker
+    Agent makes an initial risk assessment, and — required by county
+    policy, to preserve a genuinely independent second read — a
+    Second-Opinion Reviewer Agent reviews the same case separately. The
+    Second-Opinion Reviewer must never see the Primary Caseworker's own
+    risk score, narrative reasoning, or recommendation. It <em>should</em>
+    still receive the shared, objective Risk Assessment Rubric version
+    both stages are required to apply. Your job is this chapter's own new
+    skill: naming an isolation goal precisely, separating "opinion" from
+    "shared fact" when drawing a boundary, building a curated hand-off
+    contract for whatever legitimately crosses it, and testing the result
+    with both a contamination probe and a starvation probe.
+  </p>
+
+  <div class="what-is">
+    <span class="label">Exercise standard</span>
+    Eight tasks total. Six are marked production-gear — per-approach
+    budget arithmetic, separating opinion from shared fact, building a
+    hand-off contract, a contamination probe, a starvation probe, and a
+    combined 2x2 classification, not just concept recall.
+  </div>
+
+  <div class="what-is">
+    <span class="label">How to run these</span>
+    Download <code>starter.py</code>, fill in every <code>&#35; TODO</code>,
+    then run <code>python3 starter.py</code> to see an automated score
+    report. Compare against <code>solution.py</code>, which scores a
+    perfect total.
+  </div>
+
+  <div class="download-links">
+    <a href="starter.py">starter.py</a>
+    <a href="solution.py">solution.py (reference)</a>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">1</span> Match scenarios to isolation approaches</h3>
+    <p>Decide which of three CaseShield scenarios show no isolation, isolation drawn too broadly, or the full Context Isolation Recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">2</span> Order the Context Isolation Recipe</h3>
+    <p>Put the lesson's six recipe steps in the correct sequence, from naming the isolation goal to testing with two probes.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">3</span> <span class="badge-coming-soon">Production-gear</span> Per-approach budget and correctness</h3>
+    <p>Compute the Second-Opinion Reviewer's own token cost under no isolation, isolation drawn too broadly, and the recipe.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">4</span> <span class="badge-coming-soon">Production-gear</span> Separating opinion from shared fact</h3>
+    <p>Decide which of the Primary Caseworker's five raw output fields are its own opinion (withhold) and which are shared, objective facts (may cross the boundary).</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">5</span> <span class="badge-coming-soon">Production-gear</span> Build the Step 4 hand-off contract</h3>
+    <p>Construct the curated dict that should cross the isolation boundary carrying the shared rubric version.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">6</span> <span class="badge-coming-soon">Production-gear</span> Contamination probe</h3>
+    <p>Decide, for three candidate context bundles, whether the Primary Caseworker's own opinion leaked in.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">7</span> <span class="badge-coming-soon">Production-gear</span> Starvation probe</h3>
+    <p>Decide, for three candidate context bundles, whether a required shared fact was walled off by mistake.</p>
+  </div>
+
+  <div class="task-card">
+    <h3><span class="task-num">8</span> <span class="badge-coming-soon">Production-gear</span> Combined 2x2 classification</h3>
+    <p>Classify four final context bundles as compliant, contamination-fail, starvation-fail, or both-fail.</p>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../quiz.html">&larr; Back to Quiz</a>
+    <a href="../practice/index.html">Practice Bank</a>
+    <a href="ai-paired.html">Now Pair With an AI &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

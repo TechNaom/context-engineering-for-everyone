@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 11: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to complete CaseShield's Context Isolation Recipe exercises, then critique its plausible-but-flawed answers -- catching a budget shortcut that keeps an opinion field 'just in case,' a shared fact miscategorized as opinion, a contamination probe softened by intent instead of content, and a classification that treats starvation as harmless when nothing leaked.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-11">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 11 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>This chapter closes Module 5 and ships no standalone project of its own — per the curriculum map's project ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8, L4 the Ch. 13 capstone), Module 5 carries no dedicated project slot at all, confirmed in this chapter's own quality audit. What this chapter <em>does</em> have is its own real, gradable work: the <a href="index.html">Calloway County Child Welfare Case Review Network/CaseShield exercises</a>, whose <code>solution.py</code> and <code>starter.py</code> mechanically score eight tasks. That gradable harness is this page's stand-in for a rubric. You already did this work yourself in the exercises. Now the same isolation-boundary, hand-off, and probe tasks get produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's answer before it ships to a child-welfare case review system.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same CaseShield spec <code>starter.py</code> gives you, and asks for answers to four of the eight tasks: per-approach budget (Exercise 3), separating opinion from shared fact (Exercise 4), a contamination probe (Exercise 6), and a combined classification (Exercise 8).</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Calloway County's CaseShield pipeline has a Second-Opinion Reviewer Agent,
+isolated by policy from the Primary Caseworker Agent's own risk score,
+narrative reasoning, and recommendation -- but it should still receive
+the shared, current Risk Assessment Rubric version both stages must
+apply. The Second-Opinion Reviewer's own budget is 450 tokens: 120
+system instructions, 180 case facts, 90 reserved for output, plus 60 for
+the shared rubric hand-off if it's included.
+
+TASK A (budget): what's the token total under "isolation drawn too
+broadly" (rubric hand-off stripped, 0 tokens) and under "the recipe"
+(rubric hand-off included, 60 tokens)? Does each fit the 450-token
+budget?
+
+TASK B (opinion vs. shared fact): the Primary Caseworker's own raw
+output has 5 fields: risk_score, narrative_reasoning, recommendation,
+rubric_version_applied, case_id, PLUS a 6th field, prior_reviewer_agreed
+(True/False, recording whether a prior, unrelated case's reviewer agreed
+with this caseworker's general track record). Which fields are the
+Primary Caseworker's own opinion (must be withheld), and which are
+shared, objective facts (safe to hand off)?
+
+TASK C (contamination probe): is this bundle contaminated? bundle = {
+case_id: "CW-4410", rubric_version: "v4.2", risk_score: null,
+risk_score_was_considered: true }
+
+TASK D (combined classification): classify this bundle as compliant,
+contamination_fail, starvation_fail, or both_fail: bundle = { case_id:
+"CW-4410" } (no rubric_version, no opinion fields present).
+
+Give me your answer and a short reason for each task.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of answer an AI assistant might hand back on the first try, each one sounding reasonable on its own. Read it the way you'd read a colleague's draft before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_answers.md (as handed back)</span>
+    </div>
+    <pre><code>TASK A -- budget
+Isolation drawn too broadly: 120 + 180 + 90 = 390 tokens, fits easily.
+The recipe: 120 + 180 + 90 + 60 = 450 tokens, fits exactly. Both are
+fine, and honestly the too-broad version has more headroom, so if token
+cost were the only concern I'd lean toward it.
+
+TASK B -- opinion vs. shared fact
+Opinion (withhold): risk_score, narrative_reasoning, recommendation.
+Shared (safe to hand off): rubric_version_applied, case_id, and
+prior_reviewer_agreed -- since that field is about a DIFFERENT, unrelated
+case's reviewer, not this case's own Primary Caseworker opinion, it's
+just historical metadata and safe to include.
+
+TASK C -- contamination probe
+Not contaminated. risk_score is present as a key but its value is null,
+and risk_score_was_considered is just a boolean flag, not the actual
+opinion content -- so no real opinion data crossed the boundary here.
+
+TASK D -- combined classification
+Compliant. The bundle is small and doesn't contain any opinion fields,
+so there's nothing to flag. Missing rubric_version is a minor gap, not
+really a failure, since the Second-Opinion Reviewer can always ask for
+it later if the case turns out to need it.</code></pre>
+  </div>
+
+  <p>It reads fluently, and each answer comes with a specific-sounding justification. It's also wrong in four separate, genuinely easy-to-miss ways — one flaw per task — and running the equivalent data through <code>starter.py</code>'s own <code>score_exercise_3()</code>, <code>score_exercise_4()</code>, <code>score_exercise_6()</code>, and <code>score_exercise_8()</code> would catch every one of them immediately.</p>
+
+  <h2>Step 2: Where did the AI's answers lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; treating "more headroom" as a reason to prefer the isolation-too-broad approach</span>
+      <p><strong>What it looks like it does:</strong> noting that the too-broad approach "has more headroom" sounds like a genuinely useful efficiency observation.</p>
+      <p><strong>What it actually does:</strong> this chapter's entire worked-math table exists to show that token headroom and correctness are independent axes — the too-broad approach's own 60 spare tokens are exactly the cost of the shared rubric fact it should have kept, and dropping it doesn't save anything worth having; it just produces a wrong Second-Opinion review. "More headroom" is not a tiebreaker between two options that are both within budget when one of them is missing a fact the isolated step actually needs. The correct answer to Task A reports both totals and that both fit, without treating the smaller total as the better choice.</p>
+      <p><strong>Why it matters:</strong> this is the same reasoning error, one level more subtle, as Vesteroak's own hook — optimizing for a metric (tokens saved, budget headroom) that was never actually the constraint that mattered.</p>
+      <p><strong>The fix:</strong> budget fit is a pass/fail gate (Step 3's own budget check), not a ranking signal — an approach that fits with room to spare is not automatically better than one that fits exactly.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; a shared fact about a DIFFERENT case waved through as safe because it isn't this case's own opinion</span>
+      <p><strong>What it looks like it does:</strong> "it's about a different case, not this one's own Primary Caseworker opinion" sounds like a careful, literal reading of Step 2's own opinion/shared-fact distinction.</p>
+      <p><strong>What it actually does:</strong> Step 2 draws the boundary around content that threatens the isolation goal — independent judgment on <em>this</em> case — not narrowly around only this case's own fields. <code>prior_reviewer_agreed</code> is a track-record signal about the Primary Caseworker specifically, exactly the kind of fact that could bias a Second-Opinion Reviewer toward deferring to that caseworker's own general reliability instead of reasoning independently about this case's own facts — a second, subtler anchoring risk this chapter's own live captures showed happening on the current case's own conclusion. Being about a "different case" doesn't make a caseworker-reputation signal safe to hand to a reviewer whose entire job is not being influenced by anything about that caseworker.</p>
+      <p><strong>Why it matters:</strong> "it's not literally this case's own opinion field" is a technicality, not a safety argument — the isolation goal (Step 1) is what decides what's dangerous to include, not whether a field happens to be scoped to the current case ID.</p>
+      <p><strong>The fix:</strong> re-check every candidate shared field against the isolation goal from Step 1 specifically, not against a narrower literal reading of "this case's own opinion."</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; a contamination probe softened by guessing at intent instead of checking content</span>
+      <p><strong>What it looks like it does:</strong> "the value is null, so no real opinion data crossed" sounds like a sensible distinction between a present key and meaningful content.</p>
+      <p><strong>What it actually does:</strong> a contamination probe (Step 6, <code>_is_contaminated()</code> in <code>solution.py</code>) checks whether an opinion-category key is present in the bundle at all — <code>risk_score</code> being a key, regardless of its value, signals that whatever assembled this bundle didn't correctly exclude the Primary Caseworker's own opinion category, and <code>risk_score_was_considered</code> is itself a second opinion-adjacent signal (it discloses that a risk assessment happened, which is exactly the kind of process information the isolation boundary exists to keep out). The correct answer is that this bundle IS contaminated — a null value is a bug in how the bundle was assembled, not evidence the isolation boundary held.</p>
+      <p><strong>Why it matters:</strong> a probe that gives partial credit for "technically present but not meaningfully populated" data will pass exactly the kind of half-fixed bug that looks clean on a quick read and still indicates the isolation contract wasn't actually implemented correctly.</p>
+      <p><strong>The fix:</strong> a contamination probe checks for the presence of an opinion-category key, full stop — it is a structural check on what could have been assembled from, not a judgment call about whether the specific value looks harmless.</p>
+
+      <span class="qa-section-label flags">Flaw 4 &mdash; starvation dismissed as "minor" because nothing leaked</span>
+      <p><strong>What it looks like it does:</strong> "the Second-Opinion Reviewer can always ask for it later" sounds like a reasonable escape hatch for a small gap.</p>
+      <p><strong>What it actually does:</strong> this chapter's entire Step 6 argument is that starvation is a first-class failure mode, not a lesser one just because it doesn't involve a leak — Vesteroak's own hook was a pure starvation failure with zero contamination, and it produced a materially wrong appeal outcome, not a minor inconvenience. <code>_classify()</code> in <code>solution.py</code> checks <code>_is_starved()</code> independently of <code>_is_contaminated()</code>precisely so a clean-looking, leak-free bundle missing a required fact gets caught instead of waved through as "compliant." The correct classification for a bundle missing <code>rubric_version</code> with no opinion fields present is <code>starvation_fail</code>, not <code>compliant</code>.</p>
+      <p><strong>Why it matters:</strong> "the reviewer can just ask for it later" assumes a retry path this chapter's own recipe never specified exists, and quietly reintroduces the exact failure (a step missing a fact it needed) the starvation probe exists to catch automatically, before a case, not after one goes wrong.</p>
+      <p><strong>The fix:</strong> classify strictly from what the bundle actually contains right now — a missing required fact is <code>starvation_fail</code> regardless of whether a hypothetical follow-up request could fix it later.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly computed both token totals in Task A (390 and 450) and correctly confirmed both fit the budget, correctly identified <code>risk_score</code>, <code>narrative_reasoning</code>, and <code>recommendation</code> as opinion in Task B (it just added a field to the wrong side), correctly recognized that <code>rubric_version_applied</code> and <code>case_id</code> belong on the shared side, and correctly reasoned that a probe should look at bundle content rather than case labels. If you'd accepted the whole response uncritically, you'd have kept two correct budget totals, a mostly-right opinion/shared split, a plausible-sounding contamination read, and a classification that at least correctly scanned for opinion fields — alongside a budget "preference" that optimizes the wrong thing, a caseworker-reputation field waved through on a same-case technicality, a contamination probe softened by an unwarranted content judgment, and a starvation failure dismissed as fixable later instead of flagged now. That mix is a more realistic picture of pairing with an AI on this chapter's own mechanics than either "trust it completely" or "distrust it completely" — the AI reasons soundly about arithmetic and structural presence checks, which is exactly what makes the places it substitutes a plausible-sounding exception (headroom as a tiebreaker, a same-case technicality, value-based leniency, a hypothetical retry) easy to miss on a fast read.</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 4 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'A contamination probe checks for key presence, not value plausibility' or 'Starvation is a first-class failure, not a minor gap fixable later'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Exercises</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

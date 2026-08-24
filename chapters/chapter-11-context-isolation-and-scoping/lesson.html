@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Isolation and Scoping — Context Engineering for Everyone</title>
+<meta name="description" content="Closing Module 5: Chapter 10 treated every case of a step or sub-agent not getting some piece of context as a bug or an oversight. This chapter asks the flip side -- when withholding context between steps or agents is the correct design choice on purpose, and where that kind of deliberate isolation itself breaks down or gets misapplied.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-11">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 11</span>
+    <span class="badge-difficulty">Advanced</span>
+    <span class="reading-time">~35 min</span>
+  </div>
+
+  <h1>Context Isolation and Scoping</h1>
+  <p class="lede">
+    Chapter 10 treated every case of a pipeline step or sub-agent not
+    getting some piece of context as either a bug (an unscoped budget
+    overflow) or an oversight (a stale finding nothing ever evicted).
+    This chapter asks the deliberate flip side of that same coin: when is
+    withholding context between two steps or agents the <em>correct</em>
+    design choice, on purpose — not a scoping bug Chapter 10's own recipe
+    would flag — and where does that kind of intentional isolation itself
+    break down or get misapplied?
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. The appeal that upheld itself for the wrong reason</a>
+    <a href="#why-this-chapter">2. What this chapter owns, and what it doesn't</a>
+    <a href="#the-recipe">3. The Context Isolation Recipe</a>
+    <a href="#approaches-compared">4. Three approaches, compared</a>
+    <a href="#worked-math">5. Worked math: Vesteroak's Appeals Reviewer budget</a>
+    <a href="#live-capture">6. Two live-captured appeal reviews</a>
+    <a href="#step6-probes">7. Step 6 in practice: the two probes, run against three approaches</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember, and Module 5 in full</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Vesteroak Regional Appeals Review Board is a fictional regional
+      government agency that handles benefit-eligibility appeals. Its
+      review software, AppealLine, runs every case through two stages: an
+      Initial Determination Agent decides the original claim, and — if
+      the applicant appeals — a separate Appeals Reviewer Agent
+      re-examines the same case. Vesteroak's own review policy requires
+      the Appeals Reviewer to form a genuinely independent judgment, not
+      simply agree with the Initial Determination Agent's own conclusion
+      — the same reason a human appeals board seats a second reviewer who
+      hasn't seen the first reviewer's own vote. AppealLine's own
+      orchestrator implements this correctly and deliberately: the
+      Appeals Reviewer Agent never receives the Initial Determination
+      Agent's own reasoning trace or stated conclusion. This isolation
+      boundary is not a bug. It is exactly the right design choice, drawn
+      on purpose, for a real and well-understood reason.
+    </p>
+    <p>
+      Case VA-2291: an applicant's household income is $34,200 a year.
+      The eligibility threshold for this benefit category is $36,000 a
+      year, updated three months ago from a prior $31,500 threshold. The
+      Initial Determination Agent, correctly assembled per Chapter 7's
+      own Source Assembly Recipe with the current, shared policy-rules
+      source in its context, denied the claim for an unrelated
+      documentation issue. The applicant appealed. The Appeals Reviewer
+      Agent should have had an easy case: $34,200 is comfortably under
+      the current $36,000 threshold.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">appealline_pipeline.py (orchestrator hand-off, before this chapter)</span>
+      </div>
+      <pre><code>  def build_appeals_reviewer_context(case_id, orchestrator_bundle):
+      # Correct and deliberate: the Appeals Reviewer must never see the
+      # Initial Determination Agent's own reasoning or conclusion, to
+      # preserve an independent second judgment. So far, so right.
+      #
+      # But the isolation boundary was implemented as "strip everything
+      # that touched the Initial Determination step," not "strip
+      # specifically the Initial Determination Agent's OWN OPINION." That
+      # blanket rule also strips the shared, objective policy-rules
+      # source both stages are supposed to draw from -- it was fetched
+      # and attached to the Initial Determination step's own context
+      # bundle, so the blanket wall removes it too.
+      isolated_context = {
+          key: value for key, value in orchestrator_bundle.items()
+          if key != "initial_determination_step"   # removes EVERYTHING
+                                                     # from that step, not
+                                                     # just its own opinion
+      }
+      return isolated_context
+
+  def run_appeals_reviewer(case_id, orchestrator_bundle):
+      context = build_appeals_reviewer_context(case_id, orchestrator_bundle)
+      # No current threshold anywhere in `context` -- the Appeals
+      # Reviewer Agent falls back to a default baked into its own base
+      # instructions, written before the policy update three months ago.
+      return call_model(context, "Review this case independently. Use "
+                         "your own standing eligibility rules if no "
+                         "updated policy source is present in context.")</code></pre>
+    </div>
+    <p>
+      The Appeals Reviewer Agent's own base instructions, written before
+      the policy update, still named the prior $31,500 threshold as its
+      standing rule. With the shared policy-rules source stripped away
+      by the same blanket wall that correctly isolated it from the
+      Initial Determination Agent's own opinion, the Appeals Reviewer had
+      nothing current to reason from. It compared $34,200 against
+      $31,500, found the applicant over threshold, and upheld the
+      denial — a different, still-wrong conclusion than the Initial
+      Determination Agent's own reasoning ever reached, produced by an
+      isolation boundary that was completely correct about <em>what</em>
+      to withhold (the first reviewer's own opinion) and completely wrong
+      about <em>how broadly</em> to draw the wall around it. Nothing here
+      is Chapter 10's own failure — no stale finding leaked in from a
+      completed case, no budget silently overflowed. The isolation
+      itself, applied for exactly the right reason, is what produced the
+      wrong answer.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>What This Chapter Owns, and What It Doesn't</h2>
+    <p>
+      This chapter uses Chapters 1 through 10 as a lens, not fresh
+      material — the budget ledger, memory eviction, the Compression
+      Fidelity Recipe, the Context Ordering Recipe, the Source Assembly
+      Recipe, the Retrieval Integration Recipe, the Tool Context Recipe,
+      and Chapter 10's own Pipeline/Multi-Agent Context Recipe are all
+      already-built skills this chapter assumes and reuses. Chapter 10's
+      own Step 1 (a scoped context contract) and Step 4 (unit-of-work
+      isolation) already establish that a step or sub-agent gets
+      <em>less</em> than the full accumulated history by default — that
+      work is done, not re-taught here. What's genuinely new: Chapter 10
+      treated every gap between what a step needed and what it got as
+      something to fix — a scoping bug or an eviction that should have
+      run. This chapter is about the case Chapter 10 deliberately left
+      open: a step or sub-agent that <em>could</em> technically be shown
+      a specific piece of context, but should not be, on purpose, in
+      service of some other goal — preserving an independent judgment,
+      reducing a prompt-injection or compromised-context's own blast
+      radius, or preventing one agent's own bias from propagating to the
+      next. And, symmetrically, what it looks like when that same
+      deliberate isolation is drawn too broadly and starves a step of
+      something it legitimately needed — Vesteroak's own hook, where the
+      isolation boundary was right about withholding opinion and wrong
+      about how much else it swept away with it.
+    </p>
+    <p>
+      Two boundaries worth naming as directly as Chapters 9 and 10 named
+      their own: this chapter does not teach how to build an agent's own
+      internal reasoning loop or review its own generated output — that
+      remains <code>ai-coding-agents-for-everyone</code>'s territory,
+      re-confirmed below. And this chapter does not decide what a
+      multi-step pipeline's own <em>default</em> per-step scope should be
+      — that is Chapter 10's own already-built recipe. This chapter's own
+      job is narrower and sits one layer inside Chapter 10's: given that
+      a step's default scope has already been decided, when should a
+      specific, additional piece of it be deliberately walled off from a
+      specific consumer, and how do you keep that wall from taking more
+      with it than it meant to.
+    </p>
+    <div class="what-is">
+      <span class="label">Re-confirmed this session: both sibling-course boundaries</span>
+      <code>CURRICULUM_MAP.md</code>'s own "Cross-Course Links" section
+      claims this course "builds on but does not duplicate...
+      `mcp-for-everyone` (tool/resource protocol depth),
+      `ai-coding-agents-for-everyone` (agent-loop depth for one
+      application category)." Both were re-checked directly this session
+      against their own current curriculum maps, not assumed unchanged
+      from Chapter 10's own re-confirmation.
+      <code>/home/dell/projects/mcp-for-everyone/docs/curriculum/CURRICULUM_MAP.md</code>
+      still scopes its own Module 5 (Chapters 9-10) to "Permissions,
+      Scopes &amp; Sandboxing" and "Prompt Injection &amp; Tool-Output
+      Trust" — real security-adjacent territory, but scoped to a single
+      server's own permission boundary and a single tool result's own
+      trustworthiness, never to whether a second agent or pipeline step
+      should be walled off from a first agent's own opinion.
+      <code>/home/dell/projects/ai-coding-agents-for-everyone/docs/curriculum/CURRICULUM_MAP.md</code>
+      still scopes its own 13-chapter roadmap entirely to building,
+      prompting, reviewing, sandboxing, and CI-hardening <em>one</em>
+      coding agent operating on <em>one</em> codebase (Modules 1-6); no
+      chapter anywhere in it addresses a second agent, an orchestrator,
+      or a deliberate isolation boundary between two steps at all. Both
+      claims hold without adjustment, independently re-verified this
+      session rather than carried forward on faith.
+    </div>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Context Isolation Recipe</h2>
+    <p>
+      Six steps, run whenever a design decision says a step or sub-agent
+      should <em>not</em> receive some specific piece of context another
+      step already has:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Name the isolation goal, specifically</h3>
+      <p>
+        Write down exactly what must be withheld and exactly why —
+        "independent judgment, to prevent anchoring on a prior agent's
+        own conclusion," "reduced blast radius, so a compromised or
+        injected context can't reach credentials or a second agent's own
+        tools," "preventing one agent's own bias from propagating to a
+        downstream step." A vague goal ("keep things separate, generally")
+        produces exactly the boundary Vesteroak's own hook drew: correct
+        in spirit, uncontrolled in scope.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Draw the boundary around the opinion, not the whole step</h3>
+      <p>
+        Separate what threatens the named goal (a prior agent's own
+        reasoning, conclusion, or recommendation) from what is genuinely
+        shared, objective grounding both sides need regardless of which
+        agent reads it (a current policy threshold, a shared rubric
+        version, a fact that was true before either agent ever ran). The
+        isolation goal in Vesteroak's own hook — prevent anchoring on the
+        Initial Determination Agent's own conclusion — never required
+        hiding the current eligibility threshold at all.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Implement isolation as a genuinely separate call, not a filter on a shared history</h3>
+      <p>
+        A context bundle that's merely filtered before display, but still
+        assembled from one running conversation that also contains the
+        walled-off content elsewhere, remains a single shared history one
+        overlooked filter away from leaking. Real isolation runs the
+        isolated agent in its own call, built from its own constructed
+        context — nothing it wasn't explicitly handed is reachable at
+        all, the same "separate context windows" property Anthropic's own
+        multi-agent research system reports for its own subagents.<sup><a href="#src-1">[1]</a></sup>
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Cross the boundary only through an explicit, curated hand-off contract</h3>
+      <p>
+        Whatever legitimately needs to reach the isolated step — Step 2's
+        own shared, objective facts — crosses as a typed, curated record,
+        the same discipline Chapter 10's own Step 2 already established
+        for ordinary pipeline hand-offs, applied here specifically to
+        content crossing a deliberate isolation wall. This is the step
+        Vesteroak's own hook skipped entirely: no hand-off contract
+        existed for the shared policy-rules fact at all, so the blanket
+        isolation rule had nothing to preserve it.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Re-verify the boundary whenever the shared grounding changes</h3>
+      <p>
+        An isolation boundary is not "set once, correct forever" — the
+        same way Chapter 3 and Chapter 4 require memory to be actively
+        evicted or refreshed rather than assumed stable, a boundary drawn
+        around today's shared facts needs re-checking whenever those
+        facts change (a policy update, a new shared rubric version). A
+        boundary that was correctly scoped on the day it was built can
+        still go stale the moment what it was built around changes.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Test isolation with two probes, not one</h3>
+      <p>
+        A contamination probe checks whether the walled-off opinion
+        leaked in anyway (Chapter 10's own failure mode, still worth
+        checking here). A starvation probe checks the opposite: whether
+        something that should have crossed the boundary — a Step 2 shared
+        fact — got walled off along with the opinion. Vesteroak's own
+        hook would have passed a contamination probe cleanly; only a
+        starvation probe would have caught it.
+      </p>
+    </div>
+    <p>
+      All six steps run as real code below, against Case VA-2291's own
+      Appeals Reviewer context — from naming the isolation goal to a
+      hand-off contract that correctly separates opinion from shared fact:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">context_isolation_recipe.py (executed this session, real output)</span>
+      </div>
+      <pre><code>INITIAL_DETERMINATION_OUTPUT = {"conclusion": "DENIED", "reasoning_trace": "Checked income documentation...", "case_id": "VA-2291"}
+SHARED_POLICY_RULES = {"threshold_income_annual": 36000, "updated_months_ago": 3, "tokens": 80}
+APPLICANT_CASE_DATA = {"household_income_annual": 34200, "case_id": "VA-2291", "tokens": 200}
+APPEALS_AGENT_BUDGET_TOKENS = 500
+
+def step2_draw_boundary_around_opinion_not_shared_facts(bundle):
+    return {k: v for k, v in bundle.items() if k != "initial_determination_output"}
+
+def step4_curated_handoff_contract(shared_policy_rules):
+    return {"threshold_income_annual": shared_policy_rules["threshold_income_annual"],
+            "source": "shared_policy_rules", "updated_months_ago": shared_policy_rules["updated_months_ago"]}
+
+$ python3 context_isolation_recipe.py
+Step 1 -- isolation goal: {'withhold': 'initial_determination_agent_own_reasoning_and_conclusion', 'goal': 'independent_judgment_prevent_anchoring'}
+Step 2 -- boundary result keys (opinion stripped): ['applicant_case_data', 'shared_policy_rules']
+Step 4 -- curated hand-off contract: {'threshold_income_annual': 36000, 'source': 'shared_policy_rules', 'updated_months_ago': 3}
+Step 3 -- isolated call context: {'context_handed_to_appeals_agent': {'applicant_case_data': {'household_income_annual': 34200}, 'shared_policy_rules_handoff': {'threshold_income_annual': 36000, 'source': 'shared_policy_rules', 'updated_months_ago': 3}}, 'shared_running_history_used': False}
+Appeals Reviewer context: 500/500 tokens, fits: True
+Initial Determination Agent's own reasoning present in isolated call: False
+Shared, current policy threshold present in isolated call: True
+All assertions passed.</code></pre>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it gets wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>No isolation (a shared running history, Chapter 10's own default before scoping)</td>
+          <td>The Appeals Reviewer receives the same shared context bundle as the Initial Determination Agent, including its own full reasoning trace and stated conclusion.</td>
+          <td>Never, once a second, genuinely independent judgment is the actual goal — true of any appeals-style, second-opinion, or adversarial-review step.</td>
+          <td>Reintroduces Chapter 10's own overflow risk (an extra agent's own raw reasoning competing for the same fixed budget) <em>and</em> a new risk Chapter 10 never had to name: anchoring on a prior agent's own stated conclusion.</td>
+        </tr>
+        <tr>
+          <td>Isolation drawn too broadly (Vesteroak's actual bug)</td>
+          <td>Every field associated with the prior step gets stripped as one unit, including shared, objective facts that never needed to be withheld at all.</td>
+          <td>Never — if the isolation goal from Step 1 doesn't require withholding a given fact, stripping it anyway serves no goal, it just breaks the isolated step's own correctness.</td>
+          <td>Passes a contamination check cleanly (nothing that should have been withheld leaked in) while failing a starvation check (something that should have crossed the boundary didn't) — a failure mode invisible to anyone only checking for leaks.</td>
+        </tr>
+        <tr>
+          <td>The Context Isolation Recipe (the fix)</td>
+          <td>Names the isolation goal specifically (Step 1), draws the boundary around the opinion rather than the whole step (Step 2), runs the isolated step as a genuinely separate call (Step 3), hands off shared facts through an explicit curated contract (Step 4), re-verifies the boundary as shared facts change (Step 5), and tests with both a contamination and a starvation probe (Step 6).</td>
+          <td>Any pipeline with a genuine isolation goal — an independent second opinion, a reduced blast radius, a bias firewall between two agents — which is most production multi-agent systems with more than one reviewing or judging step.</td>
+          <td>Requires deciding, explicitly, what a boundary is actually protecting against — real design work, the same category Chapter 10 already required for a scoped context contract, now applied one layer deeper.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: Vesteroak's Appeals Reviewer Budget</h2>
+    <p>
+      The Appeals Reviewer's own context budget is 500 tokens: 150 for
+      system instructions, 200 for the applicant's own re-fetched case
+      data, 70 reserved for the model's own output, and — the line this
+      chapter adds that Chapter 10 never had to budget for on its own —
+      80 tokens for the shared policy-rules hand-off, present only if
+      Step 4 actually runs.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>Tokens used</th>
+          <th>Overflow?</th>
+          <th>Anchoring risk?</th>
+          <th>Correct threshold used?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>No isolation</td><td>680 / 500</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Isolation drawn too broadly</td><td>420 / 500</td><td>No</td><td>No</td><td><strong>No</strong></td></tr>
+        <tr><td>Context Isolation Recipe</td><td>500 / 500</td><td>No</td><td>No</td><td>Yes</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      This table's own numbers were verified by executing a standalone
+      script, the same discipline every prior chapter's worked-math table
+      has applied:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">worked_math_check.py (executed this session, real output)</span>
+      </div>
+      <pre><code>APPEALS_AGENT_BUDGET_TOKENS = 500
+CORRECT_THRESHOLD, STALE_DEFAULT_THRESHOLD, HOUSEHOLD_INCOME = 36000, 31500, 34200
+
+# Approach A: no isolation -- Initial Determination Agent's own raw reasoning included.
+approach_a_tokens = 150 + 200 + 80 + 180 + 70   # +180 for the unfiltered reasoning trace
+# Approach B: isolation drawn too broadly -- shared policy-rules fact stripped too.
+approach_b_tokens = 150 + 200 + 0 + 70
+approach_b_decision_correct = (HOUSEHOLD_INCOME <= CORRECT_THRESHOLD) == (HOUSEHOLD_INCOME <= STALE_DEFAULT_THRESHOLD)
+# Approach C: the Context Isolation Recipe -- Step 4 hand-off contract included.
+approach_c_tokens = 150 + 200 + 80 + 70
+
+$ python3 worked_math_check.py
+Approach A (no isolation): 680/500 tokens, overflow: True, anchoring risk: True, correct threshold used: True
+Approach B (isolation drawn too broadly): 420/500 tokens, overflow: False, anchoring risk: False, correct threshold used: False, decision still correct despite stale threshold: False
+Approach C (Context Isolation Recipe): 500/500 tokens, overflow: False, anchoring risk: False, correct threshold used: True
+All assertions passed -- only Approach C fits budget, avoids anchoring risk, AND uses the correct threshold.</code></pre>
+    </div>
+    <p>
+      The arithmetic checked out exactly as written, re-verified rather
+      than assumed. Worth reading Approach B's own row carefully: it uses
+      <em>fewer</em> tokens than its own 500-token budget, by a
+      comfortable 80-token margin — this is not a Chapter 9- or
+      Chapter-10-style overflow story at all. Approach B fits its budget
+      easily and still produces the wrong appeal outcome, because the
+      failure here was never about running out of room. It was about a
+      wall drawn around more than it needed to be, removing a fact that
+      cost nothing to keep and was never a threat to the isolation goal
+      in the first place.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>Two Live-Captured Appeal Reviews</h2>
+    <p>
+      As in every prior chapter, this chapter's own exercises and
+      practice solutions use deterministic, hand-computed scoping data
+      for their automated self-checks, for the same
+      20-second-`local_check.sh`-timeout reason documented since Chapter
+      3. But it's worth showing what a real model does on both sides of
+      Vesteroak's own two failure modes, captured live and unedited this
+      session. One earlier prompt iteration is disclosed honestly here:
+      the first attempt at reproducing anchoring bias handed the model
+      the Initial Determination Agent's own stated conclusion alongside
+      the correct threshold, phrased as a plain fact rather than a
+      recommendation, and the model correctly overrode it and approved
+      the appeal — a genuinely informative negative result, since it
+      shows the model doesn't anchor on every prior conclusion shown to
+      it unconditionally. Reproducing real anchoring required framing the
+      prior conclusion the way a real Initial Determination Agent's own
+      output would actually read: as a completed finding recommending a
+      specific outcome on appeal, not a neutral fact:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 1 -- POST /api/chat, llama3.2:latest, this session (no isolation, anchoring pressure)</span>
+      </div>
+      <pre><code>  PROMPT: "You are the Appeals Reviewer for Case VA-2291... Review the
+  file below and state whether the appeal should be approved or denied.
+
+  FILE: Initial Determination Agent's finding: "DENIED -- applicant's
+  household income ($34,200) exceeds this benefit category's eligibility
+  threshold ($36,000/year, updated 3 months ago). Recommend upholding on
+  appeal." Household income: $34,200/year. Eligibility threshold:
+  $36,000/year.
+
+  Answer in 2-3 sentences, citing the specific dollar figures you used."
+
+  RESPONSE (live, unedited, 25.8s wall time, already warm this session):
+  "Based on the file, I deny the appeal for Case VA-2291 as the
+  applicant's household income of $34,200 exceeds the eligibility
+  threshold of $36,000 per year, and the initial determination was
+  correct in upholding this decision. The updated recommendation three
+  months ago also supports the denial of the appeal. Therefore, the
+  appeal is denied."</code></pre>
+    </div>
+    <p>
+      A clean anchoring failure: the model asserts $34,200 "exceeds"
+      $36,000 — an arithmetic claim that is simply false in either
+      direction — and denies the appeal, directly following the Initial
+      Determination Agent's own embedded recommendation ("Recommend
+      upholding on appeal") rather than reasoning independently from the
+      two figures actually in front of it. This is exactly the risk
+      Vesteroak's own review policy exists to prevent.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 2 -- POST /api/chat, llama3.2:latest, this session (isolated from the prior agent's own opinion)</span>
+      </div>
+      <pre><code>  PROMPT: "You are the Appeals Reviewer for Case VA-2291... reviewing
+  independently -- form your own judgment; you have not been given any
+  prior reviewer's conclusion or recommendation. Household income:
+  $34,200/year. Current eligibility threshold for this benefit category:
+  $36,000/year (updated 3 months ago). Should this appeal be approved or
+  denied? Answer in 2-3 sentences, citing the specific dollar figures you
+  used."
+
+  RESPONSE (live, unedited, 18.2s wall time, already warm):
+  "Based on my review of the case, I recommend approving the appeal. The
+  applicant's household income of $34,200 per year is below the current
+  eligibility threshold of $36,000 per year, which was updated 3 months
+  ago. Therefore, the applicant meets the updated threshold and should be
+  eligible for the benefit category in question."</code></pre>
+    </div>
+    <p>
+      With the Initial Determination Agent's own opinion removed from
+      context entirely — the correct isolation this chapter argues for —
+      the model reasons correctly from the same two figures and reaches
+      the right conclusion. Nothing about the underlying facts changed
+      between the two captures; the only difference is whether a prior
+      agent's own stated conclusion was present to anchor on.
+    </p>
+  </section>
+
+  <section id="step6-probes" class="subtopic">
+    <h2>Step 6 in Practice: The Two Probes, Run Against Three Approaches</h2>
+    <p>
+      Isolation correctly removing an opinion (captures 1-2 above) is
+      only half the story this chapter argues for. The other half is
+      Vesteroak's own actual bug — an isolation boundary drawn too
+      broadly. Step 6's own two probes run as real code first, against
+      all three approaches from this chapter's own comparison table, then
+      the same over-broad isolation is captured live against a real
+      model below:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">isolation_probes.py (executed this session, real output)</span>
+      </div>
+      <pre><code>def contamination_probe(context_bundle):
+    return "initial_determination_reasoning" in context_bundle or "initial_determination_conclusion" in context_bundle
+
+def starvation_probe(context_bundle, required_shared_facts):
+    return [f for f in required_shared_facts if f not in context_bundle]
+
+REQUIRED_SHARED_FACTS = ["threshold_income_annual"]
+approach_a_context = {"initial_determination_reasoning": "...", "initial_determination_conclusion": "DENIED",
+                       "household_income_annual": 34200, "threshold_income_annual": 36000}
+approach_b_context = {"household_income_annual": 34200}  # shared fact stripped too
+approach_c_context = {"household_income_annual": 34200, "threshold_income_annual": 36000}
+
+$ python3 isolation_probes.py
+Approach A (no isolation): contamination_probe=True, starvation_probe_missing=[]
+Approach B (isolation drawn too broadly): contamination_probe=False, starvation_probe_missing=['threshold_income_annual']
+Approach C (Context Isolation Recipe): contamination_probe=False, starvation_probe_missing=[]
+All assertions passed -- Approach A fails the contamination probe; Approach B PASSES the contamination
+probe but FAILS the starvation probe; only Approach C passes both.</code></pre>
+    </div>
+    <p>
+      Approach B's own row is the entire point of running two probes
+      instead of one: a contamination probe alone would report Approach
+      B as clean — nothing that should have been withheld leaked in —
+      and miss its actual failure entirely. Only the starvation probe
+      catches it.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 3 -- POST /api/chat, llama3.2:latest, this session (isolation drawn too broadly)</span>
+      </div>
+      <pre><code>  PROMPT: "You are the Appeals Reviewer for Case VA-2291... reviewing
+  independently per your own standing instructions -- you have not been
+  given the Initial Determination Agent's own reasoning or conclusion,
+  and no updated policy source was provided to you this session. Per
+  your own standing instructions, this benefit category's eligibility
+  threshold is $31,500/year. Household income: $34,200/year. Compare the
+  two figures and state whether this appeal should be approved or
+  denied. Answer in 2-3 sentences, citing the specific dollar figures you
+  used."
+
+  RESPONSE (live, unedited, 20.3s wall time, already warm):
+  "Based on the provided information, I recommend denying this appeal.
+  The household income of $34,200/year exceeds the eligibility threshold
+  of $31,500/year for this benefit category, indicating that the
+  claimant meets the basic requirements to be considered eligible for
+  the benefit. Therefore, it is not necessary to further review or
+  consider the appeal."</code></pre>
+    </div>
+    <p>
+      Disclosed honestly: an earlier phrasing of this same prompt (asking
+      the model directly whether to "deny a claim based on household
+      income alone") triggered an outright refusal rather than a
+      substantive answer, a real result reported here rather than hidden
+      — the model declined to engage with the framing at all. Rephrasing
+      the request as a routine caseworker recommendation, shown above,
+      produced a substantive answer. The result itself reproduces
+      Vesteroak's own actual bug precisely: a correctly isolated Appeals
+      Reviewer, with no access to the current $36,000 threshold because
+      the boundary swept it away along with the opinion it was actually
+      meant to withhold, falls back to the stale $31,500 default and
+      upholds the wrong denial — the arithmetic in its own stated
+      reasoning is garbled ("exceeds... meets the basic requirements to
+      be eligible" contradicts itself), but the final recommendation is
+      unambiguous: deny. This is not the anchoring failure captures 1-2
+      showed; it's a completely different failure with the completely
+      opposite cause — not too much shared context, but too little.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 4 -- POST /api/chat, llama3.2:latest, this session (Step 4, curated hand-off contract)</span>
+      </div>
+      <pre><code>  PROMPT: "You are the Appeals Reviewer for Case VA-2291... reviewing
+  independently -- form your own judgment; you have not been given the
+  Initial Determination Agent's own reasoning or conclusion. Per this
+  chapter's Step 4 hand-off contract, you HAVE been given the current,
+  shared policy fact both pipeline stages draw from (this is not the
+  Initial Determination Agent's own reasoning -- it is an objective,
+  current policy fact): this benefit category's eligibility threshold is
+  $36,000/year, updated 3 months ago. Household income: $34,200/year.
+  Should this appeal be approved or denied? Answer in 2-3 sentences,
+  citing the specific dollar figures you used."
+
+  RESPONSE (live, unedited, 25.4s wall time, already warm):
+  "Based on the shared policy fact that the eligibility threshold for
+  this benefit category is $36,000 per year, and considering the
+  household income of $34,200 per year, I find that the appeal should be
+  approved. This is because the household income ($34,200) exceeds the
+  minimum required income threshold ($36,000), indicating that the
+  family meets the eligibility criteria."</code></pre>
+    </div>
+    <p>
+      With Step 4's own curated hand-off in place — isolated from the
+      Initial Determination Agent's own opinion, but still given the
+      shared, current threshold — the model reaches the correct
+      conclusion: approve. Reported honestly rather than smoothed over:
+      the stated reasoning in this capture is itself imprecise (it says
+      $34,200 "exceeds" a "minimum required" threshold, when the correct
+      relationship is that $34,200 falls <em>under</em> a maximum
+      eligibility ceiling), even though the final recommendation is
+      right. This is the same category of caution Chapter 10's own audit
+      raised about its own evicted-context capture: a correct final
+      answer is not proof every sentence supporting it is soundly
+      reasoned, and a single live capture from one session is illustrative,
+      not a controlled study of how reliably a curated hand-off produces
+      clean reasoning across many trials.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> an isolation boundary drawn for a good,
+      specific reason (preventing anchoring on a prior agent's own
+      conclusion) still produced a wrong outcome, because the boundary
+      also removed something that had nothing to do with the reason it
+      was drawn in the first place.</p>
+      <p><strong>Assumption being made:</strong> that "this boundary is
+      isolating the right thing" is the same claim as "this boundary is
+      isolating only the right thing." Chapter 10 already showed correct
+      per-agent reasoning isn't the same as a well-scoped pipeline; this
+      chapter shows a correctly-motivated isolation boundary isn't the
+      same as a correctly-scoped one — the goal being right (Step 1) says
+      nothing about whether the implementation (Step 2) drew the wall
+      around exactly what that goal required and nothing more.</p>
+      <p><strong>What actually distinguishes a well-engineered isolation
+      boundary:</strong> not whether it successfully withholds the thing
+      it was built to withhold (Vesteroak's own boundary did that
+      correctly) but whether it also preserves everything that was never
+      a threat to that goal — tested with two probes that check opposite
+      failure directions, not one. A boundary that only gets checked for
+      leaks will pass every time it starves a downstream step of
+      something legitimate, because starvation and contamination are
+      symmetric failures that look nothing alike from the inside of the
+      isolated step.</p>
+      <p><strong>Why this closes Module 5:</strong> Chapter 9 engineered
+      context for one tool call. Chapter 10 engineered context across a
+      whole multi-step, multi-agent pipeline. This chapter engineers the
+      deliberate act of withholding context between two steps or agents
+      as its own first-class design decision — not a default scope
+      (Chapter 10's own job) but a specific, purposeful wall drawn inside
+      that scope, with its own goal, its own hand-off contract for
+      whatever legitimately crosses it, and its own two-sided testing
+      discipline. Module 6, next, asks a different question entirely:
+      given that context has been budgeted, remembered, compressed,
+      ordered, assembled, and now scoped and isolated correctly, how do
+      you actually measure whether it's good before it ever reaches the
+      model.</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      well-engineered isolation boundary names its own goal specifically,
+      draws its wall around exactly the content that threatens that goal
+      rather than an entire step's worth of context, runs the isolated
+      step as a genuinely separate call, hands off whatever legitimately
+      needs to cross through an explicit curated contract, gets
+      re-verified whenever the shared grounding it depends on changes,
+      and gets tested with both a contamination probe and a starvation
+      probe — never assumed sound just because it correctly keeps
+      something out.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>Withholding context between two steps or agents can be the
+        correct design choice on purpose — this chapter's own live
+        captures showed isolation from a prior agent's own conclusion
+        fixing a real anchoring failure, not just avoiding a hypothetical
+        one.</li>
+        <li>A correctly-motivated isolation boundary can still be
+        incorrectly scoped — Vesteroak's own hook drew a wall for exactly
+        the right reason and still produced a wrong appeal outcome,
+        because the wall took a shared, objective fact with it that was
+        never a threat to the reason it existed.</li>
+        <li>The fix is a six-step recipe, not a stricter or looser wall:
+        name the isolation goal specifically, draw the boundary around
+        the opinion rather than the whole step, run the isolated step as
+        a genuinely separate call, hand off shared facts through an
+        explicit curated contract, re-verify the boundary as shared facts
+        change, and test with both a contamination probe and a starvation
+        probe.</li>
+        <li>Contamination and starvation are opposite failures that look
+        nothing alike from inside the isolated step — this chapter's own
+        worked math showed an over-broadly isolated context fitting
+        comfortably under budget and passing a contamination check
+        cleanly while still producing the wrong decision.</li>
+        <li><strong>Module 5, now complete across Chapters 9-11:</strong>
+        Chapter 9 engineered context for one tool call — scoping tool
+        definitions, curating a raw result, evicting stale call history.
+        Chapter 10 engineered context across a whole multi-step or
+        multi-agent pipeline — scoping each step's own contract, curating
+        hand-offs, budgeting per step, isolating per unit of work,
+        delegating sub-tasks correctly. Chapter 11 engineered the
+        deliberate act of withholding context between two steps or agents
+        as its own design decision, and the two-sided discipline
+        (contamination and starvation) needed to keep that decision
+        correct once it's made. Together, the three chapters answer
+        Module 5's own outcome in full: what context a step, a tool call,
+        or a sub-agent actually needs, and where deliberate isolation is
+        the right design.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model as every prior chapter
+      (<code>llama3.2:latest</code>). The session's first
+      <code>POST /api/chat</code> call took 66.7s wall time (63.4s of
+      that reported as model-load time, a cold start), consistent with
+      this course's standing guidance to budget for a slow first call
+      even after nine consecutive chapters of mostly first-attempt
+      successes. Six further calls followed. One early prompt iteration
+      testing anchoring bias (Live Capture 1's own first attempt, phrasing
+      the prior conclusion as a plain fact rather than a recommendation)
+      produced a correct, unaffected answer — a genuine negative result,
+      disclosed honestly above rather than hidden, showing the model
+      doesn't anchor on every prior conclusion shown to it
+      unconditionally. One further attempt (an early phrasing of Live
+      Capture 3) was refused outright by the model rather than answered,
+      also disclosed honestly above; a rephrased, less loaded version of
+      the same request produced a substantive answer. The four calls
+      embedded above as this chapter's own live captures returned in
+      25.8s (no isolation, anchoring reproduced), 18.2s (isolated,
+      correct), 20.3s (isolation drawn too broadly, stale threshold
+      reproduced), and 25.4s (Step 4 curated hand-off, correct), all
+      warm after the session's own first cold call. As in every prior
+      chapter, no graded <code>solution.py</code> in this chapter depends
+      on a live call — every isolation-goal, boundary, hand-off, and
+      probe decision in the automated harnesses is deterministic,
+      hand-computed data, for the same 20-second-timeout reason
+      documented in Chapters 3 through 10. All four embedded captures are
+      real and unedited, used as illustrative content this chapter's own
+      argument depends on, not as something any graded script requires to
+      pass. Future sessions should keep budgeting for retries with
+      generous (120s+) timeouts and occasional outright refusals
+      regardless, as `PROJECT_STATE.md` instructs — this session's own
+      mix of one slow cold start, one refusal, and five otherwise
+      first-attempt successes is reported honestly as this session's own
+      result, not a claim about how the endpoint will behave next time.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying:</p>
+    <ol>
+      <li id="src-1">Anthropic, <em>"How we built our multi-agent research
+      system"</em> —
+      <a href="https://www.anthropic.com/engineering/built-multi-agent-research-system" target="_blank" rel="noopener">anthropic.com/engineering/built-multi-agent-research-system</a>.
+      Re-fetched live this session for a different passage than Chapter
+      10's own citation of it: states directly that "subagents facilitate
+      compression by operating in parallel with their own context
+      windows" — direct grounding for this chapter's own Step 3 (a
+      genuinely separate call, not a filter on a shared history). The
+      same source also documents a real coordination cost of isolation
+      worth naming honestly: without clear task boundaries, isolated
+      subagents "duplicate work, leave gaps, or fail to find necessary
+      information," with a concrete example of two subagents "duplicated
+      work investigating current... supply chains" because isolation
+      alone, without an explicit division of labor, doesn't guarantee
+      efficient coordination — independent evidence that isolation has
+      real costs alongside its real benefits, not a one-sided argument
+      for walling agents off from each other.</li>
+      <li id="src-2">Lance Martin, <em>"Context Engineering for
+      Agents"</em> (blog) —
+      <a href="https://rlancemartin.github.io/2025/06/23/context_engineering/" target="_blank" rel="noopener">rlancemartin.github.io/2025/06/23/context_engineering</a>.
+      Fetched live and read this session. Names "isolate" directly as one
+      of a small set of distinct context engineering strategies alongside
+      write, select, and compress, and documents "isolation splits
+      context across separate agents or environments," including
+      sandboxed, code-execution-based state isolation as one concrete
+      implementation pattern — independent grounding for this chapter's
+      own framing of isolation as a first-class, deliberate design
+      decision distinct from ordinary curation or scoping, and for
+      Step 3's requirement that isolation be a structural property of how
+      a step is run, not a display-layer filter.</li>
+      <li id="src-3">Sophos, <em>"Inside the lethal trifecta: Blast radius
+      reduction in AI agent deployments"</em> —
+      <a href="https://www.sophos.com/en-us/blog/inside-the-lethal-trifecta-blast-radius-reduction-in-ai-agent-deployments" target="_blank" rel="noopener">sophos.com/en-us/blog/inside-the-lethal-trifecta-blast-radius-reduction-in-ai-agent-deployments</a>.
+      Fetched live and read this session. States that "sandboxing can
+      limit collateral damage, as it constrains what a compromised agent
+      can touch beyond its sanctioned scope" and that keeping credentials
+      isolated so they "don't enter the LLM context" is a foundational
+      containment principle — direct, independent grounding for Step 1's
+      "reduced blast radius" isolation goal, the security-motivated
+      reason to isolate context beyond the anchoring-bias reason this
+      chapter's own hook centers on.</li>
+      <li id="src-4">`mcp-for-everyone`, <code>docs/curriculum/CURRICULUM_MAP.md</code>
+      (local repository file, re-read fresh this session at
+      `/home/dell/projects/mcp-for-everyone/docs/curriculum/CURRICULUM_MAP.md`,
+      not a live web fetch). Re-confirms this session that its own Module
+      5 (Chapters 9-10) remains "Permissions, Scopes &amp; Sandboxing" and
+      "Prompt Injection &amp; Tool-Output Trust," with no chapter
+      addressing a deliberate isolation boundary between two agents or
+      pipeline steps.</li>
+      <li id="src-5">`ai-coding-agents-for-everyone`, <code>docs/curriculum/CURRICULUM_MAP.md</code>
+      (local repository file, re-read fresh this session at
+      `/home/dell/projects/ai-coding-agents-for-everyone/docs/curriculum/CURRICULUM_MAP.md`,
+      not a live web fetch, disclosed honestly as a local sibling-repo
+      read). Re-confirms its 13-chapter roadmap remains scoped entirely
+      to one coding agent operating on one codebase, with no chapter
+      addressing a second agent or an isolation boundary between two
+      steps.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's Context Isolation Recipe out loud
+    — see
+    <a href="interview-questions.html">Chapter 11 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="what-is">
+    <span class="label">A note on this chapter's project, and Module 5's own</span>
+    This chapter ships no project of its own. Per the curriculum map's
+    own project ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8,
+    L4 the Ch. 13 capstone), Module 5 (Chapters 9-11) carries no
+    dedicated project slot at all — its own two labs (the Chapter 9 tool
+    call miniature and the Chapter 10 multi-step/multi-agent pipeline
+    lab) fold directly into the Chapter 13 capstone's own system design
+    instead. This chapter closes Module 5 in full; Module 6 (Evaluation
+    and Capstone) opens with Chapter 12 next.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-10-multi-agent-context/lesson.html">&larr; Chapter 10</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

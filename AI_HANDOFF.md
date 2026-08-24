@@ -366,67 +366,70 @@ only as `.gitkeep`'d directories, not yet built.
   Chapter 1 modeled it directly in its "Why This Course Exists"
   section.
 
-## Current task: Chapter 11 — "Context Isolation and Scoping"
+## Current task: Chapter 12 — "Evaluating Context Quality"
 
-Closes Module 5 (Context Engineering for Agentic Systems), Chapters
-9-11 — Chapter 10 is now complete. See `PROJECT_STATE.md`'s "Next
+Opens Module 6 (Evaluation and Capstone), Chapters 12-13 — Module 5
+(Chapters 9-11) is now fully complete. See `PROJECT_STATE.md`'s "Next
 Recommended Task" section for the full handoff detail: what not to
-re-derive from Chapters 1-10 (the budget ledger, memory policies, the
+re-derive from Chapters 1-11 (the budget ledger, memory policies, the
 Compression Fidelity Recipe, the Context Ordering Recipe, the Source
 Assembly Recipe, the Retrieval Integration Recipe, the Tool Context
-Recipe, and the Pipeline/Multi-Agent Context Recipe are all given
-inputs, not re-taught fresh) — Chapter 11's own new job is the
-deliberate flip side of Chapter 10's own recipe: Chapter 10 treated
-every case of a step or sub-agent not getting some piece of context as
-either a bug (an unscoped budget overflow) or an oversight (a stale
-finding never evicted between units of work). Chapter 11 asks when
-withholding context between steps or agents is the *correct* design
-choice on purpose — not a scoping bug Chapter 10's own recipe would flag
-— and where that kind of intentional isolation itself breaks down or
-gets misapplied (a sub-agent withheld information it genuinely needed,
-or an isolation boundary drawn for one good reason quietly becoming an
-excuse to under-inform every downstream step by default). Re-confirm
-both the `mcp-for-everyone` boundary (re-confirmed unchanged again in
-Chapter 10's own session) and the `ai-coding-agents-for-everyone`
-boundary (given its first fully direct verification in Chapter 10's own
-session, per `PROJECT_STATE.md`'s prior explicit instruction) fresh this
-session rather than assuming either is now permanently settled — the
-same direct-verification discipline every chapter since Chapter 9 has
-applied. Also check: the new-org exclusion list (106 orgs across
-Chapters 1-10 so far, in `quality-audits/chapter-10-audit.md`, which
-also now includes a live-grep cross-check against
-`ai-engineering-for-everyone`'s own compiled list, present locally in
-this sandbox for the first time as of Chapter 10's own session),
-citation/Ollama re-verification discipline (Chapter 10's own session
-found all 3 citations clean with zero corrections needed; the Ollama
-hang remains intermittent regardless — budget for retries throughout the
-session, even though Chapter 10's own session got six consecutive
-first-attempt successes), **no chapter project is due at the end of
-Chapter 11** (Chapter 9's own session already resolved this for all of
-Module 5, re-confirmed again in Chapter 10's own session — re-verify the
-curriculum map still says so, but do not treat it as newly open), and
-the registration-staleness locations to update in the same session once
-Chapter 11's `lesson.html` exists (`assets/chapters-data.js`, root
-`index.html`'s hero-stats — it should read "11 of 13 chapters live" AND
-"5 of 6 modules complete" this time, since Chapter 11 is the one that
-closes Module 5 — plus the intro paragraph, and
-`docs/curriculum/index.html`'s chapter-card status and lede paragraph
-AND Module 5's own feature card, which should finally flip from "In
-Progress" to "Complete").
+Recipe, the Pipeline/Multi-Agent Context Recipe, and the Context
+Isolation Recipe are all given inputs, not re-taught fresh) — Chapter
+12's own new job is the first genuinely new kind of skill since Chapter
+1: Chapters 1-11 are all about *producing* well-engineered context per
+their own recipes; Chapter 12 is about *measuring* whether an assembled
+context is actually good (complete, relevant, correctly ordered) before
+it ever reaches the model, not diagnosing a failure after the fact the
+way every prior chapter's own hook does. Per `docs/curriculum/CURRICULUM_MAP.md`'s
+own Module 6 "Assessment" line, **Chapter 12 is expected to ship an
+applied context-evaluation exercise of its own** — re-verify this
+directly against the current curriculum map before assuming it, reading
+both the "Module Architecture" section's own assessment line and the
+"Projects" section together, since Module 6 does not follow Module 5's
+own no-project pattern. Re-confirm both the `mcp-for-everyone` boundary
+and the `ai-coding-agents-for-everyone` boundary fresh this session
+rather than assuming either is now permanently settled (both were
+re-checked directly again in Chapter 11's own session with no change
+found), the same direct-verification discipline every chapter since
+Chapter 9 has applied — and give `ai-engineering-for-everyone`'s own
+current curriculum map a fresh, direct check specifically for
+LLM-output-evaluation overlap this session, since a future `LLM
+Evaluation for Everyone` sibling course is named in this course's own
+forward cross-link list and Chapter 12's own subject (evaluating
+*context*, not the model's own final output generally) needs that
+boundary confirmed directly, not assumed from `docs/discovery-notes.md`
+alone. Also check: the new-org exclusion list (116 orgs across Chapters
+1-11 so far, in `quality-audits/chapter-11-audit.md`, which also
+includes a live-grep cross-check against `ai-engineering-for-everyone`'s
+own compiled list), citation/Ollama re-verification discipline (Chapter
+11's own session found all 3 web citations clean with zero corrections
+needed, but also hit a slow 66.7s cold-start first call and one outright
+content refusal requiring a rephrase — budget for both throughout the
+session, not just a hang), and the registration-staleness locations to
+update in the same session once Chapter 12's `lesson.html` exists
+(`assets/chapters-data.js`, root `index.html`'s hero-stats — it should
+read "12 of 13 chapters live," with "5 of 6 modules complete" staying
+as-is since Module 6 also needs Chapter 13 — plus the intro paragraph,
+and `docs/curriculum/index.html`'s chapter-card status and lede
+paragraph AND Module 6's own feature card, which should move from its
+current not-yet-started state to "In Progress" now that Chapter 12 opens
+the module).
 
 ## Next task after that
 
-Chapter 12 ("Evaluating Context Quality"), opening Module 6 (Evaluation
-and Capstone) — not yet planned in detail beyond the curriculum map's
-own module outcomes; a future session should read Chapter 11's own
+Chapter 13, the Level 4 capstone ("Capstone: Designing a Context
+Engineering System") — closes Module 6 and the entire course. Per
+`CURRICULUM_MAP.md`'s own "Projects" section, this is the L4
+Architecture Challenge: "design and defend a complete context
+engineering system for a realistic multi-step/agentic system; business/
+system problem only." A future session should read Chapter 12's own
 quality audit before starting, not assume its scope from the curriculum
-map alone. Module 6's own two chapters (12 and 13) map cleanly onto the
-curriculum map's own project ladder differently from Module 5: Chapter
-12 is expected to ship an applied context-evaluation exercise per the
-map's own "Assessment" line for Module 6, and Chapter 13 is the Level 4
-capstone itself — re-verify both against the curriculum map before
-assuming either, the same way every resolved-but-re-checked convention
-in this course works.
+map alone — Chapter 13 is expected to draw directly on every prior
+chapter's own recipe (the budget ledger through the Context Isolation
+Recipe, plus Chapter 12's own evaluation framework) as inputs to one
+integrated system design, the natural place Module 5's own two labs and
+Module 6's own evaluation exercise were always headed.
 
 ## Important architectural decisions (see PROJECT_STATE.md for full detail)
 

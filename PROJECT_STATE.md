@@ -1,10 +1,11 @@
 # PROJECT_STATE.md — Context Engineering for Everyone
 
-Last updated: 2026-08-24 (Session 10 — Chapter 10, "Context Engineering
-for Multi-Agent Systems," complete, continuing Module 5 (Chapters 9-11)
-and shipping no project of its own, per the curriculum map's own project
-ladder — Module 5 still needs Chapter 11 to close. Session 9 built
-Chapter 9, opening Module 5, also shipping no project of its own.
+Last updated: 2026-08-24 (Session 11 — Chapter 11, "Context Isolation
+and Scoping," complete, closing Module 5 (Chapters 9-11) in full and
+shipping no project of its own, per the curriculum map's own project
+ladder. Session 10 built Chapter 10, continuing Module 5, also shipping
+no project of its own. Session 9 built Chapter 9, opening Module 5, also
+shipping no project of its own.
 Session 8 built Chapter 8, closing Module 4 in full and shipping Module 4's
 single L3 Independent project, the curriculum map's own literal L3 tier.
 Session 7 built Chapter 7, opening Module 4, shipping no project of its
@@ -947,6 +948,75 @@ only).
       `docs/curriculum/index.html` (Chapter 9's chapter-card now "Live"
       with a working link, its own lede paragraph updated, and Module
       5's feature card marked "In Progress").
+- [x] **Chapter 10: Context Engineering for Multi-Agent Systems**
+      (continuing Module 5) — retroactively logged here for the
+      historical record; Chapter 10's own session updated this file's
+      header summary and `quality-audits/chapter-10-audit.md` in full but
+      did not add its own line item to this section at the time. Built
+      `lesson.html`, exercises, practice bank, `quiz.html`, and
+      interview questions around Heronbrook Regional Grantmaking
+      Alliance/GrantPilot; delivered the six-step Pipeline/Multi-Agent
+      Context Recipe; shipped no project of its own; registration
+      updated in the same session. See `quality-audits/chapter-10-audit.md`
+      for full detail.
+- [x] **Chapter 11: Context Isolation and Scoping** (closing Module 5 in
+      full) — built `lesson.html`, exercises (`index.html`, `README.md`,
+      `starter.py`, `solution.py`, `ai-paired.html`), practice bank
+      (`index.html`, `README.md`, `starter.py`, `solution.py`),
+      `quiz.html`, and `interview-questions.md`/`.html` around Vesteroak
+      Regional Appeals Review Board/AppealLine — a hook where a
+      deliberately correct isolation boundary (preventing anchoring on a
+      prior agent's own conclusion) was drawn too broadly and starved a
+      downstream step of a shared, objective fact it legitimately
+      needed, producing a wrong appeal outcome despite the isolation
+      goal itself being right. Delivered the six-step Context Isolation
+      Recipe (name the isolation goal; draw the boundary around opinion,
+      not the whole step; run isolation as a genuinely separate call;
+      cross the boundary only through a curated hand-off contract;
+      re-verify the boundary as shared facts change; test with both a
+      contamination probe and a starvation probe). 6 live-verified
+      external sources this session (2 re-fetched: Anthropic's "How we
+      built our multi-agent research system" and, as local sibling-repo
+      re-reads, `mcp-for-everyone`'s and `ai-coding-agents-for-everyone`'s
+      own curriculum maps; 2 genuinely new: Lance Martin's "Context
+      Engineering for Agents" blog and Sophos's "Inside the lethal
+      trifecta" blast-radius post). 8 exercises (6 production-gear:
+      per-approach budget arithmetic, separating opinion from shared
+      fact, building a Step 4 hand-off contract, a contamination probe, a
+      starvation probe, and a combined 2x2 classification), 8 practice
+      scenarios (4 judgment, 4 production-gear) across 8 fresh fictional
+      orgs, and 8 interview questions across all 4 levels. 6 live Ollama
+      captures this session (4 embedded, 2 disclosed negative
+      results/refusals), all against `llama3.2:latest`. **No chapter
+      project this session, by design** — re-confirmed the curriculum
+      map's own "Projects" section still assigns no tier to Module 5.
+      **Module 5 (Chapters 9-11) is now complete in full.**
+- [x] **Quality audit** (`quality-audits/chapter-11-audit.md`) — honest
+      self-critique (including the disclosed gap that this chapter's
+      contamination/starvation probes are exercised as clean
+      structural/presence checks on a dict, not the harder, fuzzier
+      problem of detecting a paraphrased opinion leak in generated text),
+      full confirmation Module 5 ships no project anywhere across
+      Chapters 9-11, a fictional-org exclusion check extending Chapters
+      1-10's list with 10 new orgs (116 total in this repo), checked
+      against `ai-engineering-for-everyone`'s own full compiled list with
+      zero collision found, and confirmation that all 3 externally-fetched
+      web citations were verified live this session with zero corrections
+      needed.
+- [x] **Step 5: Validation (Chapter 11)** — `scripts/local_check.sh` run
+      at the end of this session; passed clean (folder structure,
+      placeholder-text scan, Python syntax, every `solution.py` executed
+      for real, JS syntax and chapter-path validation, secret scan).
+- [x] **Registration updated in the same session (Chapter 11)**:
+      `assets/chapters-data.js` (Chapter 11's `path` added), root
+      `index.html` (hero-stats now "11 of 13 chapters live" AND "5 of 6
+      modules complete" — the first module-count change since Chapter 8
+      closed Module 4 — and the "All Chapters" intro paragraph extended
+      to describe Chapter 11 and Module 5 closing), and
+      `docs/curriculum/index.html` (Chapter 11's chapter-card now "Live"
+      with a working link, its own lede paragraph extended, AND Module
+      5's feature card flipped from "In Progress" to "Complete" — the
+      first module feature-card flip since Chapter 8 closed Module 4).
 
 ## Pending / Not Started
 
@@ -1130,56 +1200,71 @@ extended (not restarted) in each chapter's own quality audit.
 
 ## Next Recommended Task
 
-**Chapter 11 — "Context Isolation and Scoping," closing Module 5.**
+**Chapter 12 — "Evaluating Context Quality," opening Module 6 (Evaluation and Capstone).**
 
-Per `docs/curriculum/CURRICULUM_MAP.md`: Module 5 (Context Engineering
-for Agentic Systems), Chapters 9-11, difficulty Advanced. Module 5's
-purpose: "what context a step, tool call, or sub-agent actually needs,
-and where deliberate isolation is the right design." Chapter 9 (this
-course's own Tool Context Recipe) delivered Module 5's first lab in
-miniature, for a single tool call. Chapter 10 (this course's own
-Pipeline/Multi-Agent Context Recipe) delivered Module 5's second lab for
-a whole multi-step/multi-agent pipeline, but treated every case of a
-step or sub-agent NOT getting some piece of context as either a bug
-(GrantPilot's own hook: Applicant 12's own data missing because of an
-unscoped budget overflow) or an oversight (the naive eligibility check
-carrying Applicant 12's own stale finding into Applicant 13's own
-review, because nothing evicted it on purpose). Chapter 11's own job,
-per `assets/chapters-data.js`'s own existing placeholder description
-("Deliberately withholding context between agents or steps as a design
-choice, not an oversight — and where that isolation breaks down") and
-Chapter 10's own "Context Engineering Builder Thought Process" section,
-is the deliberate flip side of that same coin: when is withholding
-context between steps or agents the *correct* design choice on purpose
-— not a scoping bug Chapter 10's own recipe would otherwise flag — and
-where does that kind of intentional isolation itself break down or get
-misapplied. Read Chapter 10's own quality audit
-(`quality-audits/chapter-10-audit.md`) before starting, not just this
+Per `docs/curriculum/CURRICULUM_MAP.md`: Module 6 (Evaluation and
+Capstone), Chapters 12-13, difficulty Advanced (Ch. 12) and Architect
+(Ch. 13). Module 6's purpose: "measuring assembled context quality, and
+architect-level synthesis." Prerequisites: Module 5 — now fully complete
+across Chapters 9-11. Module 6's outcomes: "evaluate context
+completeness/relevance/ordering before it reaches the model; design and
+defend a complete context engineering system." Module 6's own assessment
+line names two distinct deliverables: "context-evaluation exercise (Ch.
+12) + capstone rubric (Ch. 13, architecture challenge, Level 4)" — unlike
+Module 5, which had two labs feeding the capstone but no dedicated
+project of its own, **Chapter 12 is expected to ship an applied
+context-evaluation exercise of its own**, per the map's own explicit
+"Assessment" line for Module 6. Re-verify this directly against the
+current curriculum map before building — do not assume it from this
+paraphrase alone, and do not assume it is a full numbered L-tier project
+in the same sense as the L1-L4 ladder (`CURRICULUM_MAP.md`'s own
+"Projects" section still only names L1 after Ch. 2, L2 after Ch. 4, L3
+after Ch. 8, and L4 as the Ch. 13 capstone) — read both the "Module
+Architecture" section's own Module 6 assessment line and the "Projects"
+section together to determine exactly what Chapter 12 owes, rather than
+assuming either section alone settles it.
+
+Chapters 1-11 built the *engineering* half of this course: how to
+budget, remember, compress, order, assemble, retrieve, scope, and
+isolate context correctly. Chapter 12's own job is the first *evaluation*
+chapter: given that context has already been engineered per Chapters
+1-11's own recipes, how do you actually measure whether it's good —
+complete, relevant, correctly ordered — *before* it ever reaches the
+model, not after a downstream failure like every prior chapter's own
+hook shows in hindsight. This is a genuinely new skill, not a
+re-application of any prior chapter's own recipe: Chapters 1-11 are all
+about *producing* well-engineered context; Chapter 12 is about
+*measuring* it. Read Chapter 11's own quality audit
+(`quality-audits/chapter-11-audit.md`) before starting, not just this
 file or the curriculum map — per this course's own standing instruction
 (carried forward from every prior chapter's own handoff), it may surface
 scope notes this file doesn't fully capture, and do not assume Chapter
-11's own scope from the curriculum map's one-paragraph module outcome or
+12's own scope from the curriculum map's one-paragraph module outcome or
 the `chapters-data.js` placeholder description alone.
 
 **Re-confirm the `mcp-for-everyone` and `ai-coding-agents-for-everyone`
-boundaries fresh this session, do not assume Chapter 10's own
-re-confirmation still holds unchanged.** Chapter 10's session
-independently re-read `mcp-for-everyone`'s own current curriculum map
-(confirming its Module 5, Chapters 9-10, "Permissions, Scopes &
+boundaries fresh this session, do not assume Chapter 11's own
+re-confirmation still holds unchanged.** Chapter 11's session
+independently re-read both `mcp-for-everyone`'s own current curriculum
+map (confirming its Module 5, Chapters 9-10, "Permissions, Scopes &
 Sandboxing" and "Prompt Injection & Tool-Output Trust," remains
-unchanged from Chapter 9's own finding) and, per `PROJECT_STATE.md`'s
-own explicit instruction, gave `ai-coding-agents-for-everyone`'s own
-current curriculum map its first fully direct read (confirming its
-13-chapter roadmap is scoped entirely to building, prompting, reviewing,
-and securing one coding agent on one codebase, with no chapter
-addressing multi-agent or inter-step context scoping at all). Chapter
-11's own subject — deliberate context withholding as a design choice —
-is closer still to territory a possible future `Agentic AI for Everyone`
-might cover (see `docs/discovery-notes.md` section 9's own forward
-cross-link list); re-verify both sibling-course boundaries directly this
-session rather than assuming Chapter 10's own re-confirmation is
-permanent, the same direct-verification discipline every chapter since
-Chapter 9 has applied.
+unchanged from every prior chapter's own finding) and
+`ai-coding-agents-for-everyone`'s own current curriculum map (confirming
+its 13-chapter roadmap remains scoped entirely to one coding agent on
+one codebase, unchanged from Chapter 10's own first fully direct
+verification). Chapter 12's own subject — evaluating context quality —
+is also worth checking against `ai-engineering-for-everyone`'s own scope
+directly this session (not just `docs/discovery-notes.md`'s own summary
+of it), since a future `LLM Evaluation for Everyone` is named in this
+course's own forward cross-link list
+(`docs/discovery-notes.md` section 9) as a *sibling* course this one
+should not duplicate — re-verify whether `ai-engineering-for-everyone`'s
+own current curriculum map already covers general LLM output evaluation
+in a way Chapter 12 needs to explicitly scope around (this chapter's own
+subject is evaluating *context*, not the model's own final output
+quality generally — confirm that distinction holds against the sibling
+course's actual current content, not just this file's prior assumption
+of it).
 
 What NOT to re-derive:
 - The five-line Context Budget Ledger (Chapter 1), the five-step Budget
@@ -1188,98 +1273,84 @@ What NOT to re-derive:
   (Chapter 4), the six-step Compression Fidelity Recipe (Chapter 5), the
   five-step Context Ordering Recipe (Chapter 6), the six-step Source
   Assembly Recipe (Chapter 7), the six-step Retrieval Integration Recipe
-  (Chapter 8), the six-step Tool Context Recipe (Chapter 9), and the
-  six-step Pipeline/Multi-Agent Context Recipe (Chapter 10) are all
-  already-built material. Chapter 11 should treat every one of them as a
-  given input where relevant — Chapter 10's own Step 1 (scoped context
-  contract) and Step 4 (unit-of-work isolation) already establish that a
-  step or sub-agent gets *less* than the full accumulated history by
-  default; Chapter 11's own new job is the harder, adjacent question
-  Chapter 10 deliberately left open: given that a step or sub-agent
-  *could* technically be given a specific piece of context, when should
-  it deliberately NOT be, as a design choice serving some other goal
-  (security/least-privilege, preventing one agent's own bias or error
-  from propagating to another, preserving a genuinely independent second
-  opinion, reducing prompt-injection blast radius across agents) — and
-  what does it look like when that kind of intentional isolation itself
-  goes wrong (a sub-agent withheld information it genuinely needed to do
-  its own job correctly, or an isolation boundary drawn for one good
-  reason quietly became an excuse to under-inform every downstream step
-  by default).
+  (Chapter 8), the six-step Tool Context Recipe (Chapter 9), the
+  six-step Pipeline/Multi-Agent Context Recipe (Chapter 10), and the
+  six-step Context Isolation Recipe (Chapter 11) are all already-built
+  material. Chapter 12 should treat every one of them as a given input
+  to evaluate against, not re-teach — its own new job is deciding how to
+  measure, systematically, whether a given assembled context actually
+  satisfies what Chapters 1-11 collectively require (in budget, in
+  freshness, in fidelity, in ordering, in source coverage, in retrieval
+  quality, in tool-result curation, in pipeline scoping, and in
+  isolation correctness) rather than producing that context correctly in
+  the first place.
 - The course's positioning relative to `rag-for-everyone`,
   `mcp-for-everyone`, `ai-engineering-for-everyone` Chapter 3, and
   `ai-coding-agents-for-everyone` is already established in
   `docs/discovery-notes.md`, Chapter 1's own "Why This Course Exists"
-  section, Chapter 9's own re-confirmed `mcp-for-everyone` boundary, and
-  Chapter 10's own newly direct-verified `ai-coding-agents-for-everyone`
-  boundary — Chapter 11 can reference this briefly but should not
-  re-argue it from scratch. Re-verify both boundaries fresh this session
-  per the note above rather than treating either as permanently settled.
-- **No chapter project is due at the end of Chapter 11** — Chapter 9's
-  own session already resolved this for all of Module 5, and Chapter
-  10's own session re-confirmed it still holds: the curriculum map's own
-  "Projects" section assigns no numbered tier to Module 5 at all, and
-  its own two labs (both now delivered — Chapter 9's own tool-call
-  miniature and Chapter 10's own multi-step/multi-agent pipeline lab)
-  feed directly into the Chapter 13 capstone's own system design
-  instead. Re-verify this is still the map's own stated intent before
-  writing (the map itself could in principle be revised), but do not
-  treat it as an open question the way it was before Chapter 9's own
-  session.
+  section, and every chapter's own re-confirmed boundaries through
+  Chapter 11 — Chapter 12 can reference this briefly but should not
+  re-argue it from scratch. Re-verify per the note above rather than
+  treating any boundary as permanently settled, and give
+  `ai-engineering-for-everyone`'s own current scope its first fully
+  direct check specifically for LLM-output-evaluation overlap, the same
+  rigor Chapter 10's own session gave `ai-coding-agents-for-everyone`.
+- Module 5 (Chapters 9-11) is fully complete and ships no project of its
+  own anywhere in its three chapters — settled, not open. Module 6 is a
+  different case: re-verify directly (see above) whether Chapter 12 owes
+  its own applied exercise per the map's own "Assessment" line, rather
+  than assuming Module 6 follows Module 5's no-project pattern.
 
-New-org exclusion list: read `quality-audits/chapter-10-audit.md`'s full
-running list (Chapters 1-9's combined 96 orgs plus Chapter 10's 10 new
-orgs — Heronbrook Regional Grantmaking Alliance, Prescott County
-Emergency Housing Placement Network, Bramwell County Court Interpreter
-Scheduling Service, Solmere Regional Disaster Shelter Intake Network,
-Anchorfield Regional Small Business Loan Consortium, Hawkridge Regional
-Reforestation Grants Program, Havermill County Meals-on-Wheels Route
-Optimization Service, Ledgemont Regional Water Utility Leak Response
-Pipeline, Tessington Regional Scholarship Review Board, Cresswell
-Regional Building Permit Review Pipeline — 106 total in this repo) plus
-`ai-engineering-for-everyone`'s own full compiled list (that repo is now
-present locally in this sandbox at
+New-org exclusion list: read `quality-audits/chapter-11-audit.md`'s full
+running list (Chapters 1-10's combined 106 orgs plus Chapter 11's 10 new
+orgs — Vesteroak Regional Appeals Review Board, Calloway County Child
+Welfare Case Review Network, Brightfen Regional Utility Outage Response
+Cooperative, Norwick Regional Medical Second-Opinion Network, Marrenfield
+Regional Crop Insurance Claims Bureau, Coalport Regional Ferry Safety
+Inspection Authority, Sallowbrook Regional Land Trust Conservation
+Board, Vantree Regional Air Quality Monitoring Network, Kesterly
+Regional Public Records Redaction Service, Wolvercote Regional Peer
+Review Grant Panel — 116 total in this repo) plus
+`ai-engineering-for-everyone`'s own full compiled list (present locally
+in this sandbox at
 `/home/dell/projects/ai-engineering-for-everyone/quality-audits/chapter-13-audit.md`
-— Chapter 10's own session found it available for the first time and
-used a live grep against it directly, rather than relying only on the
-verbatim-reproduced root-word list; do the same live-grep check again
-this session rather than assuming it's unavailable) before naming any
-new fictional org for Chapter 11, and extend — don't restart — the list
-in `quality-audits/chapter-11-audit.md`.
+— do a live grep against it directly, the same discipline Chapters 10
+and 11 both applied, rather than relying only on the verbatim-reproduced
+root-word list) before naming any new fictional org for Chapter 12, and
+extend — don't restart — the list in `quality-audits/chapter-12-audit.md`.
 
-Citation/Ollama re-verification discipline: do not assume Chapter 10's
-own three external citations are still live — re-fetch and re-read
-anything reused, and treat all-new sources as the default. Chapter 10's
-own session found all three citations clean with zero corrections
-needed, following Chapter 9's own and Chapter 7's own clean sessions —
-do not assume Chapter 11's own session will be equally clean OR equally
-churny. Also re-verify both `mcp-for-everyone`'s and
-`ai-coding-agents-for-everyone`'s local curriculum-map files fresh if
-Chapter 11 references them again (both are local sibling-repo reads, not
-web fetches, and could have changed since Chapter 10's own session
-re-read them). Re-check Ollama's `/api/tags` and `/api/chat` fresh at
-the start of the session, even though Chapters 4-10 have mostly gotten
-consecutive first-attempt successes (Chapter 10's own session got six
-first-attempt successes in a row) — Chapter 3 already showed a
-successful warm call can still be followed by a later timeout within the
-same session, so treat the endpoint as intermittently slow/hanging by
-default, budget for retries throughout the session, not just at the
-start, and keep timeouts generous (120s+) throughout.
+Citation/Ollama re-verification discipline: do not assume Chapter 11's
+own citations are still live — re-fetch and re-read anything reused, and
+treat all-new sources as the default. Chapter 11's own session found all
+3 web citations clean with zero corrections needed, following Chapters
+3, 7, 9, and 10's own clean sessions — do not assume Chapter 12's own
+session will be equally clean OR equally churny. Also re-verify both
+`mcp-for-everyone`'s and `ai-coding-agents-for-everyone`'s local
+curriculum-map files fresh if Chapter 12 references them again (both are
+local sibling-repo reads, not web fetches, and could have changed since
+Chapter 11's own session re-read them). Re-check Ollama's `/api/tags`
+and `/api/chat` fresh at the start of the session — Chapter 11's own
+session got a slow 66.7s cold-start first call (mostly model-load time)
+despite Chapter 10's own six consecutive first-attempt successes, and
+also hit one outright content refusal requiring a rephrase, so treat the
+endpoint as intermittently slow/hanging AND occasionally prone to
+refusing a loaded framing by default, budget for both throughout the
+session, not just at the start, and keep timeouts generous (120s+)
+throughout.
 
-Registration-staleness check reminders: once Chapter 11's `lesson.html`
+Registration-staleness check reminders: once Chapter 12's `lesson.html`
 exists, update `assets/chapters-data.js` (add its `path`), the root
-`index.html` (`hero-stats` counts — it should read "11 of 13 chapters
-live"; "4 of 6 modules complete" should become "5 of 6 modules
-complete," since Chapter 11 closes Module 5 — this is the first
-hero-stats module-count change since Chapter 8 closed Module 4), and
-`docs/curriculum/index.html` (its own chapter-card status and lede
-paragraph, AND Module 5's own feature card, which should finally change
-from "In Progress" to "Complete" now that Chapter 11 closes the module —
-the first chapter session since Chapter 8 that needs to flip a module
-feature-card's own status, not just a chapter-card's) in the same
-session — these four locations (five, counting the module-status flip)
-drifted stale in multiple sibling courses' own build histories when a
-chapter shipped without updating all of them at once.
+`index.html` (`hero-stats` counts — it should read "12 of 13 chapters
+live"; "5 of 6 modules complete" stays as-is, since Module 6 also needs
+Chapter 13 before it closes), and `docs/curriculum/index.html` (its own
+chapter-card status and lede paragraph, AND Module 6's own feature card,
+which should change from its current unmarked/not-yet-started state to
+"In Progress" now that Chapter 12 opens the module — check the exact
+wording convention other modules' own opening chapters used, e.g. how
+Chapter 7 or Chapter 9 opening their own modules were represented) in
+the same session — these locations drifted stale in multiple sibling
+courses' own build histories when a chapter shipped without updating all
+of them at once.
 
 Local validation, done at the end of every session:
 
@@ -1287,7 +1358,7 @@ Local validation, done at the end of every session:
 $ bash scripts/local_check.sh
 ```
 
-Passed clean at the end of this session (Chapter 10) — folder
+Passed clean at the end of this session (Chapter 11) — folder
 structure, placeholder-text scan, Python syntax, every `solution.py`
 executed for real, JS syntax and chapter-path validation, secret scan.
 See this session's own commit message / `AI_HANDOFF.md` for the exact

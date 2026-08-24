@@ -121,7 +121,8 @@ window.CEFE_MODULES = [
         id: "chapter-11",
         num: 11,
         title: "Context Isolation and Scoping",
-        description: "Deliberately withholding context between agents or steps as a design choice, not an oversight -- and where that isolation breaks down."
+        description: "Deliberately withholding context between agents or steps as a design choice, not an oversight -- and where that isolation breaks down, closing Module 5.",
+        path: "chapters/chapter-11-context-isolation-and-scoping/lesson.html"
       }
     ]
   },
