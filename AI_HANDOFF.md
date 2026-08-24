@@ -47,7 +47,9 @@ Integration: From Ranked Results to Context"), closing Module 4 in full
 and shipping Module 4's single project — the curriculum map's own
 literal L3 Independent tier. Session 9 built Chapter 9 ("Context
 Engineering for Tool Use"), opening Module 5, shipping no project of its
-own per the curriculum map's own project ladder. Chapters 10-13 exist
+own per the curriculum map's own project ladder. Session 10 built
+Chapter 10 ("Context Engineering for Multi-Agent Systems"), continuing
+Module 5, also shipping no project of its own. Chapters 11-13 exist
 only as `.gitkeep`'d directories, not yet built.
 
 - Directory skeleton (`.gitkeep` in every not-yet-built chapter
@@ -364,60 +366,67 @@ only as `.gitkeep`'d directories, not yet built.
   Chapter 1 modeled it directly in its "Why This Course Exists"
   section.
 
-## Current task: Chapter 10 — "Context Engineering for Multi-Agent Systems"
+## Current task: Chapter 11 — "Context Isolation and Scoping"
 
-Continues Module 5 (Context Engineering for Agentic Systems), Chapters
-9-11 — Chapter 9 is now complete. See `PROJECT_STATE.md`'s "Next
+Closes Module 5 (Context Engineering for Agentic Systems), Chapters
+9-11 — Chapter 10 is now complete. See `PROJECT_STATE.md`'s "Next
 Recommended Task" section for the full handoff detail: what not to
-re-derive from Chapters 1-9 (the budget ledger, memory policies, the
+re-derive from Chapters 1-10 (the budget ledger, memory policies, the
 Compression Fidelity Recipe, the Context Ordering Recipe, the Source
-Assembly Recipe, the Retrieval Integration Recipe, and the Tool Context
-Recipe are all given inputs, not re-taught fresh) — Chapter 10's own new
-job is asking the same "what does this specific step actually need"
-question Chapter 9 asked for one tool call, but now across a whole
-multi-step or multi-agent pipeline: does every step or sub-agent need
-the full accumulated history and every prior tool result, or a scoped
-subset, and what happens to context that accumulates across many
-pipeline steps the way Chapter 9's own tool-call history accumulates
-across many calls, but at pipeline scale. Re-confirm the
-`mcp-for-everyone` boundary is still accurate (Chapter 9's own session
-re-confirmed it directly against that repo's current curriculum map,
-but re-check fresh rather than assume it hasn't changed), and pay
-particular attention to the `ai-coding-agents-for-everyone` boundary,
-which needs more direct verification than Chapter 9's session gave it —
-`CURRICULUM_MAP.md`'s own "Cross-Course Links" section already claims
-this course "builds on but does not duplicate" that course's own
-agent-loop depth, but this has not yet been verified the same direct
-way Chapter 9's session verified the `mcp-for-everyone` claim. Also
-check: the new-org exclusion list (96 orgs across Chapters 1-9 so far,
-in `quality-audits/chapter-09-audit.md`), citation/Ollama
-re-verification discipline (Chapter 9's own session found all 4
-citations clean with zero corrections needed; the Ollama hang remains
-intermittent regardless — budget for retries throughout the session),
-**no chapter project is due at the end of Chapter 10** (Chapter 9's own
-session already resolved this for all of Module 5 — re-verify the
+Assembly Recipe, the Retrieval Integration Recipe, the Tool Context
+Recipe, and the Pipeline/Multi-Agent Context Recipe are all given
+inputs, not re-taught fresh) — Chapter 11's own new job is the
+deliberate flip side of Chapter 10's own recipe: Chapter 10 treated
+every case of a step or sub-agent not getting some piece of context as
+either a bug (an unscoped budget overflow) or an oversight (a stale
+finding never evicted between units of work). Chapter 11 asks when
+withholding context between steps or agents is the *correct* design
+choice on purpose — not a scoping bug Chapter 10's own recipe would flag
+— and where that kind of intentional isolation itself breaks down or
+gets misapplied (a sub-agent withheld information it genuinely needed,
+or an isolation boundary drawn for one good reason quietly becoming an
+excuse to under-inform every downstream step by default). Re-confirm
+both the `mcp-for-everyone` boundary (re-confirmed unchanged again in
+Chapter 10's own session) and the `ai-coding-agents-for-everyone`
+boundary (given its first fully direct verification in Chapter 10's own
+session, per `PROJECT_STATE.md`'s prior explicit instruction) fresh this
+session rather than assuming either is now permanently settled — the
+same direct-verification discipline every chapter since Chapter 9 has
+applied. Also check: the new-org exclusion list (106 orgs across
+Chapters 1-10 so far, in `quality-audits/chapter-10-audit.md`, which
+also now includes a live-grep cross-check against
+`ai-engineering-for-everyone`'s own compiled list, present locally in
+this sandbox for the first time as of Chapter 10's own session),
+citation/Ollama re-verification discipline (Chapter 10's own session
+found all 3 citations clean with zero corrections needed; the Ollama
+hang remains intermittent regardless — budget for retries throughout the
+session, even though Chapter 10's own session got six consecutive
+first-attempt successes), **no chapter project is due at the end of
+Chapter 11** (Chapter 9's own session already resolved this for all of
+Module 5, re-confirmed again in Chapter 10's own session — re-verify the
 curriculum map still says so, but do not treat it as newly open), and
 the registration-staleness locations to update in the same session once
-Chapter 10's `lesson.html` exists (`assets/chapters-data.js`, root
-`index.html`'s hero-stats and intro paragraph — it should read "10 of 13
-chapters live," with "4 of 6 modules complete" unchanged since Module 5
-also needs Chapter 11, `docs/curriculum/index.html`'s chapter-card
-status and lede paragraph — Module 5's feature card already reads "In
-Progress" as of Chapter 9's own session and should stay that way until
-Chapter 11 closes the module).
+Chapter 11's `lesson.html` exists (`assets/chapters-data.js`, root
+`index.html`'s hero-stats — it should read "11 of 13 chapters live" AND
+"5 of 6 modules complete" this time, since Chapter 11 is the one that
+closes Module 5 — plus the intro paragraph, and
+`docs/curriculum/index.html`'s chapter-card status and lede paragraph
+AND Module 5's own feature card, which should finally flip from "In
+Progress" to "Complete").
 
 ## Next task after that
 
-Chapter 11 ("Context Isolation and Scoping"), closing Module 5 in
-full — not yet planned in detail beyond the curriculum map's own module
-outcomes; a future session should read Chapter 10's own quality audit
-before starting, not assume its scope from the curriculum map alone.
-Per Chapter 9's own resolved project-ladder finding, Chapter 11 should
-also ship no project of its own, since Module 5's own two labs fold
-directly into the Chapter 13 capstone rather than into a Module 5
-project — re-verify this against the curriculum map before assuming it,
-the same way every resolved-but-re-checked convention in this course
-works.
+Chapter 12 ("Evaluating Context Quality"), opening Module 6 (Evaluation
+and Capstone) — not yet planned in detail beyond the curriculum map's
+own module outcomes; a future session should read Chapter 11's own
+quality audit before starting, not assume its scope from the curriculum
+map alone. Module 6's own two chapters (12 and 13) map cleanly onto the
+curriculum map's own project ladder differently from Module 5: Chapter
+12 is expected to ship an applied context-evaluation exercise per the
+map's own "Assessment" line for Module 6, and Chapter 13 is the Level 4
+capstone itself — re-verify both against the curriculum map before
+assuming either, the same way every resolved-but-re-checked convention
+in this course works.
 
 ## Important architectural decisions (see PROJECT_STATE.md for full detail)
 

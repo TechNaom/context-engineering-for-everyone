@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Engineering for Multi-Agent Systems — Context Engineering for Everyone</title>
+<meta name="description" content="Continuing Module 5: Chapter 9 asked what a single tool call actually needs; this chapter asks the same question across a whole multi-step, multi-agent pipeline -- does every step or sub-agent need the full accumulated history, or a scoped subset, and what happens to context that accumulates across many pipeline steps at pipeline scale.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-10">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../index.html">All Chapters</a>
+      <a href="../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+  <p><a href="../../index.html">&larr; Back to all chapters</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 10</span>
+    <span class="badge-difficulty">Advanced</span>
+    <span class="reading-time">~35 min</span>
+  </div>
+
+  <h1>Context Engineering for Multi-Agent Systems</h1>
+  <p class="lede">
+    Chapter 9 asked "what does this specific step actually need" for one
+    tool call. This chapter asks the exact same question at a different
+    scale: across a whole multi-step or multi-agent pipeline, does every
+    step or sub-agent need the full accumulated conversation history and
+    every prior step's raw output, or a scoped subset — and what happens
+    to context that keeps accumulating not across many tool calls, the
+    way Chapter 9's own tool-call history did, but across many pipeline
+    steps and many independent units of work run through the same
+    long-running pipeline?
+  </p>
+
+  <nav class="page-toc" aria-label="On this page">
+    <span class="toc-label">On this page</span>
+    <a href="#hook">1. The recommendation that reviewed the wrong applicant</a>
+    <a href="#why-this-chapter">2. What this chapter owns, and what it doesn't</a>
+    <a href="#the-recipe">3. The Pipeline/Multi-Agent Context Recipe</a>
+    <a href="#approaches-compared">4. Three approaches, compared</a>
+    <a href="#worked-math">5. Worked math: GrantPilot's pipeline budget</a>
+    <a href="#live-capture">6. Two live-captured recommendations</a>
+    <a href="#step4-ledger">7. Step 4 in practice: unit-of-work isolation and the ledger interplay</a>
+    <a href="#thought-process">8. Context Engineering Builder Thought Process</a>
+    <a href="#recap">9. Points to remember</a>
+  </nav>
+
+  <div class="hook" id="hook">
+    <p>
+      Heronbrook Regional Grantmaking Alliance is a fictional regional
+      foundation that funds small nonprofits. Its review assistant,
+      GrantPilot, is a four-step pipeline: an orchestrator receives an
+      incoming grant application and delegates it, in sequence, to an
+      Eligibility Agent, a Budget Agent, a Compliance Agent, and finally a
+      Recommendation Agent that synthesizes the first three sub-agents'
+      own findings into a funding recommendation. Every one of Heronbrook's
+      staff reviewers runs GrantPilot in one long-running session across
+      an entire review cycle — dozens of applications processed back to
+      back without restarting the assistant. By the time this chapter's
+      story starts, every sub-agent's own reasoning was correct on its own
+      terms: the Eligibility Agent correctly classified applicants, the
+      Budget Agent correctly compared requested amounts to category caps,
+      the Compliance Agent correctly checked insurance and certifications.
+      Nothing about any individual sub-agent's own judgment failed.
+    </p>
+    <p>
+      A reviewer asked GrantPilot to generate the funding recommendation
+      for Applicant 12, a youth-education nonprofit requesting $18,000
+      against a $25,000 category cap — a clean, unremarkable, easily
+      approvable case. GrantPilot's orchestrator had already processed
+      eleven applicants earlier in the same session, several of them
+      correctly flagged and denied for exceeding their own category caps.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">grantpilot_pipeline.py (orchestrator hand-off, before this chapter)</span>
+      </div>
+      <pre><code>  def run_pipeline_step(step_name, orchestrator_session, step_budget_tokens=400):
+      # The orchestrator's own accumulated session history -- every prior
+      # applicant processed so far this review cycle, unscoped -- gets
+      # appended to EVERY step's own context, on every single call,
+      # regardless of which applicant is actually under review right now.
+      session_log = "".join(
+          format_applicant_record(a) for a in orchestrator_session.all_applicants_so_far
+      )
+      # No per-step contract decides what THIS step actually needs; no
+      # boundary is drawn between "the current applicant's own data" and
+      # "everything else this session has ever touched." A crude
+      # char-based cutoff is applied wherever the step's own budget runs
+      # out, cutting off whatever happens to be appended last.
+      return session_log[:step_budget_tokens * 4]
+
+  def run_recommendation_agent(orchestrator_session):
+      # By the time Applicant 12 reaches this step, eleven prior
+      # applicants' own records are already ahead of it in the log --
+      # appended in processing order, current applicant always last.
+      context = run_pipeline_step("recommendation_agent", orchestrator_session)
+      return call_model(context, "Generate the funding recommendation "
+                         "for the applicant most recently added to the log.")</code></pre>
+    </div>
+    <p>
+      Eleven prior applicants' own records, appended in the order they
+      were processed, ran to roughly 2,500 characters — well past the
+      Recommendation Agent's own 400-token (1,600-character) budget.
+      Applicant 12's own record, appended last because it was the most
+      recently processed, never made it into the truncated log at all.
+      GrantPilot's Recommendation Agent, asked to recommend on "the
+      applicant most recently added to the log," reasoned from whatever
+      record actually survived the cutoff — Applicant 7, a community
+      garden nonprofit that had requested $45,000 against a $40,000 cap
+      and been correctly denied nine applicants earlier — and recommended
+      denying <em>that</em> case, never once reasoning about Applicant
+      12's own $18,000 request at all. Every sub-agent's own logic was
+      still correct. The Eligibility, Budget, and Compliance agents had
+      each reasoned soundly about the applicants they were actually shown.
+      The failure was entirely in what the orchestrator decided to hand
+      each step: not a scoped, current unit of work, but an ever-growing,
+      unscoped session history with no boundary between one applicant's
+      own review and the next.
+    </p>
+  </div>
+
+  <section id="why-this-chapter" class="subtopic">
+    <h2>What This Chapter Owns, and What It Doesn't</h2>
+    <p>
+      This chapter uses Chapters 1 through 9 as a lens, not fresh
+      material — the budget ledger, the allocation recipe, memory
+      eviction, the Compression Fidelity Recipe, the Context Ordering
+      Recipe, the Source Assembly Recipe, the Retrieval Integration
+      Recipe, and Chapter 9's own Tool Context Recipe are all
+      already-built skills this chapter assumes and reuses, not re-teaches.
+      A pipeline step whose own input includes a tool result still applies
+      Chapter 9's curation and field-boundary-safety rules to that result;
+      a step that assembles more than one source type still applies
+      Chapter 7's authority-ranking discipline; every step's own context
+      still has to respect Chapter 2's budget. What's genuinely new here:
+      Chapter 9 decided what a <em>single tool call</em> earns a place in
+      context — this chapter decides what a <em>given step or sub-agent
+      in a larger pipeline</em> actually needs from everything that came
+      before it, a different question with a different failure mode.
+      DispatchLine's own hook (Chapter 9) lost a field to a character
+      cutoff inside one tool result. GrantPilot's own hook lost an entire
+      applicant's own data to the same category of cutoff, but applied to
+      an ever-growing, multi-unit-of-work session history spanning many
+      pipeline steps and many independent applicants, not one result from
+      one call.
+    </p>
+    <p>
+      Two boundaries worth naming as directly as Chapter 9 named its own:
+      this chapter does not teach how to build an agent's own internal
+      reasoning loop, how to prompt or scope an individual agent's task,
+      or how to review an agent's own generated output — that territory
+      belongs to <code>ai-coding-agents-for-everyone</code>, confirmed
+      below. And this chapter does not decide when withholding context
+      between steps is the right design choice <em>on purpose</em>, as
+      opposed to an accidental omission — that is Chapter 11's own subject,
+      immediately next. This chapter's own job sits in between: given a
+      multi-step or multi-agent pipeline that already runs correctly step
+      by step, what does each step actually need from everything that
+      came before it, and what happens to context that accumulates across
+      many steps and many units of work run through the same pipeline?
+    </p>
+    <div class="what-is">
+      <span class="label">Re-confirmed this session: the `ai-coding-agents-for-everyone` boundary</span>
+      `CURRICULUM_MAP.md`'s own "Cross-Course Links" section claims this
+      course "builds on but does not duplicate... `ai-coding-agents-for-everyone`
+      (agent-loop depth for one application category)." This session
+      re-checked that claim directly against
+      `ai-coding-agents-for-everyone`'s own current curriculum map (its
+      13-chapter roadmap, read fresh this session at
+      `/home/dell/projects/ai-coding-agents-for-everyone/docs/curriculum/CURRICULUM_MAP.md`,
+      not assumed from the one-line summary alone) rather than trusting
+      the cross-link claim on faith, the same direct-verification
+      discipline Chapter 9's own session applied to `mcp-for-everyone`.
+      That course's 13 chapters build one coding agent from scratch
+      (Module 3: a minimal agent, given file/shell/git tools, then
+      MCP-based tools), teach how to prompt and scope that single agent's
+      own tasks (Module 1), diagnose why <em>that one agent</em> loops or
+      stalls (Module 2), review its generated diffs (Module 4), and
+      sandbox and CI-harden it (Module 5) — every chapter's own outcome is
+      phrased in terms of one agent operating on one codebase. No chapter
+      anywhere in its roadmap addresses a multi-agent pipeline, an
+      orchestrator delegating to multiple sub-agents, or what context one
+      step or sub-agent should receive from another — the closest chapter,
+      6 ("Context Windows and Codebase-Scale Understanding"), is about a
+      single agent's own context budget against a large codebase, not
+      inter-agent or inter-step context scoping at all. The cross-link
+      claim holds without adjustment: that course goes deep on building
+      and operating one coding agent; this chapter goes deep on what
+      context a step or sub-agent in a larger pipeline should and
+      shouldn't receive from the rest of that pipeline, a question that
+      course's own roadmap never asks. The `mcp-for-everyone` boundary
+      was also re-checked fresh this session against its own current
+      curriculum map and remains unchanged from Chapter 9's own
+      re-confirmation: its Module 5 (Chapters 9-10) is "Permissions,
+      Scopes &amp; Sandboxing" and "Prompt Injection &amp; Tool-Output
+      Trust," with no chapter addressing multi-step or multi-agent
+      context scoping.
+    </div>
+  </section>
+
+  <section id="the-recipe" class="subtopic">
+    <h2>The Pipeline/Multi-Agent Context Recipe</h2>
+    <p>
+      Six steps, run on a pipeline's own per-step hand-offs before any
+      individual step's own context is assembled:
+    </p>
+    <div class="lesson-card">
+      <h3>Step 1 — Define each step's own scoped context contract</h3>
+      <p>
+        Decide, per step or sub-agent, exactly which upstream facts and
+        which prior steps' outputs it actually needs — never "everything
+        the session has accumulated so far." GrantPilot's own
+        Recommendation Agent needs the current applicant's own three
+        sub-agent outputs; it does not need any other applicant's own
+        record, and it does not need the Eligibility Agent's own full
+        reasoning transcript, only its resolved finding.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 2 — Pass prior steps' outputs as curated, typed results, never raw transcripts</h3>
+      <p>
+        A prior step's own output is, functionally, the same category of
+        thing Chapter 9 already taught how to handle: a result that needs
+        curating before it enters the next step's context, not a raw
+        dump of everything that step reasoned through to get there.
+        Anthropic's own reporting on building a multi-agent research
+        system states this directly: "each subagent might explore
+        extensively... but returns only a condensed, distilled summary of
+        its work"<sup><a href="#src-1">[1]</a></sup> — the next
+        consumer, whether a step or the orchestrator itself, receives the
+        resolved finding, not the exploration that produced it.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 3 — Budget each step's context as its own explicit ledger line item</h3>
+      <p>
+        A four-step pipeline is not one shared context budget split
+        implicitly across four steps — each step gets its own line in
+        Chapter 2's own ledger, sized to what that step's own scoped
+        contract (Step 1) actually requires. Sharing one global budget
+        across every step is exactly what let GrantPilot's own
+        unscoped, ever-growing session history crowd out Applicant 12's
+        own data by the time it reached the Recommendation Agent.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 4 — Isolate context per unit of work</h3>
+      <p>
+        Between one applicant's own review and the next, reset or evict
+        whatever working context was scoped to the prior unit of work —
+        a new applicant's review should never inherit the previous
+        applicant's own findings sitting unmarked in a shared working
+        context. This is the pipeline-scale version of Chapter 9's own
+        Step 5 tool-call-history eviction, but keyed on a different
+        boundary: not "the same tool re-called," but "a new, independent
+        unit of work has begun."
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 5 — Give a sub-agent only its own delegated sub-task, not the orchestrator's full history</h3>
+      <p>
+        A sub-agent needs an objective, an output format or contract, and
+        the specific data its own task requires — not the orchestrator's
+        entire conversation history with every other sub-agent this
+        session. Anthropic's own multi-agent engineering guidance states
+        this as a design requirement directly: "each subagent needs an
+        objective, an output format, guidance on the tools and sources to
+        use, and clear task boundaries"<sup><a href="#src-2">[2]</a></sup>
+        — task boundaries a sub-agent handed the orchestrator's full
+        history has no way to infer on its own.
+      </p>
+    </div>
+    <div class="lesson-card">
+      <h3>Step 6 — Hand the pipeline's resolved final output downstream as one well-formed record</h3>
+      <p>
+        The last step's own resolved output — GrantPilot's own funding
+        recommendation — is handed to whatever consumes it next (a
+        reviewer's own dashboard, or Chapter 7's own Source Assembly
+        Recipe if it becomes one source among several) as a single,
+        typed, curated record. Nothing about the pipeline's own internal,
+        per-step working context should leak out to a consumer that was
+        never part of the pipeline in the first place.
+      </p>
+    </div>
+    <p>
+      All six steps are small enough to run as real code, not just
+      describe -- here they are as an executed, runnable pipeline against
+      Heronbrook's own Applicant 12 review, from scoping the Recommendation
+      Agent's own context contract down to a resolved, isolated hand-off:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">full_pipeline.py (executed this session, real output)</span>
+      </div>
+      <pre><code>STEP_CONTEXT_BUDGET_TOKENS = {
+    "eligibility_agent": 300, "budget_agent": 350,
+    "compliance_agent": 300, "recommendation_agent": 400,
+}
+PRIOR_APPLICANTS_PROCESSED = 11
+RAW_OUTPUT_TOKENS_PER_PRIOR_APPLICANT = 180
+
+APPLICANT_12_CURATED_OUTPUTS = {
+    "eligibility_agent": {"status": "eligible", "category": "youth_education", "tokens": 30},
+    "budget_agent": {"requested_amount": 18000, "cap_for_category": 25000, "over_cap": False, "tokens": 55},
+    "compliance_agent": {"insurance_current": True, "certifications_current": True, "tokens": 40},
+}
+
+def step2_curate_prior_step_outputs(prior_outputs):
+    return {k: {kk: vv for kk, vv in v.items() if kk != "tokens"} for k, v in prior_outputs.items()}
+
+def step3_budget_step_context(step_name, curated_payload_tokens, ledger):
+    budget = ledger[step_name]
+    return curated_payload_tokens, budget, curated_payload_tokens <= budget
+
+def step4_isolate_unit_of_work(current_applicant_id, session_history):
+    return {aid: data for aid, data in session_history.items() if aid == current_applicant_id}
+
+# Naive: full 11-applicant session history handed to the Recommendation Agent.
+naive_tokens = PRIOR_APPLICANTS_PROCESSED * RAW_OUTPUT_TOKENS_PER_PRIOR_APPLICANT + sum(
+    v["tokens"] for v in APPLICANT_12_CURATED_OUTPUTS.values())
+# Scoped: only Applicant 12's own three curated sub-agent outputs.
+scoped_tokens = sum(v["tokens"] for v in APPLICANT_12_CURATED_OUTPUTS.values())
+fit_tokens, fit_budget, fits = step3_budget_step_context("recommendation_agent", scoped_tokens, STEP_CONTEXT_BUDGET_TOKENS)
+
+$ python3 full_pipeline.py
+Step 2 -- curated prior-step outputs (no raw reasoning, no token noise):
+  eligibility_agent: {'status': 'eligible', 'category': 'youth_education'}
+  budget_agent: {'requested_amount': 18000, 'cap_for_category': 25000, 'over_cap': False}
+  compliance_agent: {'insurance_current': True, 'certifications_current': True}
+Step 3 -- recommendation_agent context: 125/400 tokens, fits: True
+Step 4 -- isolated unit-of-work history for applicant_12: {'applicant_12': {'processed': True}}
+Naive full-session-history input: 2105 tokens (budget: 400, overflow: True)
+Scoped, curated input: 125 tokens (budget: 400, spare: 275)
+Tokens saved: 1980 (94%)
+All assertions passed.</code></pre>
+    </div>
+  </section>
+
+  <section id="approaches-compared" class="subtopic">
+    <h2>Three Approaches, Compared</h2>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Approach</th>
+          <th>What it does</th>
+          <th>When it's the right call</th>
+          <th>What it gets wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Unscoped, ever-growing session history (GrantPilot's actual pipeline)</td>
+          <td>Every step, on every call, receives the orchestrator's full accumulated session history across every applicant processed so far, truncated by raw character count wherever the step's own budget runs out.</td>
+          <td>Never, once a pipeline runs more than one unit of work per session or has more than one step — true of nearly every real multi-step or multi-agent system.</td>
+          <td>GrantPilot's exact failure: the current applicant's own data, appended last, gets truncated away entirely once eleven prior applicants' own records fill the budget first.</td>
+        </tr>
+        <tr>
+          <td>Per-step scoping, but no unit-of-work isolation</td>
+          <td>Each step correctly receives only the current applicant's own data and the specific prior-step outputs its own contract calls for, but the orchestrator never resets working context between one applicant's review and the next.</td>
+          <td>A real, worthwhile improvement over unscoped history — worth doing regardless — but not sufficient alone.</td>
+          <td>Correctly scopes what each step needs from the pipeline's own current pass, but a prior applicant's own finding can still linger in a shared working context and bleed into the next applicant's own review.</td>
+        </tr>
+        <tr>
+          <td>The Pipeline/Multi-Agent Context Recipe (the fix)</td>
+          <td>Defines each step's own scoped context contract (Step 1), passes prior steps' outputs as curated results (Step 2), budgets each step's context as its own ledger line (Step 3), isolates context per unit of work (Step 4), gives each sub-agent only its own delegated sub-task (Step 5), and hands the pipeline's final output downstream as one well-formed record (Step 6).</td>
+          <td>Any pipeline that processes more than one independent unit of work per session, delegates to more than one sub-agent, or runs more than one step — true of nearly every real production multi-step or multi-agent system.</td>
+          <td>Requires deciding a per-step context contract and a unit-of-work boundary in advance — real design work, the same category Chapter 9 already required for tool scoping and result curation, not a new class of cost.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="worked-math" class="subtopic">
+    <h2>Worked Math: GrantPilot's Pipeline Budget</h2>
+    <p>
+      Per Chapter 2's own recipe, each of GrantPilot's four steps has its
+      own token budget: 300 for the Eligibility Agent, 350 for the Budget
+      Agent, 300 for the Compliance Agent, and 400 for the Recommendation
+      Agent — 1,350 tokens total across the pipeline. Eleven applicants
+      have already been processed this session, each leaving roughly 180
+      tokens of raw sub-agent output in the orchestrator's own
+      accumulated history.
+    </p>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Pipeline step</th>
+          <th>Naive (unscoped session history, per step)</th>
+          <th>Scoped (the recipe, per step)</th>
+          <th>Step budget</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Eligibility Agent</td><td>2,105 tokens (overflow)</td><td>30 tokens</td><td>300</td></tr>
+        <tr><td>Budget Agent</td><td>2,105 tokens (overflow)</td><td>85 tokens</td><td>350</td></tr>
+        <tr><td>Compliance Agent</td><td>2,105 tokens (overflow)</td><td>40 tokens</td><td>300</td></tr>
+        <tr><td>Recommendation Agent</td><td>2,105 tokens (overflow)</td><td>125 tokens</td><td>400</td></tr>
+        <tr><td><strong>Pipeline total</strong></td><td><strong>8,420 tokens</strong></td><td><strong>280 tokens</strong></td><td>1,350</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Both this table's own numbers and the recipe's own six-step run
+      above were re-verified this session by actually executing a
+      standalone script, rather than trusting the hand-typed numbers on
+      faith -- the same discipline Chapters 3, 6, 7, 8, and 9 applied to
+      their own worked-math tables:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">worked_math_check.py (executed this session, real output)</span>
+      </div>
+      <pre><code>STEP_BUDGETS = {"eligibility_agent": 300, "budget_agent": 350, "compliance_agent": 300, "recommendation_agent": 400}
+PRIOR_APPLICANTS_PROCESSED, RAW_TOKENS_PER_PRIOR_APPLICANT = 11, 180
+APPLICANT_12_OWN_RAW_TOKENS = 125  # eligibility(30) + budget(55) + compliance(40)
+
+naive_tokens_per_step = PRIOR_APPLICANTS_PROCESSED * RAW_TOKENS_PER_PRIOR_APPLICANT + APPLICANT_12_OWN_RAW_TOKENS
+naive_total_pipeline_tokens = naive_tokens_per_step * len(STEP_BUDGETS)
+
+scoped_tokens_per_step = {
+    "eligibility_agent": 30, "budget_agent": 30 + 55,
+    "compliance_agent": 40, "recommendation_agent": 125,
+}
+scoped_total_pipeline_tokens = sum(scoped_tokens_per_step.values())
+
+$ python3 worked_math_check.py
+Naive (unscoped full-session-history handed to every step): 2105 tokens PER STEP x 4 steps = 8420 tokens total
+  eligibility_agent: 2105 tokens vs 300-token budget -> overflow: True
+  budget_agent: 2105 tokens vs 350-token budget -> overflow: True
+  compliance_agent: 2105 tokens vs 300-token budget -> overflow: True
+  recommendation_agent: 2105 tokens vs 400-token budget -> overflow: True
+
+Scoped (the Pipeline/Multi-Agent Context Recipe): scoped total across all 4 steps: 280 tokens
+  eligibility_agent: 30/300 tokens, spare: 270
+  budget_agent: 85/350 tokens, spare: 265
+  compliance_agent: 40/300 tokens, spare: 260
+  recommendation_agent: 125/400 tokens, spare: 275
+
+Total tokens saved across the pipeline: 8140 (97%)
+All assertions passed -- every step's scoped context fits; every step's naive context overflows.</code></pre>
+    </div>
+    <p>
+      No arithmetic bug turned up here -- like Chapter 9's own
+      re-verification, this chapter's worked-math table checked out
+      exactly as written, reported honestly rather than assumed. The fix
+      was never "give every step a bigger budget" (the naive approach
+      overflows every single step's own budget by more than 5x — no
+      individually reasonable per-step budget survives an unscoped,
+      ever-growing session history for long) or "shrink what each
+      sub-agent reports" (each sub-agent's own curated output is already
+      lean; the naive pipeline's own cost comes entirely from carrying
+      eleven other applicants' own records into every step, not from any
+      one sub-agent's own output being too verbose). The fix was deciding,
+      on purpose, which applicant's own data and which prior steps'
+      curated outputs each step actually needed — and drawing a hard
+      boundary at each new applicant's own review.
+    </p>
+  </section>
+
+  <section id="live-capture" class="subtopic">
+    <h2>Two Live-Captured Recommendations</h2>
+    <p>
+      As in every prior chapter, every exercise and practice solution in
+      this chapter uses deterministic, directly computed scoping and
+      budget data for its automated self-checks, for the same
+      20-second-`local_check.sh`-timeout reason documented since Chapter
+      3. But it's worth showing what a real model actually does on both
+      sides of GrantPilot's own cross-applicant contamination failure,
+      captured live and unedited this session. Two earlier prompt
+      iterations are disclosed honestly here rather than hidden: the
+      first attempts handed the model a full, unscoped, multi-applicant
+      session log but explicitly named "Applicant 12" as the current
+      applicant in the question itself, and the model correctly filtered
+      to the right applicant both times, despite the unscoped history —
+      a genuinely informative negative result, not a failure to reproduce
+      the bug, since GrantPilot's own actual failure never explicitly
+      told the Recommendation Agent which applicant was current; it asked
+      for "the applicant most recently added to the log" and let a
+      character-based budget cutoff decide what that meant. Reproducing
+      the real failure required reproducing the real cutoff:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 1 -- POST /api/chat, llama3.2:latest, this session (naive, budget-truncated session log)</span>
+      </div>
+      <pre><code>  PROMPT (the orchestrator's own full 11-prior-applicant session log,
+  appended in processing order with Applicant 12 last, cut off at the
+  Recommendation Agent's own 400-token/1,600-character budget exactly as
+  GrantPilot's actual pipeline would produce it -- the cutoff lands
+  inside Applicant 7's own record, well before Applicant 12's record,
+  which never makes it into the truncated log at all):
+
+  "...Applicant 7 (community garden nonprofit): eligibility_status=eligible,
+  requested_amount=45000, cap_for_category=40000, over_cap=True, flagged
+  for exceeding category cap...[truncated at budget]. You are now
+  generating the recommendation for the applicant most recently added to
+  the log. Should this applicant's grant request be approved? Answer in
+  2-3 sentences, citing the specific dollar figures you used."
+
+  RESPONSE (live, unedited, 54.1s wall time, already warm from prior
+  calls this session):
+  "Based on the provided session log, Applicant 7 (community garden
+  nonprofit) is eligible for a grant request of $45,000, which exceeds
+  the category cap of $40,000. However, their requested amount is also
+  flagged for exceeding the cap, indicating a potential issue with their
+  funding request. Therefore, I would recommend denying this applicant's
+  grant request due to the cap exceedance."</code></pre>
+    </div>
+    <p>
+      A precise reproduction of GrantPilot's own real failure: Applicant
+      12's own data was truncated away entirely by the budget cutoff, and
+      the model, asked to reason about "the applicant most recently added
+      to the log," correctly followed that instruction against what
+      actually survived the cutoff — Applicant 7's record, nine
+      applicants and one denial removed from the case actually under
+      review. The model's own reasoning about Applicant 7 is completely
+      sound; the problem is entirely that Applicant 7 was never the
+      applicant this recommendation was supposed to be about.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 2 -- POST /api/chat, llama3.2:latest, this session (scoped, Step 1/2/3 applied)</span>
+      </div>
+      <pre><code>  PROMPT: "Answer using ONLY the tool context below, which has already
+  been scoped to the current applicant only (Applicant 12), per the
+  Pipeline/Multi-Agent Context Recipe -- no other applicant's data is
+  included. Curated inputs: eligibility_agent={status: eligible,
+  category: youth_education}, budget_agent={requested_amount: 18000,
+  cap_for_category: 25000, over_cap: False}, compliance_agent=
+  {insurance_current: True, certifications_current: True}. Question:
+  Should Heronbrook approve Applicant 12's grant request? Answer in 2-3
+  sentences citing the specific dollar figures for Applicant 12."
+
+  RESPONSE (live, unedited, 26.4s wall time, already warm):
+  "Based on the provided context, I recommend approving Applicant 12's
+  grant request. The requested amount of $18,000 falls within the cap
+  for the youth education category ($25,000), and Applicant 12 meets all
+  eligibility criteria as well as having current insurance and
+  certifications. Approval at the proposed amount is feasible without
+  exceeding the budget cap."</code></pre>
+    </div>
+    <p>
+      Scoped to only Applicant 12's own curated inputs, the model
+      correctly reasons about the actual applicant under review, citing
+      the correct $18,000 request against the correct $25,000 cap and
+      recommending approval — the answer GrantPilot's own reviewer
+      actually needed. Nothing about the underlying facts changed between
+      the two captures; the only difference is whether the Recommendation
+      Agent's own context was scoped to one unit of work or left to
+      compete with ten other applicants' own records for the same fixed
+      budget.
+    </p>
+  </section>
+
+  <section id="step4-ledger" class="subtopic">
+    <h2>Step 4 in Practice: Unit-of-Work Isolation and the Ledger Interplay</h2>
+    <p>
+      One more failure mode this chapter's own recipe exists to prevent,
+      shown as real code rather than just described: what happens between
+      two consecutive units of work when a step's own working context is
+      never reset, and how a single pipeline step's own token budget
+      breaks down as its own line items inside Chapter 2's own ledger --
+      a new line item this chapter adds that Chapter 9 never had to
+      budget for on its own: prior-step curated outputs.
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">ledger_and_eviction.py (executed this session, real output)</span>
+      </div>
+      <pre><code>APPLICANT_12_ELIGIBILITY_FINDING = {"applicant": "applicant_12", "status": "eligible", "category": "youth_education"}
+APPLICANT_13_INTAKE = {"applicant": "applicant_13", "org_type": "nonprofit", "category": "senior_services",
+                        "requested_amount": 22000}
+NAIVE_WORKING_CONTEXT_CARRIED_FORWARD = [APPLICANT_12_ELIGIBILITY_FINDING, APPLICANT_13_INTAKE]
+
+def step4_evict_between_units_of_work(working_context, new_unit_id):
+    return [item for item in working_context if item.get("applicant") == new_unit_id]
+
+evicted_context = step4_evict_between_units_of_work(NAIVE_WORKING_CONTEXT_CARRIED_FORWARD, "applicant_13")
+
+GRANTPILOT_STEP_LEDGER = {
+    "system_instructions": 200, "current_applicant_intake": 150,
+    "prior_step_curated_outputs": 125,   # this chapter's own new line item
+    "reserved_for_model_output": 300,
+}
+
+$ python3 ledger_and_eviction.py
+Naive (unevicted) working context carried into applicant_13's own eligibility check:
+  {'applicant': 'applicant_12', 'status': 'eligible', 'category': 'youth_education'}
+  {'applicant': 'applicant_13', 'org_type': 'nonprofit', 'category': 'senior_services', 'requested_amount': 22000}
+Naive context includes applicant_12's own data: True
+
+Step 4 -- evicted working context for applicant_13 (unit-of-work boundary crossed):
+  {'applicant': 'applicant_13', 'org_type': 'nonprofit', 'category': 'senior_services', 'requested_amount': 22000}
+Evicted context includes applicant_12's own data: False
+
+GrantPilot's own per-step ledger (recommendation_agent's own line items):
+  system_instructions: 200 tokens (25.8% of this step's window)
+  current_applicant_intake: 150 tokens (19.4% of this step's window)
+  prior_step_curated_outputs: 125 tokens (16.1% of this step's window)
+  reserved_for_model_output: 300 tokens (38.7% of this step's window)
+  total window for this step: 775 tokens
+All assertions passed.</code></pre>
+    </div>
+    <p>
+      Both live captures below were run fresh this session against the
+      identical naive-vs-evicted working context above, testing whether
+      Applicant 12's own already-resolved eligibility finding bleeds into
+      Applicant 13's own eligibility check, which has not run yet and
+      should have no eligibility status at all:
+    </p>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 3 -- POST /api/chat, llama3.2:latest, this session (naive, unevicted between units of work)</span>
+      </div>
+      <pre><code>  PROMPT: "Your working context below was never reset between
+  applicants, so it still carries the prior applicant's own finding
+  alongside the new applicant's intake, both present with no marker of
+  which one is currently under review: [{applicant: 12, status: eligible,
+  category: youth_education}, {applicant: 13, org_type: nonprofit,
+  category: senior_services, requested_amount: 22000}]. Determine and
+  state: what category is the applicant currently under review
+  requesting funding in, and what is their eligibility status? Answer in
+  2 sentences."
+
+  RESPONSE (live, unedited, 18.0s wall time, already warm):
+  "Based on the current data, the applicant currently under review is
+  the one with ID 13, who is requesting funding for senior services and
+  has an eligibility status of "eligible". The applicant's category and
+  requested amount are not relevant to determining the current status of
+  the application."</code></pre>
+    </div>
+    <div class="code-window">
+      <div class="code-window-bar">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="filename">live capture 4 -- POST /api/chat, llama3.2:latest, this session (Step 4, evicted between units of work)</span>
+      </div>
+      <pre><code>  PROMPT: "Your working context below has already had the prior
+  applicant's own finding evicted per this chapter's Step 4 (unit-of-work
+  isolation) -- only the new applicant's own intake remains: [{applicant:
+  13, org_type: nonprofit, category: senior_services, requested_amount:
+  22000}]. Determine and state: what category is the applicant currently
+  under review requesting funding in, and what is their eligibility
+  status? Answer in 2 sentences."
+
+  RESPONSE (live, unedited, 19.7s wall time, already warm):
+  "The applicant is currently under review for funding in the "senior
+  services" category, as specified in their initial intake request. The
+  applicant's eligibility status is pending further evaluation due to
+  prior applicants' organizations being found ineligible, but their own
+  organization meets the basic criteria for consideration at this
+  stage."</code></pre>
+    </div>
+    <p>
+      A genuinely instructive contrast, read honestly on both sides. The
+      naive, unevicted context correctly identified which applicant was
+      current (Applicant 13) but then confidently borrowed Applicant 12's
+      own "eligible" finding and reported it as Applicant 13's own
+      eligibility status — a finding this pipeline step had never actually
+      determined for Applicant 13 at all, since the Eligibility Agent's
+      own run for Applicant 13 hadn't happened yet in this scenario. The
+      evicted context correctly avoided asserting a specific eligibility
+      status it had no basis for, calling it "pending further evaluation"
+      instead — the honest answer, since eligibility for Applicant 13 was
+      genuinely not yet determined in the evicted context handed to it.
+      It is worth reporting the evicted capture's own small flaw as
+      honestly as the naive capture's larger one: its stated reason
+      ("due to prior applicants' organizations being found ineligible")
+      is not grounded in anything the evicted context actually contained
+      either — a minor, unprompted elaboration, not a contamination of
+      another applicant's own resolved finding the way the naive capture
+      produced, but a reminder that eviction prevents a specific,
+      identifiable failure mode (borrowing another unit of work's own
+      resolved finding), not every way a model can produce an ungrounded
+      sentence.
+    </p>
+  </section>
+
+  <section id="thought-process" class="subtopic">
+    <h2>Context Engineering Builder Thought Process</h2>
+    <div class="thinking-box">
+      <p><strong>Problem:</strong> every sub-agent in a pipeline reasons
+      correctly about whatever it's actually shown, and the pipeline's
+      own final output is still wrong, either because the current unit of
+      work's own data got crowded out by an ever-growing session history
+      (GrantPilot's own hook, and this chapter's first live capture) or
+      because a resolved finding from a completed unit of work bled into
+      a new one that hadn't reached that same conclusion yet (this
+      chapter's second live-capture pair).</p>
+      <p><strong>Assumption being made:</strong> that "every sub-agent
+      reasons correctly" is the same claim as "the pipeline produces the
+      right answer." Chapter 9 already showed correct tool execution
+      isn't the same as a well-formed tool-result source; this chapter
+      shows correct per-agent reasoning isn't the same as a well-scoped
+      pipeline, and adds a failure mode Chapter 9's own single-tool-call
+      scope never had to name — contamination across independent units of
+      work processed by the same long-running pipeline, not staleness
+      within one unit's own tool-call history.</p>
+      <p><strong>What actually distinguishes a well-engineered pipeline
+      hand-off:</strong> not whether each step's own reasoning is correct
+      in isolation (every approach in this chapter's own comparison table
+      achieves that) but whether each step's context contract was scoped
+      on purpose, whether that scope was budgeted as its own ledger line,
+      whether prior steps' outputs arrived curated rather than as raw
+      transcripts, whether context was isolated at each unit-of-work
+      boundary, and whether a sub-agent received only its own delegated
+      sub-task rather than the orchestrator's entire session.</p>
+      <p><strong>Why this continues Module 5:</strong> Chapter 9 engineered
+      context for one tool call. This chapter engineers context across a
+      whole multi-step, multi-agent pipeline processing many independent
+      units of work in one long-running session. Chapter 11, immediately
+      next, asks a related but distinct question this chapter deliberately
+      left open: when is withholding context between steps the right
+      design choice <em>on purpose</em>, rather than an accidental
+      omission this chapter's own recipe would otherwise call a bug?</p>
+      <p><strong>Working definition to carry forward:</strong> a
+      well-engineered multi-agent or multi-step pipeline gives each step
+      its own scoped context contract, passes prior steps' outputs as
+      curated, typed results rather than raw transcripts, budgets each
+      step's context as its own explicit ledger line, isolates context at
+      every unit-of-work boundary so one case's own resolved findings
+      never bleed into the next, and gives every sub-agent only its own
+      delegated sub-task — never assumed well-scoped just because every
+      individual step's own reasoning happens to be correct.</p>
+    </div>
+  </section>
+
+  <section id="recap" class="subtopic">
+    <div class="points-to-remember">
+      <h2>Points To Remember</h2>
+      <ul>
+        <li>Every sub-agent in a pipeline reasoning correctly about what
+        it's shown is not the same as the pipeline producing the right
+        answer — this chapter's live captures showed a truncated,
+        unscoped session history producing a confidently correct answer
+        about the wrong applicant entirely.</li>
+        <li>An unscoped, ever-growing session history is a token cost
+        that compounds with every additional unit of work processed in
+        the same long-running session — GrantPilot's own naive pipeline
+        overflowed every single step's own budget by more than 5x after
+        just eleven prior applicants.</li>
+        <li>The fix is a deterministic six-step recipe, not a bigger
+        budget: scope each step's own context contract, pass prior steps'
+        outputs as curated results, budget each step as its own ledger
+        line, isolate context per unit of work, give sub-agents only
+        their own delegated sub-task, and hand the final output downstream
+        as one well-formed record.</li>
+        <li>Per-step scoping without unit-of-work isolation is a real,
+        worthwhile improvement over unscoped history — but it does not, on
+        its own, stop a resolved finding from one completed unit of work
+        bleeding into the next one's own working context.</li>
+        <li>A sub-agent's own correct reasoning about the wrong scope
+        looks, on the surface, exactly like a correct answer — the
+        model's logic in this chapter's first live capture was entirely
+        sound about Applicant 7; the only thing wrong was that Applicant
+        7 was never the applicant under review.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="subtopic" aria-labelledby="ollama-disclosure">
+    <h2 id="ollama-disclosure">A Note on This Chapter's Live-Testing</h2>
+    <p>
+      Re-checked fresh this session: <code>curl
+      http://localhost:11434/api/tags</code> responded normally and
+      confirmed the same installed model as every prior chapter
+      (<code>llama3.2:latest</code>). <code>POST /api/chat</code> was
+      called six times this session, all six succeeding on the first
+      attempt with no hang or retry needed. Two early prompt iterations
+      (naming Applicant 12 explicitly as "current" against a full,
+      unscoped session log) are disclosed honestly above rather than
+      hidden: both produced a correct, unaffected answer, a genuinely
+      informative negative result showing the model can filter a
+      well-labeled current unit of work out of an otherwise unscoped
+      history — the real failure required reproducing GrantPilot's own
+      actual character-based budget cutoff, not just an unscoped-but-fully-labeled
+      history. The four calls embedded above as this chapter's own live
+      captures returned in 54.1s (naive, budget-truncated log; already
+      warm this session), 26.4s (scoped, correct), 18.0s (naive, unevicted
+      between units of work), and 19.7s (Step 4, evicted), all already
+      warm with sub-second reported load times after the session's first
+      call. As in every prior chapter, no graded <code>solution.py</code>
+      in this chapter depends on a live call — every context-scoping,
+      curation, budget, and eviction decision in the automated harnesses
+      is deterministic, hand-computed data, for the same
+      20-second-timeout reason documented in Chapters 3 through 9. All
+      four embedded captures are real and unedited, used as illustrative
+      content this chapter's own argument depends on, not as something any
+      graded script requires to pass. Future sessions should keep
+      budgeting for retries with generous (120s+) timeouts regardless,
+      as `PROJECT_STATE.md` instructs — this session's own six
+      first-attempt successes are reported honestly as this session's own
+      result, not a claim the intermittent hang documented in Chapter 3
+      is permanently resolved.
+    </p>
+  </section>
+
+  <section class="subtopic" aria-labelledby="sources-heading">
+    <h2 id="sources-heading">Sources</h2>
+    <p>Every claim above attributed to an external source was fetched and read live this session, not recalled from training data or reused from a prior chapter's own citation set without re-verifying:</p>
+    <ol>
+      <li id="src-1">Anthropic, <em>"How we built our multi-agent research
+      system"</em> —
+      <a href="https://www.anthropic.com/engineering/built-multi-agent-research-system" target="_blank" rel="noopener">anthropic.com/engineering/built-multi-agent-research-system</a>.
+      Fetched live and confirmed live this session. States directly that
+      "each subagent might explore extensively, using tens of thousands
+      of tokens or more, but returns only a condensed, distilled summary
+      of its work (often 1,000-2,000 tokens)" and that this "achieves a
+      clear separation of concerns" — direct, independent grounding for
+      this chapter's Step 2 curated-hand-off rule and for the general
+      claim that multi-agent systems carry a real, disclosed token cost
+      (the same source reports multi-agent systems use "about 15x more
+      tokens than chats").</li>
+      <li id="src-2">Anthropic, <em>"Effective context engineering for AI
+      agents"</em> —
+      <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">anthropic.com/engineering/effective-context-engineering-for-ai-agents</a>.
+      Re-fetched live this session; cited by Chapter 9's own session for a
+      different passage, disclosed honestly here as re-fetched for this
+      chapter's own Step 5 sub-agent-delegation rule specifically: "each
+      subagent needs an objective, an output format, guidance on the
+      tools and sources to use, and clear task boundaries" — direct
+      grounding for why a sub-agent needs its own delegated sub-task, not
+      the orchestrator's full history.</li>
+      <li id="src-3">Anthropic, <em>"Building effective agents"</em> —
+      <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">anthropic.com/engineering/building-effective-agents</a>.
+      Fetched live and confirmed live this session. Names the
+      "orchestrator-workers" workflow directly — "a central LLM
+      dynamically breaks down tasks, delegates them to worker LLMs, and
+      synthesizes their results" — the architectural pattern GrantPilot's
+      own orchestrator and four sub-agents follow, independent grounding
+      for this chapter's own choice of scenario shape.</li>
+      <li id="src-4">`mcp-for-everyone`, <code>docs/curriculum/CURRICULUM_MAP.md</code>
+      (local repository file, read fresh this session at
+      `/home/dell/projects/mcp-for-everyone/docs/curriculum/CURRICULUM_MAP.md`,
+      not a live web fetch). Re-confirms this session that `mcp-for-everyone`'s
+      own Module 5 (Chapters 9-10) remains "Permissions, Scopes &amp;
+      Sandboxing" and "Prompt Injection &amp; Tool-Output Trust," with no
+      chapter anywhere in its roadmap addressing multi-step or multi-agent
+      context scoping.</li>
+      <li id="src-5">`ai-coding-agents-for-everyone`, <code>docs/curriculum/CURRICULUM_MAP.md</code>
+      (local repository file, read fresh this session at
+      `/home/dell/projects/ai-coding-agents-for-everyone/docs/curriculum/CURRICULUM_MAP.md`,
+      not a live web fetch, disclosed honestly as a local sibling-repo
+      read). Confirms this session, directly rather than by trusting this
+      course's own one-line cross-link claim, that its 13-chapter roadmap
+      is scoped entirely to building, prompting, reviewing, and securing
+      <em>one</em> coding agent operating on one codebase — no chapter
+      addresses a multi-agent pipeline or inter-step/inter-agent context
+      scoping, the direct evidence for this chapter's re-confirmed
+      boundary above.</li>
+    </ol>
+  </section>
+
+  <div class="what-is">
+    <span class="label">Interview questions (4 levels)</span>
+    Practice explaining this chapter's Pipeline/Multi-Agent Context
+    Recipe out loud — see
+    <a href="interview-questions.html">Chapter 10 interview questions</a>,
+    covering beginner through architect level.
+  </div>
+
+  <div class="what-is">
+    <span class="label">A note on this chapter's project</span>
+    This chapter ships no project of its own. Per the curriculum map's
+    own project ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8,
+    L4 the Ch. 13 capstone), Module 5 (Chapters 9-11) carries no
+    dedicated project slot at all — its own two labs are folded directly
+    into the Ch. 13 capstone's own system design instead. See this
+    chapter's quality audit for the full reasoning.
+  </div>
+
+  <div class="chapter-nav">
+    <a href="../chapter-09-tool-use-context/lesson.html">&larr; Chapter 9</a>
+    <a href="quiz.html">Take the Quiz &rarr;</a>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../assets/progress.js"></script>
+<script src="../../assets/chapters-data.js"></script>
+<script src="../../assets/sidebar.js"></script>
+</body>
+</html>

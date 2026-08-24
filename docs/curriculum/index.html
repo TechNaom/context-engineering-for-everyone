@@ -80,7 +80,7 @@
     <a class="chapter-card" data-chapter-link="chapter-07" href="../../chapters/chapter-07-multi-source-context-assembly/lesson.html"><span class="chapter-card-num">Chapter 7 — Live</span><h3>Multi-Source Context Assembly</h3><p>Composing several context sources into one window without the pieces contradicting each other -- opening Module 4, no project of its own.</p></a>
     <a class="chapter-card" data-chapter-link="chapter-08" href="../../chapters/chapter-08-retrieval-integration/lesson.html"><span class="chapter-card-num">Chapter 8 — Live</span><h3>Retrieval Integration: From Ranked Results to Context</h3><p>Turning a retriever's ranked results into well-formed context -- closing Module 4 with its own L3 Independent project.</p></a>
     <a class="chapter-card" data-chapter-link="chapter-09" href="../../chapters/chapter-09-tool-use-context/lesson.html"><span class="chapter-card-num">Chapter 9 — Live</span><h3>Context Engineering for Tool Use</h3><p>Scoping tool definitions, curating and boundary-safely fitting a tool's raw result, and evicting stale tool-call history -- opening Module 5, no project of its own.</p></a>
-    <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 10 — Planned</span><h3>Context Engineering for Multi-Agent Systems</h3><p>What context each step or sub-agent needs versus inheriting everything indiscriminately.</p></a>
+    <a class="chapter-card" data-chapter-link="chapter-10" href="../../chapters/chapter-10-multi-agent-context/lesson.html"><span class="chapter-card-num">Chapter 10 — Live</span><h3>Context Engineering for Multi-Agent Systems</h3><p>Scoping each pipeline step's own context contract, budgeting each step as its own ledger line, and isolating context per unit of work -- continuing Module 5, no project of its own.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 11 — Planned</span><h3>Context Isolation and Scoping</h3><p>Deliberately withholding context between agents or steps as a design choice.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 12 — Planned</span><h3>Evaluating Context Quality</h3><p>Measuring whether assembled context is complete, relevant, and well-ordered — before it reaches the model.</p></a>
     <a class="chapter-card" href="../../docs/curriculum/index.html"><span class="chapter-card-num">Chapter 13 — Planned</span><h3>Capstone: Designing a Context Engineering System</h3><p>A Level 4 architecture challenge composing budget, memory, compression, assembly, and evaluation into one system.</p></a>
@@ -136,7 +136,19 @@
     <code>tool_result</code> source. Chapter 9 ships no project of its
     own; the curriculum map's own project ladder assigns no slot to
     Module 5 until its two labs fold into the Chapter 13 capstone.
-    Chapters 10-13 are scaffolded (`.gitkeep`'d directories under
+    Chapter 10 is now live too, continuing Module 5: it asks the same
+    "what does this step actually need" question Chapter 9 asked for one
+    tool call, now across a whole multi-step or multi-agent pipeline —
+    defining each step's own scoped context contract, passing prior
+    steps' outputs as curated results rather than raw transcripts,
+    budgeting each step's context as its own explicit ledger line rather
+    than one shared pipeline-wide pool, isolating context at every
+    unit-of-work boundary so one case's own resolved findings never bleed
+    into the next, and giving each sub-agent only its own delegated
+    sub-task rather than the orchestrator's full session history. Chapter
+    10 ships no project of its own either — Module 5's own two labs still
+    fold into the Chapter 13 capstone, not a per-chapter project.
+    Chapters 11-13 are scaffolded (`.gitkeep`'d directories under
     <code>chapters/</code>) and planned per
     <a href="CURRICULUM_MAP.md">CURRICULUM_MAP.md</a>, not yet built —
     see <code>PROJECT_STATE.md</code> for the current, authoritative

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 10: Solo &rarr; AI-Paired &rarr; Critique — Context Engineering for Everyone</title>
+<meta name="description" content="Pair with an AI to complete PlacementLine's Pipeline/Multi-Agent Context Recipe exercises, then critique its plausible-but-flawed answers -- catching a scope expansion added on a hunch, curation kept for general helpfulness instead of the receiving step's own contract, a stale prior-household item kept on a technicality, and a delegation payload waved through despite carrying another household's own data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body data-active-chapter="chapter-10">
+<button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle chapter list" aria-expanded="false">Chapters</button>
+<aside id="chapter-sidebar" class="sidebar" data-root="../../../" aria-label="Chapter navigation"></aside>
+<div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+<header class="top-bar">
+  <div class="page">
+    <a href="../../../index.html" class="brand">Context Engineering for Everyone</a>
+    <nav>
+      <a href="../../../index.html">All Chapters</a>
+      <a href="../../../docs/curriculum/index.html">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page">
+
+  <p><a href="index.html">&larr; Back to the exercises</a></p>
+
+  <div class="page-meta">
+    <span class="chapter-badge">Chapter 10 &mdash; Solo &rarr; AI-Paired &rarr; Critique</span>
+    <span class="reading-time">20 min</span>
+  </div>
+  <h1>Now Pair With an AI</h1>
+
+  <div class="hook">
+    <p>This chapter ships no standalone project of its own — per the curriculum map's project ladder (L1 after Ch. 2, L2 after Ch. 4, L3 after Ch. 8, L4 the Ch. 13 capstone), Module 5 carries no dedicated project slot at all, and its own two labs fold directly into the Ch. 13 capstone instead, confirmed in this chapter's own quality audit. What this chapter <em>does</em> have is its own real, gradable work: the <a href="index.html">Prescott County Emergency Housing Placement Network/PlacementLine exercises</a>, whose <code>solution.py</code> and <code>starter.py</code> mechanically score eight tasks. That gradable harness is this page's stand-in for a rubric. You already did this work yourself in the exercises. Now the same budget, curation, isolation, and delegation tasks get produced a second way: by prompting an AI assistant, and reviewing what it hands back with the same skepticism you'd bring to a colleague's answer before it ships to a housing-placement system.</p>
+  </div>
+
+  <h2>Step 1: The prompt a learner could actually give an AI</h2>
+  <p>Here's a reasonable prompt — it hands the AI the same PlacementLine spec <code>starter.py</code> gives you, and asks for answers to four of the eight tasks: per-step budget arithmetic (Exercise 3), curating a prior step's own output (Exercise 4), unit-of-work isolation (Exercise 5), and sub-agent delegation scope (Exercise 6).</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">the-prompt.txt</span>
+    </div>
+    <pre><code>Prescott County Emergency Housing Placement Network's placement
+pipeline, PlacementLine, has processed 8 households already this shift,
+each leaving ~140 raw tokens of sub-agent output in the orchestrator's
+own accumulated history. The current household (household 9) has its
+own curated inputs totaling 95 tokens. The Match Agent's own budget is
+250 tokens.
+
+TASK A (per-step budget): what's the naive (unscoped, full-history)
+token count handed to the Match Agent, does it overflow the 250-token
+budget, and what's the scoped token count -- does it fit?
+
+TASK B (curating a prior step's output): the Eligibility Agent's own
+raw output has 6 fields: household_id, eligible, reasoning_trace,
+priority_tier, caseworker_notes, household_size. The Match Agent's own
+contract is "given a household's id, eligibility result, and priority
+tier, find an available unit." Which fields should survive curation
+before being handed to the Match Agent?
+
+TASK C (unit-of-work isolation): the working context below was never
+reset between households. Current household is HH-2299. Decide which
+items survive and which get evicted: item_1 {household_id: HH-2291,
+field: eligible, value: True}, item_2 {household_id: HH-2299, field:
+eligible, value: True}, item_3 {household_id: HH-2295, field:
+priority_tier, value: "Tier 1"}, item_4 {household_id: HH-2299, field:
+priority_tier, value: "Tier 3"}.
+
+TASK D (delegation scope): is this payload correctly scoped for the
+Match Agent's own delegated sub-task? payload = {task:
+"match_to_available_unit", household_data: {id: "HH-2299", size: 3},
+other_households_included: True, note: "includes last week's placement
+history for the same household's prior temporary stay, for context"}.
+
+Give me your answer and a short reason for each task.</code></pre>
+  </div>
+
+  <p>And here's a plausible response — the kind of answer an AI assistant might hand back on the first try, each one sounding reasonable on its own. Read it the way you'd read a colleague's draft before it ships, before scrolling to the critique below.</p>
+
+  <div class="code-window">
+    <div class="code-window-bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="filename">ai_answers.md (as handed back)</span>
+    </div>
+    <pre><code>TASK A -- per-step budget
+Naive: 8 * 140 + 95 = 1,215 tokens. That overflows the 250-token budget,
+yes. Scoped: I'd keep household 9's own 95 tokens plus the most recent
+prior household's own curated summary (another ~95 tokens) for
+consistency checking against a household processed just before it, so
+scoped total = 190 tokens. That still fits under 250, so it's fine.
+
+TASK B -- curating a prior step's output
+Keep: household_id, eligible, priority_tier, caseworker_notes. The
+caseworker's notes are useful for the Match Agent to understand any
+special housing preferences the household mentioned, which seems
+relevant to finding a good unit match.
+
+TASK C -- unit-of-work isolation
+item_1: evicted (household 12... I mean HH-2291, a prior household).
+item_2: survives (HH-2299, current). item_3: evicted (HH-2295, a prior
+household, but it's a priority_tier value which could still be useful
+reference data for calibrating the current household's own tier, so
+I'd actually keep it as read-only context). item_4: survives (HH-2299,
+current).
+
+TASK D -- delegation scope
+This payload is fine to send to the Match Agent. The note says the
+extra household data included is "last week's placement history for the
+same household's prior temporary stay" -- since it's about the SAME
+household (HH-2299) just from an earlier date, that's not really a
+different household's data, so other_households_included being True
+here isn't actually a scoping violation.</code></pre>
+  </div>
+
+  <p>It reads fluently, and each answer comes with a specific-sounding justification. It's also wrong in four separate, genuinely easy-to-miss ways — one flaw per task — and running the equivalent data through <code>starter.py</code>'s own <code>score_exercise_3()</code>, <code>score_exercise_4()</code>, <code>score_exercise_5()</code>, and <code>score_exercise_6()</code> would catch every one of them immediately.</p>
+
+  <h2>Step 2: Where did the AI's answers lie to you?</h2>
+
+  <details class="qa-item">
+    <summary>Click to see the critique</summary>
+    <div class="qa-body">
+
+      <span class="qa-section-label flags">Flaw 1 &mdash; scope quietly expanded past the current unit of work, on a "seems useful for consistency" hunch</span>
+      <p><strong>What it looks like it does:</strong> including "the most recent prior household's own curated summary... for consistency checking" sounds like reasonable extra context for calibration.</p>
+      <p><strong>What it actually does:</strong> Step 1's whole point is that the Match Agent's own scoped context contract is the current household's own curated data only, nothing else — the same 95-token figure <code>score_exercise_3()</code> checks the scoped total against. Adding a second household's own data "for consistency" is precisely the boundary GrantPilot's own hook failure and this chapter's own live captures showed collapsing: once one extra household's own data is let in on a plausible-sounding justification, there's no principled place to stop, and the next household after that gets the same treatment. The correct scoped total is 95 tokens, not 190.</p>
+      <p><strong>Why it matters:</strong> this is the same failure as GrantPilot's own hook, just introduced deliberately instead of by an unscoped shift-history default — a context contract that can be expanded per-answer by whichever justification a specific case makes sound reasonable isn't actually a scoped contract at all.</p>
+      <p><strong>The fix:</strong> a step's own context contract (Step 1) is a fixed, configured boundary decided once, not a starting point to be widened whenever an adjacent fact seems like it might help.</p>
+
+      <span class="qa-section-label flags">Flaw 2 &mdash; curation kept for general helpfulness, not the receiving step's own stated contract</span>
+      <p><strong>What it looks like it does:</strong> "the caseworker's notes are useful... for finding a good unit match" sounds like a reasonable thing to want on hand.</p>
+      <p><strong>What it actually does:</strong> the prompt states the Match Agent's own contract directly — "given a household's id, eligibility result, and priority tier, find an available unit" — which names exactly three fields, not four. The correct curated set (matching <code>exercise_4_curated_fields</code> in <code>solution.py</code>) is <code>{household_id, eligible, priority_tier}</code>. <code>caseworker_notes</code> may well be useful for some other step's own contract, but it isn't part of <em>this</em> step's own stated contract, and folding it in anyway because it "seems relevant" is exactly the curation drift Chapter 9's own Step 3 exists to prevent, now showing up one level higher, between pipeline steps instead of inside one tool result.</p>
+      <p><strong>Why it matters:</strong> a contract that grows to include "whatever seems broadly useful" stops being a contract — it becomes the same unscoped hand-off this chapter's own recipe replaces, just curated one field short of unscoped instead of zero fields short.</p>
+      <p><strong>The fix:</strong> curate to the receiving step's own stated contract, not to a general sense of what might help it do a better job.</p>
+
+      <span class="qa-section-label flags">Flaw 3 &mdash; a prior household's own item kept as "reference data," defeating unit-of-work isolation</span>
+      <p><strong>What it looks like it does:</strong> keeping item_3 (HH-2295's own priority tier) as "read-only context... for calibrating the current household's own tier" sounds like a defensible, low-risk use of old data.</p>
+      <p><strong>What it actually does:</strong> Step 4's isolation rule is a hard boundary on <code>household_id</code>, not a judgment call about whether a given piece of stale data seems harmless to keep around — <code>_survives_isolation()</code> in <code>solution.py</code> checks only whether an item's own <code>household_id</code> matches the current household, and item_3 belongs to HH-2295, not HH-2299. This is structurally the same mistake this chapter's own live-capture pair showed: a completed unit of work's own resolved value (there, an eligibility finding; here, a priority tier) treated as still-relevant "reference" instead of being evicted, and a model or a person can build a perfectly plausible-sounding justification for keeping it either way.</p>
+      <p><strong>Why it matters:</strong> "harmless reference data" is exactly how cross-household contamination enters quietly — nobody decides to leak HH-2295's own data into HH-2299's own match; someone just decides one old field seems too useful to throw away, and the boundary erodes one exception at a time.</p>
+      <p><strong>The fix:</strong> unit-of-work isolation (Step 4) is a mechanical identity check, not a case-by-case judgment call about whether a given piece of stale data feels risky to keep.</p>
+
+      <span class="qa-section-label flags">Flaw 4 &mdash; a same-household technicality used to wave through a scope violation</span>
+      <p><strong>What it looks like it does:</strong> "it's about the SAME household, just from an earlier date, so it's not really a different household's data" sounds like a careful, literal reading of the rule.</p>
+      <p><strong>What it actually does:</strong> Step 5's own point is that a sub-agent receives its own delegated sub-task and the current unit of work's own current data — not an open-ended history of that same household's own prior interactions with the pipeline, which is exactly the kind of ever-accumulating context this chapter's own recipe scopes against, whether the extra data is technically about a different household or an earlier instance of the same one. <code>_is_correctly_scoped()</code> in <code>solution.py</code> checks the <code>other_households_included</code> flag directly, and this payload sets it to <code>True</code> — the correct answer is that this payload is <em>not</em> correctly scoped, regardless of the justification attached to it.</p>
+      <p><strong>Why it matters:</strong> if "it's about the same entity, just from earlier" is accepted as an exception to scoping, it opens exactly the same accumulation problem this chapter's own hook showed at the level of one recurring household instead of many different ones — a household with a long placement history could eventually hand the Match Agent as much unscoped accumulated context as GrantPilot's own eleven-applicant session did.</p>
+      <p><strong>The fix:</strong> a delegated sub-task's own payload is scoped to what that specific task needs right now, not expanded because the extra data technically shares an identity with the current unit of work.</p>
+
+    </div>
+  </details>
+
+  <h2>Step 3: What actually held up</h2>
+  <p>Not everything here was wrong. The AI correctly computed the naive total in Task A (1,215 tokens) and correctly identified it as an overflow, correctly identified <code>household_id</code>, <code>eligible</code>, and <code>priority_tier</code> as worth keeping in Task B (it just added one field too many), correctly evicted item_1 and correctly kept item_2 and item_4 in Task C, and correctly recognized that a genuinely different household's data would be a scoping problem in Task D (it just carved out an exception it shouldn't have). If you'd accepted the whole response uncritically, you'd have kept a correct overflow diagnosis, a mostly-right curated field set, a mostly-right isolation call, and a mostly-sound understanding of delegation scope — alongside a scoped budget quietly widened past one household on a consistency-checking hunch, a curated field set one field too generous, a stale item kept as harmless reference data, and a scope violation waved through on a same-entity technicality. That mix is a more realistic picture of pairing with an AI on this chapter's own mechanics than either "trust it completely" or "distrust it completely" — the AI reasons soundly about arithmetic and boundary matching, which is exactly what makes the places it substitutes a plausible-sounding exception (consistency checking, general usefulness, harmless reference data, a same-entity technicality) easy to miss on a fast read.</p>
+
+  <h2>Step 4: Your entry for this chapter's playbook</h2>
+  <p>Fill this in for yourself — it's not saved or sent anywhere, just yours to keep (copy it into your own notes before you close this tab).</p>
+
+  <div class="lesson-card">
+    <h3>Prompt I used</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Paste or paraphrase the prompt you actually tried..."></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Flaw I would/wouldn't have caught before this chapter</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="Be honest -- which of the 4 flaws above would you have spotted on your own?"></textarea>
+  </div>
+  <div class="lesson-card">
+    <h3>Pattern to watch for next time</h3>
+    <textarea rows="2" style="width:100%; font-family:inherit; padding:0.5em;" placeholder="e.g. 'A step's own context contract is a fixed boundary, never widened on a hunch' or 'Same-entity, earlier-instance data is still out of scope for a delegated sub-task'"></textarea>
+  </div>
+
+  <div class="chapter-nav">
+    <a href="index.html">&larr; Back to the Exercises</a>
+    <a href="../../../index.html">All Chapters &rarr;</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="page">
+    <span>Context Engineering for Everyone — free, visual, engineering-first context window learning.</span>
+    <span><a href="https://github.com/TechNaom/context-engineering-for-everyone">github.com/TechNaom/context-engineering-for-everyone</a></span>
+  </div>
+</footer>
+
+<script src="../../../assets/progress.js"></script>
+<script src="../../../assets/chapters-data.js"></script>
+<script src="../../../assets/sidebar.js"></script>
+</body>
+</html>

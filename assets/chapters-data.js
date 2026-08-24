@@ -114,7 +114,8 @@ window.CEFE_MODULES = [
         id: "chapter-10",
         num: 10,
         title: "Context Engineering for Multi-Agent Systems",
-        description: "What context each step or sub-agent needs versus inheriting everything indiscriminately, across a multi-step pipeline."
+        description: "What context each step or sub-agent needs versus inheriting everything indiscriminately, across a multi-step pipeline.",
+        path: "chapters/chapter-10-multi-agent-context/lesson.html"
       },
       {
         id: "chapter-11",
